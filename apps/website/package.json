@@ -19,6 +19,7 @@
     "svelte": "^5.55.2"
   },
   "devDependencies": {
+    "@sveltejs/vite-plugin-svelte": "^6.2.4",
     "@repo/tailwind-config": "workspace:*",
     "@tailwindcss/postcss": "^4.2.2",
     "postcss": "^8.5.6",
