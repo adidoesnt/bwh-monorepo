@@ -4,6 +4,9 @@
   "scripts": {
     "build": "turbo run build",
     "dev": "turbo run dev",
+    "dev:website": "turbo run dev --filter=website",
+    "dev:portal": "turbo run dev --filter=booking-portal",
+    "dev:shop": "turbo run dev --filter=shop",
     "lint": "turbo run lint",
     "format": "prettier --write \"**/*.{ts,tsx,md}\"",
     "check-types": "turbo run check-types"
