@@ -9,3 +9,40 @@
   --font-sans: ui-sans-serif, system-ui, sans-serif, "Apple Color Emoji",
     "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";
 }
+
+@plugin "daisyui";
+
+@plugin "daisyui/theme" {
+  name: "builtwithhabit";
+  default: false;
+  prefersdark: false;
+  color-scheme: "light";
+  --color-base-100: #F7F3EE;
+  --color-base-200: #EEE7DF;
+  --color-base-300: #E3D8CE;
+  --color-base-content: #3A322E;
+  --color-primary: #A8938F;
+  --color-primary-content: #F8F4EF;
+  --color-secondary: #C9B8AE;
+  --color-secondary-content: #2E2A28;
+  --color-accent: #8E6D73;
+  --color-accent-content: #F8F4EF;
+  --color-neutral: #2B2A2F;
+  --color-neutral-content: #EDE7DF;
+  --color-info: #7AA8B4;
+  --color-info-content: #10242B;
+  --color-success: #9BB39A;
+  --color-success-content: #1C2A1D;
+  --color-warning: #C6A46A;
+  --color-warning-content: #2A1D09;
+  --color-error: #B97078;
+  --color-error-content: #2B0F14;
+  --radius-selector: 1rem;
+  --radius-field: 2rem;
+  --radius-box: 0rem;
+  --size-selector: 0.25rem;
+  --size-field: 0.25rem;
+  --border: 1px;
+  --depth: 0;
+  --noise: 1;
+}
