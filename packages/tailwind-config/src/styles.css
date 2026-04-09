@@ -1,0 +1,11 @@
+@import "tailwindcss/index.css";
+
+@source "../../ui/src";
+@source "../../../apps/website/src";
+@source "../../../apps/booking-portal/src";
+@source "../../../apps/shop/src";
+
+@theme {
+  --font-sans: ui-sans-serif, system-ui, sans-serif, "Apple Color Emoji",
+    "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";
+}
