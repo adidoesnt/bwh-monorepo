@@ -1,6 +1,6 @@
 ---
 import '../styles/global.css';
-import { Button } from '@repo/ui/button';
+import Button from '@repo/ui/button';
 ---
 
 <html lang="en">
@@ -13,10 +13,10 @@ import { Button } from '@repo/ui/button';
 		<title>Astro</title>
 	</head>
 	<body class="min-h-dvh bg-zinc-50 p-8 font-sans text-zinc-900 antialiased">
-		<h1 class="text-2xl font-semibold tracking-tight">Astro</h1>
+		<h1 class="text-2xl font-semibold tracking-tight">Website</h1>
 		<p class="mt-2 text-zinc-600">Tailwind via <code class="rounded bg-zinc-200 px-1.5 py-0.5 text-sm">@repo/tailwind-config</code></p>
 		<div class="mt-6">
-			<Button client:load appName="Astro" className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700">
+			<Button client:load appName="Astro" class="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700">
 				Shared UI button
 			</Button>
 		</div>
