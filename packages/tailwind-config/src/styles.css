@@ -1,3 +1,6 @@
+@import url("https://fonts.googleapis.com/css2?family=Old+Standard+TT:ital,wght@0,400;0,700;1,400&display=swap");
+@import url("https://fonts.googleapis.com/css2?family=Old+Standard+TT:wght@400;700&family=Lora:wght@400;700&display=swap");
+
 @import "tailwindcss/index.css";
 
 @source "../../ui/src";
@@ -6,8 +9,9 @@
 @source "../../../apps/shop/src";
 
 @theme {
-  --font-sans: ui-sans-serif, system-ui, sans-serif, "Apple Color Emoji",
-    "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";
+  --font-sans:
+    ui-sans-serif, system-ui, sans-serif, "Apple Color Emoji", "Segoe UI Emoji",
+    "Segoe UI Symbol", "Noto Color Emoji";
 }
 
 @plugin "daisyui";
@@ -17,32 +21,43 @@
   default: true;
   prefersdark: false;
   color-scheme: "light";
-  --color-base-100: #F7F3EE;
-  --color-base-200: #EEE7DF;
-  --color-base-300: #E3D8CE;
-  --color-base-content: #3A322E;
-  --color-primary: #A8938F;
-  --color-primary-content: #F8F4EF;
-  --color-secondary: #C9B8AE;
-  --color-secondary-content: #2E2A28;
-  --color-accent: #8E6D73;
-  --color-accent-content: #F8F4EF;
-  --color-neutral: #2B2A2F;
-  --color-neutral-content: #EDE7DF;
-  --color-info: #7AA8B4;
-  --color-info-content: #10242B;
-  --color-success: #9BB39A;
-  --color-success-content: #1C2A1D;
-  --color-warning: #C6A46A;
-  --color-warning-content: #2A1D09;
-  --color-error: #B97078;
-  --color-error-content: #2B0F14;
+  --color-base-100: #f7f3ee;
+  --color-base-200: #eee7df;
+  --color-base-300: #e3d8ce;
+  --color-base-content: #3a322e;
+  --color-primary: #a8938f;
+  --color-primary-content: #f8f4ef;
+  --color-secondary: #c9b8ae;
+  --color-secondary-content: #2e2a28;
+  --color-accent: #8e6d73;
+  --color-accent-content: #f8f4ef;
+  --color-neutral: #2b2a2f;
+  --color-neutral-content: #ede7df;
+  --color-info: #7aa8b4;
+  --color-info-content: #10242b;
+  --color-success: #9bb39a;
+  --color-success-content: #1c2a1d;
+  --color-warning: #c6a46a;
+  --color-warning-content: #2a1d09;
+  --color-error: #b97078;
+  --color-error-content: #2b0f14;
+
   --radius-selector: 1rem;
   --radius-field: 2rem;
   --radius-box: 0rem;
+
   --size-selector: 0.25rem;
   --size-field: 0.25rem;
+
   --border: 1px;
+
   --depth: 0;
   --noise: 1;
+
+  --font-headings: "Old Standard TT", serif;
+  --font-body: "Lora", sans-serif;
+}
+
+html {
+  scroll-behavior: smooth;
 }

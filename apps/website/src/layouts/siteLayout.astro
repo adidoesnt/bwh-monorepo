@@ -1,0 +1,25 @@
+---
+import "../styles/global.css";
+
+import { Header, Footer } from "../components";
+---
+
+<html lang="en" data-theme="builtwithhabit">
+  <head>
+    <meta charset="utf-8" />
+    <link rel="icon" type="image/svg+xml" href="/bwh-logo-small.png" />
+    <link rel="icon" href="/bwh-logo-small.png" />
+    <meta name="viewport" content="width=device-width" />
+    <meta name="generator" content={Astro.generator} />
+    <title>Astro</title>
+  </head>
+  <body
+    class="min-h-dvh grid grid-rows-[auto_1fr_auto] bg-base-100 p-8 font-sans text-base-content antialiased"
+  >
+    <Header />
+    <main>
+      <slot />
+    </main>
+    <Footer />
+  </body>
+</html>
