@@ -14,7 +14,7 @@
 
 @plugin "daisyui/theme" {
   name: "builtwithhabit";
-  default: false;
+  default: true;
   prefersdark: false;
   color-scheme: "light";
   --color-base-100: #F7F3EE;
