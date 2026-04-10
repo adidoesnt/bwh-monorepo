@@ -1,10 +1,12 @@
 ---
-import { Logo, Navbar } from ".";
+import { Logo, Navbar, SearchBar } from ".";
 ---
 
 <header>
   <div class="grid grid-cols-3 items-center">
-    <div class="flex w-full justify-start">TODO: Search bar</div>
+    <div class="flex w-full justify-start">
+      <SearchBar client:load />
+    </div>
     <div class="flex w-full justify-center">
       <a href="/"><Logo /></a>
     </div>
