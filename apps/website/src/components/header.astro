@@ -1,16 +1,37 @@
 ---
 import { Logo, Navbar, SearchBar } from ".";
+import { CartIcon, MenuIcon, UserIcon } from "@repo/ui/icons";
+
+// TODO: Shift to environment variables
+const SHOP_URL = "https://shop.builtwithhabit.com";
+const PT_URL = "https://pt.builtwithhabit.com";
 ---
 
 <header>
-  <div class="grid grid-cols-3 items-center">
-    <div class="flex w-full justify-start">
+  <div class="grid md:grid-cols-3 grid-cols-[1fr_auto] items-center">
+    <div class="hidden md:flex w-full justify-start">
       <SearchBar client:load />
     </div>
-    <div class="flex w-full justify-center">
+    <div class="flex w-full md:justify-center justify-start">
       <a href="/"><Logo /></a>
     </div>
-    <div class="flex w-full justify-end">TODO: Icons</div>
+    <div class="flex w-full justify-end md:gap-1">
+      <a
+        target="_blank"
+        href={SHOP_URL}
+        class="md:flex hidden btn btn-ghost aspect-square p-1"
+      >
+        <CartIcon className="md:w-5 md:h-5" />
+      </a>
+      <button class="md:hidden flex btn btn-ghost aspect-square p-1">
+        <MenuIcon className="md:w-5 md:h-5" />
+      </button>
+      <a target="_blank" href={PT_URL} class="btn btn-ghost aspect-square p-1">
+        <UserIcon className="md:w-5 md:h-5" />
+      </a>
+    </div>
   </div>
-  <Navbar />
+  <div class="md:block hidden">
+    <Navbar />
+  </div>
 </header>

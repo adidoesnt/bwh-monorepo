@@ -9,9 +9,8 @@
 @source "../../../apps/shop/src";
 
 @theme {
-  --font-sans:
-    ui-sans-serif, system-ui, sans-serif, "Apple Color Emoji", "Segoe UI Emoji",
-    "Segoe UI Symbol", "Noto Color Emoji";
+  --font-headings: "Old Standard TT", serif;
+  --font-body: "Lora", sans-serif;
 }
 
 @plugin "daisyui";
@@ -53,9 +52,6 @@
 
   --depth: 0;
   --noise: 1;
-
-  --font-headings: "Old Standard TT", serif;
-  --font-body: "Lora", sans-serif;
 }
 
 html {
