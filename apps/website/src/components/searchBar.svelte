@@ -32,6 +32,6 @@
     placeholder="search"
   />
   <button class="btn btn-sm btn-ghost aspect-square p-1">
-    <SearchIcon className="w-5 h-5" />
+    <SearchIcon className="size-5" />
   </button>
 </div>
