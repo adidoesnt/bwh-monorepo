@@ -40,7 +40,7 @@ import { LogoIcon } from "@repo/ui/icons";
   <!-- Slogan Section -->
   <section
     id="slogan-section"
-    class="bg-beige grid min-h-[50dvh] place-items-center p-4 md:p-8"
+    class="bg-base-100 grid min-h-[50dvh] place-items-center p-4 md:p-8"
   >
     <p class="font-body text-dark-brown text-center text-lg md:text-2xl">
       at <span class="font-bold">builtwithhabit,</span><br />our
@@ -48,5 +48,59 @@ import { LogoIcon } from "@repo/ui/icons";
       <span class="font-bold">skin-safe high-performance activewear</span><br />
       meet your body where it's at and supports where it's going.
     </p>
+  </section>
+
+  <!-- Mission Section -->
+  <section
+    id="mission-section"
+    class="bg-base-200 grid min-h-[50dvh] place-items-center p-4 md:p-8 gap-4"
+  >
+    <h1
+      class="font-headings text-dark-brown text-center text-3xl font-bold tracking-wide md:text-5xl"
+    >
+      our brand mission
+    </h1>
+
+    <div
+      class="grid w-full max-w-6xl gap-4 text-left md:grid-cols-[2fr_1fr] md:gap-8"
+    >
+      <div
+        id="mission-image"
+        class="order-1 flex w-full max-w-md items-center justify-center overflow-hidden rounded-sm md:order-2 md:max-w-none"
+      >
+        <img
+          src="/headshot.png"
+          alt="Headshot of the founder"
+          class="h-full w-full rounded-sm object-cover"
+        />
+      </div>
+      <div
+        id="mission-text"
+        class="order-2 flex flex-col justify-center gap-4 md:order-1"
+      >
+        <p class="font-body text-dark-brown text-lg md:text-2xl">
+          sweat smarter. <span class="font-bold">live stronger.</span>
+        </p>
+        <p class="font-body text-dark-brown text-lg md:text-2xl">
+          at builtwithhabit, we blend evidence-based coaching and skin-safe
+          activewear to help you train with intention, feel strong in your body
+          and build habits that last!
+        </p>
+        <p class="font-body text-dark-brown text-lg md:text-2xl">
+          on the coaching side, i focus on the fundamentals: progressive
+          resistance training, sustainable programming and whole-food nutrition
+          - personalised to you.
+        </p>
+        <p class="font-body text-dark-brown text-lg md:text-2xl">
+          on the activewear front, we're rethinking activewear from the fiber
+          up. no polyester, no plastic-based coatings, no harmful dyes and no
+          greenwashed gimmicks - just skin-safe materials engineered for real
+          performance. from high-support bras to glute-sculpting leggings, every
+          piece is designed to move with you! <span class="font-bold"
+            >[launching soon]</span
+          >
+        </p>
+      </div>
+    </div>
   </section>
 </SiteLayout>
