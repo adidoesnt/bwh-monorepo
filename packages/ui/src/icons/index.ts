@@ -1,4 +1,12 @@
 export { default as CartIcon } from "./cartIcon.svelte";
+export { default as EmailIcon } from "./emailIcon.svelte";
+export { default as HouseIcon } from "./houseIcon.svelte";
+export { default as InstagramIcon } from "./instagramIcon.svelte";
+export { default as LinkedInIcon } from "./linkedIn.svelte";
+export { default as LogoIcon } from "./logoIcon.svelte";
 export { default as MenuIcon } from "./menuIcon.svelte";
+export { default as MobileIcon } from "./mobileIcon.svelte";
+export { default as PinterestIcon } from "./pinterestIcon.svelte";
 export { default as SearchIcon } from "./searchIcon.svelte";
+export { default as TiktokIcon } from "./tiktokIcon.svelte";
 export { default as UserIcon } from "./userIcon.svelte";

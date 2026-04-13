@@ -1,3 +1,108 @@
-<footer>
-  <p>Copyright © 2026 Built with Habit</p>
+---
+import FooterLinks from "./footerLinks.svelte";
+import {
+  EmailIcon,
+  MobileIcon,
+  HouseIcon,
+  InstagramIcon,
+  LinkedInIcon,
+  PinterestIcon,
+  TiktokIcon,
+} from "@repo/ui/icons";
+---
+
+<footer class="bg-neutral text-neutral-content p-4">
+  <div class="grid grid-cols-1 gap-8 md:grid-cols-3">
+    <!-- Logo, description and CTA -->
+    <div id="footer-logo" class="flex flex-col items-start gap-2">
+      <a href="/" class="mb-4 inline-block">
+        <img
+          src="/bwh-logo.jpeg"
+          alt="Built with Habit Logo"
+          class="h-30 w-auto rounded-sm"
+        />
+      </a>
+      <p class="font-body text-beige text-sm md:max-w-1/2">
+        Embark on a personalised fitness journey that works for you.
+      </p>
+      <p class="font-body text-beige text-sm md:max-w-1/2">
+        Contact us for inquiries and partnerships!
+      </p>
+    </div>
+
+    <FooterLinks />
+
+    <div id="footer-contact" class="flex flex-col gap-6">
+      <div class="flex flex-col gap-4">
+        <h3 class="font-headings text-lg font-semibold">Contact Us</h3>
+        <ul class="font-body flex flex-col gap-3 text-sm">
+          <li class="flex items-center gap-2">
+            <HouseIcon />
+            <span>meyer road, singapore 437901 </span>
+          </li>
+          <li class="flex items-center gap-2">
+            <a href={`mailto:ishita@builtwithhabit.com`}>
+              <EmailIcon
+                className="hover:text-neutral-content/80 hover:scale-110 transition-all duration-300"
+              />
+            </a>
+            <a
+              href={`mailto:ishita@builtwithhabit.com`}
+              class="hover:text-neutral-content/80 transition-all"
+            >
+              ishita@builtwithhabit.com
+            </a>
+          </li>
+          <li class="flex items-center gap-2">
+            <a href={`tel:+6589349627`}>
+              <MobileIcon
+                className="hover:text-neutral-content/80 hover:scale-110 transition-all duration-300"
+              />
+            </a>
+            <a
+              href={`tel:+6589349627`}
+              class="hover:text-neutral-content/80 transition-colors"
+            >
+              +65 8934 9627
+            </a>
+          </li>
+        </ul>
+      </div>
+
+      <!-- Social Media Section -->
+      <div class="flex flex-col gap-4">
+        <h3 class="font-headings text-lg font-semibold">socials</h3>
+        <div class="flex gap-4">
+          <a
+            href={"https://www.instagram.com/builtwithishita/"}
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            <InstagramIcon className="size-6" /></a
+          >
+          <a
+            href={"https://www.linkedin.com/company/builtwithishita/"}
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            <LinkedInIcon className="size-6" />
+          </a>
+          <a
+            href={"https://www.pinterest.com/builtwithishita/"}
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            <PinterestIcon className="size-6" />
+          </a>
+          <a
+            href={"https://www.tiktok.com/@builtwithishita/"}
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            <TiktokIcon className="size-6" />
+          </a>
+        </div>
+      </div>
+    </div>
+  </div>
 </footer>
