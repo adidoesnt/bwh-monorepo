@@ -1,0 +1,89 @@
+---
+import { SiteLayout } from "../layouts";
+---
+
+<SiteLayout>
+  <section
+    id="why-section"
+    class="bg-base-200 grid min-h-[50dvh] place-items-center p-4 md:p-8 gap-4"
+  >
+    <!-- Section Header -->
+    <h1
+      class="font-headings text-dark-brown text-center text-3xl md:text-4xl font-bold tracking-wide"
+    >
+      our why
+    </h1>
+
+    <!-- Section Content -->
+    <div
+      class="grid w-full max-w-6xl gap-4 text-left md:grid-cols-[2fr_1fr] md:gap-8"
+    >
+      <!-- Image -->
+      <div
+        id="why-image"
+        class="flex h-full flex-col gap-4 items-center order-1 w-full max-w-md md:order-2 md:max-w-none"
+      >
+        <div class="relative w-full flex-1 min-h-0 overflow-hidden rounded-sm">
+          <img
+            src="/why-section-image.jpg"
+            alt="Picture of the founder"
+            class="absolute inset-0 z-0 h-full w-full object-cover"
+          />
+        </div>
+
+        <a
+          href="/blog"
+          class="text-dark-brown underline transition-opacity duration-300 hover:opacity-50 font-body"
+        >
+          learn more about my journey!
+        </a>
+      </div>
+
+      <!-- Text -->
+      <div id="why-text" class="order-2 flex flex-col gap-4 md:order-1">
+        <p class="font-body text-dark-brown text-lg md:text-xl">
+          hi, i'm ishita, a
+          <span class="font-bold"
+            >nasm personal fitness trainer [non ncca-accredited]</span
+          >
+          with a <span class="font-bold">deep love for movement</span> and a passion
+          for <span class="font-bold">helping women build strength!</span> i grew
+          up playing basketball, cycling, dancing - spending hours under the sun.
+          then, during the pandemic,
+          <span class="font-bold">lifting became an anchor for me.</span>
+        </p>
+
+        <p class="font-body text-dark-brown text-lg md:text-xl">
+          i started <span class="font-bold">coaching in mid 2025</span> and it quickly
+          became one of the most
+          <span class="font-bold">meaningful, fulfilling parts of my life!</span
+          >
+          working with women who show up despite busy jobs, long days, family responsibilities,
+          the general chaos of life and watching them reconnect with or unlock new
+          parts of themselves - is
+          <span class="font-bold">incredibly powerful.</span>
+        </p>
+
+        <p class="font-body text-dark-brown text-lg md:text-xl">
+          as i coached more clients and dove deeper into the science, i realised
+          something was still missing: not just in
+          <span class="font-bold">how we train</span> but
+          <span class="font-bold italic">what we train in.</span> that's where the
+          activewear came in! <span class="italic">builtwithhabit</span> was born
+          out of a desire to create activewear that's as intentional as the training
+          itself:
+          <span class="font-bold"
+            >high-performance, skin-safe and free from the hidden plastics as
+            well as toxins</span
+          >
+          found in most athletic wear!
+        </p>
+
+        <p class="font-body text-dark-brown text-lg md:text-xl">
+          what a ride it’s been so far... and
+          <span class="font-bold italic">we’re just getting started!</span>
+        </p>
+      </div>
+    </div>
+  </section>
+</SiteLayout>
