@@ -1,5 +1,6 @@
 ---
 import { SiteLayout } from "../layouts";
+import { MissionSection } from "../components";
 ---
 
 <SiteLayout>
@@ -16,12 +17,12 @@ import { SiteLayout } from "../layouts";
 
     <!-- Section Content -->
     <div
-      class="grid w-full max-w-6xl gap-4 text-left md:grid-cols-[2fr_1fr] md:gap-8"
+      class="grid w-full max-w-6xl gap-4 text-left md:grid-cols-[1fr_2fr] md:gap-8"
     >
       <!-- Image -->
       <div
         id="why-image"
-        class="flex flex-col gap-4 items-center order-1 w-full max-w-md md:order-2 md:max-w-none md:h-full md:min-h-0"
+        class="flex flex-col gap-4 items-center order-1 w-full max-w-md md:order-1 md:max-w-none md:h-full md:min-h-0"
       >
         <div
           class="relative w-full aspect-4/3 overflow-hidden rounded-sm md:aspect-auto md:h-full md:flex-1 md:min-h-0"
@@ -42,7 +43,7 @@ import { SiteLayout } from "../layouts";
       </div>
 
       <!-- Text -->
-      <div id="why-text" class="order-2 flex flex-col gap-4 md:order-1">
+      <div id="why-text" class="order-2 flex flex-col gap-4 md:order-2">
         <p class="font-body text-dark-brown text-lg md:text-xl">
           hi, i'm ishita, a
           <span class="font-bold"
@@ -95,4 +96,11 @@ import { SiteLayout } from "../layouts";
       </div>
     </div>
   </section>
+
+  <!-- Mission Section -->
+  <MissionSection
+    imageSrc="/headshot.png"
+    imageAlt="Headshot of the founder"
+    sectionClass="bg-base-100 grid min-h-[50dvh] place-items-center py-8 p-4 md:p-8 gap-4"
+  />
 </SiteLayout>
