@@ -21,9 +21,11 @@ import { SiteLayout } from "../layouts";
       <!-- Image -->
       <div
         id="why-image"
-        class="flex h-full flex-col gap-4 items-center order-1 w-full max-w-md md:order-2 md:max-w-none"
+        class="flex flex-col gap-4 items-center order-1 w-full max-w-md md:order-2 md:max-w-none md:h-full md:min-h-0"
       >
-        <div class="relative w-full flex-1 min-h-0 overflow-hidden rounded-sm">
+        <div
+          class="relative w-full aspect-4/3 overflow-hidden rounded-sm md:aspect-auto md:h-full md:flex-1 md:min-h-0"
+        >
           <img
             src="/why-section-image.jpg"
             alt="Picture of the founder"
@@ -33,7 +35,7 @@ import { SiteLayout } from "../layouts";
 
         <a
           href="/blog"
-          class="text-dark-brown underline transition-opacity duration-300 hover:opacity-50 font-body"
+          class="hidden md:inline-flex text-dark-brown underline transition-opacity duration-300 hover:opacity-50 font-body mt-4"
         >
           learn more about my journey!
         </a>
@@ -83,6 +85,13 @@ import { SiteLayout } from "../layouts";
           what a ride it’s been so far... and
           <span class="font-bold italic">we’re just getting started!</span>
         </p>
+
+        <a
+          href="/blog"
+          class="inline-flex md:hidden text-dark-brown underline transition-opacity duration-300 hover:opacity-50 font-body mt-4"
+        >
+          learn more about my journey!
+        </a>
       </div>
     </div>
   </section>
