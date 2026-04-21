@@ -2,11 +2,163 @@
 export const prerender = false;
 
 import { SiteLayout } from "../layouts";
+import {
+  InstagramIcon,
+  LinkedInIcon,
+  PinterestIcon,
+  TiktokIcon,
+} from "@repo/ui/icons";
+import { actions } from "astro:actions";
 ---
 
 <SiteLayout>
-  <section>
-    <h1>Contact Us</h1>
-    <p>Placeholder for contact page</p>
-  </section>
+  <div class="grid md:grid-cols-2 p-4 md:p-8">
+    <!-- Info section -->
+    <section class="flex flex-col gap-4 p-4 md:p-6">
+      <h1 class="text-2xl font-bold font-headings">contact us</h1>
+
+      <div class="flex flex-col gap-2">
+        <p class="font-body">we'd love to hear from you!</p>
+        <p class="font-body">
+          whether you have any questions about our blog, personal training
+          services, upcoming activewear collection, brand collaborations and
+          partnerships, or just want to say hello and share any feedback, please
+          feel free to reach out.
+        </p>
+      </div>
+
+      <h1 class="text-2xl font-bold font-headings">let's connect on socials</h1>
+
+      <div class="flex gap-2">
+        <a
+          href="https://www.instagram.com/builtwithishita/"
+          target="_blank"
+          rel="noopener noreferrer"
+        >
+          <InstagramIcon className="size-6" />
+        </a>
+
+        <a
+          href="https://www.linkedin.com/company/builtwithishita/"
+          target="_blank"
+          rel="noopener noreferrer"
+        >
+          <LinkedInIcon className="size-6" />
+        </a>
+
+        <a
+          href="https://www.pinterest.com/builtwithishita/"
+          target="_blank"
+          rel="noopener noreferrer"
+        >
+          <PinterestIcon className="size-6" />
+        </a>
+
+        <a
+          href="https://www.tiktok.com/@builtwithishita/"
+          target="_blank"
+          rel="noopener noreferrer"
+        >
+          <TiktokIcon className="size-6" />
+        </a>
+      </div>
+    </section>
+
+    <!-- Form section -->
+    <form
+      method="POST"
+      action={actions.contact}
+      class="bg-base-200 rounded-sm p-4 md:p-6 flex flex-col gap-4"
+    >
+      <div class="grid md:grid-cols-2 gap-4">
+        <div class="flex flex-col gap-1">
+          <label for="firstName" class="font-body text-neutral font-bold">
+            first name
+          </label>
+          <input
+            id="firstName"
+            name="firstName"
+            type="text"
+            placeholder="john"
+            required
+            class="w-full border border-dark-brown/40 rounded-sm p-3 font-body text-dark-brown placeholder:text-dark-brown/60 bg-base-100"
+          />
+        </div>
+
+        <div class="flex flex-col gap-1">
+          <label for="lastName" class="font-body text-neutral font-bold">
+            last name
+          </label>
+          <input
+            id="lastName"
+            name="lastName"
+            type="text"
+            placeholder="doe"
+            required
+            class="w-full border border-dark-brown/40 rounded-sm p-3 font-body text-dark-brown placeholder:text-dark-brown/60 bg-base-100"
+          />
+        </div>
+      </div>
+
+      <div class="flex flex-col gap-1">
+        <label for="email" class="font-body text-neutral font-bold">email</label
+        >
+        <input
+          id="email"
+          name="email"
+          type="email"
+          placeholder="john.doe@example.com"
+          required
+          class="w-full border border-dark-brown/40 rounded-sm p-3 font-body text-dark-brown placeholder:text-dark-brown/60 bg-base-100"
+        />
+      </div>
+
+      <div class="flex flex-col gap-1">
+        <label for="subject" class="font-body text-neutral font-bold">
+          subject
+        </label>
+        <input
+          id="subject"
+          name="subject"
+          type="text"
+          placeholder="type your subject here..."
+          required
+          class="w-full border border-dark-brown/40 rounded-sm p-3 font-body text-dark-brown placeholder:text-dark-brown/60 bg-base-100"
+        />
+      </div>
+
+      <div class="flex flex-col gap-1">
+        <label for="message" class="font-body text-neutral font-bold">
+          message
+        </label>
+        <textarea
+          id="message"
+          name="message"
+          placeholder="type your message here..."
+          rows={10}
+          required
+          class="w-full border border-dark-brown/40 rounded-sm p-3 font-body text-dark-brown placeholder:text-dark-brown/60 bg-base-100 resize-y"
+        ></textarea>
+      </div>
+
+      <label class="inline-flex items-center gap-2">
+        <input
+          id="isHuman"
+          name="isHuman"
+          type="checkbox"
+          value="true"
+          required
+          class="checkbox checkbox-sm rounded-sm border-dark-brown/40"
+        />
+        <span class="font-body text-neutral font-bold">i am a human.</span>
+      </label>
+
+      <button
+        type="submit"
+        class="w-full rounded-sm bg-neutral text-neutral-content font-headings text-xl py-2 transition-opacity duration-300 hover:opacity-80"
+      >
+        send
+      </button>
+    </form>
+  </div>
 </SiteLayout>
