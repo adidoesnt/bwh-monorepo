@@ -7,6 +7,7 @@ import {
   SENDER_EMAIL,
   RECEIVER_EMAIL,
 } from "../constants";
+import { type ContactInput } from "../types";
 
 const transporter = nodemailer.createTransport({
   host: SES_SMTP_HOST,
@@ -26,15 +27,7 @@ transporter.verify((error, success) => {
   }
 });
 
-export interface ContactFormData {
-  firstName: string;
-  lastName: string;
-  email: string;
-  subject: string;
-  message: string;
-}
-
-export async function sendContactFormEmail(formData: ContactFormData) {
+export async function sendContactFormEmail(formData: ContactInput) {
   const { firstName, lastName, email, subject, message } = formData;
 
   const mailOptions = {
