@@ -13,7 +13,8 @@
     "astro": "astro"
   },
   "dependencies": {
-    "@astrojs/svelte": "^8.0.4",
+    "@astrojs/svelte": "^8.0.5",
+    "@astrojs/vercel": "^10.0.4",
     "@repo/ui": "workspace:*",
     "astro": "^6.1.5",
     "svelte": "^5.55.2"
