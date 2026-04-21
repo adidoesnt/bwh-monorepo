@@ -17,12 +17,14 @@
     "@astrojs/vercel": "^10.0.4",
     "@repo/ui": "workspace:*",
     "astro": "^6.1.5",
+    "nodemailer": "^8.0.5",
     "svelte": "^5.55.2"
   },
   "devDependencies": {
-    "@sveltejs/vite-plugin-svelte": "^6.2.4",
     "@repo/tailwind-config": "workspace:*",
+    "@sveltejs/vite-plugin-svelte": "^6.2.4",
     "@tailwindcss/postcss": "^4.2.2",
+    "@types/nodemailer": "^8.0.0",
     "daisyui": "^5.4.4",
     "postcss": "^8.5.6",
     "tailwindcss": "^4.2.2"
