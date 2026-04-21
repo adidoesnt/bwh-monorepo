@@ -12,14 +12,14 @@ import { actions } from "astro:actions";
 ---
 
 <SiteLayout>
-  <div class="grid md:grid-cols-2 p-4 md:p-8">
+  <div class="grid md:grid-cols-2 p-4 md:p-8 bg-base-200">
     <!-- Info section -->
     <section class="flex flex-col gap-4 p-4 md:p-6">
-      <h1 class="text-2xl font-bold font-headings">contact us</h1>
+      <h1 class="text-3xl font-bold font-headings">contact us</h1>
 
-      <div class="flex flex-col gap-2">
-        <p class="font-body">we'd love to hear from you!</p>
-        <p class="font-body">
+      <div class="flex flex-col gap-2 font-body text-lg md:text-xl">
+        <p>we'd love to hear from you!</p>
+        <p>
           whether you have any questions about our blog, personal training
           services, upcoming activewear collection, brand collaborations and
           partnerships, or just want to say hello and share any feedback, please
@@ -27,15 +27,15 @@ import { actions } from "astro:actions";
         </p>
       </div>
 
-      <h1 class="text-2xl font-bold font-headings">let's connect on socials</h1>
+      <h1 class="text-3xl font-bold font-headings">let's connect on socials</h1>
 
-      <div class="flex gap-2">
+      <div class="flex gap-4">
         <a
           href="https://www.instagram.com/builtwithishita/"
           target="_blank"
           rel="noopener noreferrer"
         >
-          <InstagramIcon className="size-6" />
+          <InstagramIcon className="size-8" />
         </a>
 
         <a
@@ -43,7 +43,7 @@ import { actions } from "astro:actions";
           target="_blank"
           rel="noopener noreferrer"
         >
-          <LinkedInIcon className="size-6" />
+          <LinkedInIcon className="size-8" />
         </a>
 
         <a
@@ -51,7 +51,7 @@ import { actions } from "astro:actions";
           target="_blank"
           rel="noopener noreferrer"
         >
-          <PinterestIcon className="size-6" />
+          <PinterestIcon className="size-8" />
         </a>
 
         <a
@@ -59,7 +59,7 @@ import { actions } from "astro:actions";
           target="_blank"
           rel="noopener noreferrer"
         >
-          <TiktokIcon className="size-6" />
+          <TiktokIcon className="size-8" />
         </a>
       </div>
     </section>
@@ -68,7 +68,7 @@ import { actions } from "astro:actions";
     <form
       method="POST"
       action={actions.contact}
-      class="bg-base-200 rounded-sm p-4 md:p-6 flex flex-col gap-4"
+      class="bg-base-100 rounded-sm shadow-md p-4 md:p-6 flex flex-col gap-4"
     >
       <div class="grid md:grid-cols-2 gap-4">
         <div class="flex flex-col gap-1">
@@ -81,7 +81,7 @@ import { actions } from "astro:actions";
             type="text"
             placeholder="john"
             required
-            class="w-full border border-dark-brown/40 rounded-sm p-3 font-body text-dark-brown placeholder:text-dark-brown/60 bg-base-100"
+            class="w-full border border-dark-brown/40 rounded-sm p-3 font-body text-dark-brown placeholder:text-dark-brown/60 bg-base-100 transition-colors focus:outline-none focus:border-neutral focus:ring-1 focus:ring-neutral/40"
           />
         </div>
 
@@ -95,7 +95,7 @@ import { actions } from "astro:actions";
             type="text"
             placeholder="doe"
             required
-            class="w-full border border-dark-brown/40 rounded-sm p-3 font-body text-dark-brown placeholder:text-dark-brown/60 bg-base-100"
+            class="w-full border border-dark-brown/40 rounded-sm p-3 font-body text-dark-brown placeholder:text-dark-brown/60 bg-base-100 transition-colors focus:outline-none focus:border-neutral focus:ring-1 focus:ring-neutral/40"
           />
         </div>
       </div>
@@ -109,7 +109,7 @@ import { actions } from "astro:actions";
           type="email"
           placeholder="john.doe@example.com"
           required
-          class="w-full border border-dark-brown/40 rounded-sm p-3 font-body text-dark-brown placeholder:text-dark-brown/60 bg-base-100"
+          class="w-full border border-dark-brown/40 rounded-sm p-3 font-body text-dark-brown placeholder:text-dark-brown/60 bg-base-100 transition-colors focus:outline-none focus:border-neutral focus:ring-1 focus:ring-neutral/40"
         />
       </div>
 
@@ -123,7 +123,7 @@ import { actions } from "astro:actions";
           type="text"
           placeholder="type your subject here..."
           required
-          class="w-full border border-dark-brown/40 rounded-sm p-3 font-body text-dark-brown placeholder:text-dark-brown/60 bg-base-100"
+          class="w-full border border-dark-brown/40 rounded-sm p-3 font-body text-dark-brown placeholder:text-dark-brown/60 bg-base-100 transition-colors focus:outline-none focus:border-neutral focus:ring-1 focus:ring-neutral/40"
         />
       </div>
 
@@ -137,7 +137,7 @@ import { actions } from "astro:actions";
           placeholder="type your message here..."
           rows={10}
           required
-          class="w-full border border-dark-brown/40 rounded-sm p-3 font-body text-dark-brown placeholder:text-dark-brown/60 bg-base-100 resize-y"
+          class="w-full border border-dark-brown/40 rounded-sm p-3 font-body text-dark-brown placeholder:text-dark-brown/60 bg-base-100 resize-y transition-colors focus:outline-none focus:border-neutral focus:ring-1 focus:ring-neutral/40"
         ></textarea>
       </div>
 
@@ -148,14 +148,14 @@ import { actions } from "astro:actions";
           type="checkbox"
           value="true"
           required
-          class="checkbox checkbox-sm rounded-sm border-dark-brown/40"
+          class="checkbox checkbox-sm rounded-sm border-dark-brown/40 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-neutral/40"
         />
         <span class="font-body text-neutral font-bold">i am a human.</span>
       </label>
 
       <button
         type="submit"
-        class="w-full rounded-sm bg-neutral text-neutral-content font-headings text-xl py-2 transition-opacity duration-300 hover:opacity-80"
+        class="w-full rounded-sm bg-neutral text-neutral-content font-headings text-xl py-2 transition-opacity duration-300 hover:opacity-80 cursor-pointer"
       >
         send
       </button>
