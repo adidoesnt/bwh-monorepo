@@ -3,7 +3,7 @@ import { sendContactFormEmail } from "../utils";
 import { type ContactInput, contactSchema } from "../types";
 
 const handleContact = async (input: ContactInput) => {
-  console.log("Handling contact form submission...");
+  console.log("Handling contact form submission...", { input });
 
   try {
     const { isHuman } = input;

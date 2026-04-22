@@ -8,7 +8,22 @@ import {
   PinterestIcon,
   TiktokIcon,
 } from "@repo/ui/icons";
-import { actions } from "astro:actions";
+import { actions, isInputError } from "astro:actions";
+
+const result = Astro.getActionResult(actions.contact);
+const error = result?.error;
+const inputErrors = isInputError(error) ? error.fields : {};
+
+const getFieldError = (field: keyof typeof inputErrors) => {
+  const value = inputErrors[field];
+  if (Array.isArray(value)) return value[0];
+  return value;
+};
+
+const isSuccess = Boolean(result?.data?.success);
+if (Astro.request.method === "POST" && isSuccess) {
+  return Astro.redirect("/contact", 303);
+}
 ---
 
 <SiteLayout>
@@ -68,6 +83,7 @@ import { actions } from "astro:actions";
     <form
       method="POST"
       action={actions.contact}
+      novalidate
       class="bg-base-100 rounded-sm shadow-md p-4 md:p-6 flex flex-col gap-4"
     >
       <div class="grid md:grid-cols-2 gap-4">
@@ -83,6 +99,13 @@ import { actions } from "astro:actions";
             required
             class="w-full border border-dark-brown/40 rounded-sm p-3 font-body text-dark-brown placeholder:text-dark-brown/60 bg-white transition-colors focus:outline-none focus:border-neutral focus:ring-1 focus:ring-neutral/40"
           />
+          {
+            getFieldError("firstName") ? (
+              <p class="font-body text-sm text-error">
+                {getFieldError("firstName")}
+              </p>
+            ) : null
+          }
         </div>
 
         <div class="flex flex-col gap-1">
@@ -97,6 +120,13 @@ import { actions } from "astro:actions";
             required
             class="w-full border border-dark-brown/40 rounded-sm p-3 font-body text-dark-brown placeholder:text-dark-brown/60 bg-white transition-colors focus:outline-none focus:border-neutral focus:ring-1 focus:ring-neutral/40"
           />
+          {
+            getFieldError("lastName") ? (
+              <p class="font-body text-sm text-error">
+                {getFieldError("lastName")}
+              </p>
+            ) : null
+          }
         </div>
       </div>
 
@@ -111,6 +141,11 @@ import { actions } from "astro:actions";
           required
           class="w-full border border-dark-brown/40 rounded-sm p-3 font-body text-dark-brown placeholder:text-dark-brown/60 bg-white transition-colors focus:outline-none focus:border-neutral focus:ring-1 focus:ring-neutral/40"
         />
+        {
+          getFieldError("email") ? (
+            <p class="font-body text-sm text-error">{getFieldError("email")}</p>
+          ) : null
+        }
       </div>
 
       <div class="flex flex-col gap-1">
@@ -125,6 +160,13 @@ import { actions } from "astro:actions";
           required
           class="w-full border border-dark-brown/40 rounded-sm p-3 font-body text-dark-brown placeholder:text-dark-brown/60 bg-white transition-colors focus:outline-none focus:border-neutral focus:ring-1 focus:ring-neutral/40"
         />
+        {
+          getFieldError("subject") ? (
+            <p class="font-body text-sm text-error">
+              {getFieldError("subject")}
+            </p>
+          ) : null
+        }
       </div>
 
       <div class="flex flex-col gap-1">
@@ -139,6 +181,13 @@ import { actions } from "astro:actions";
           required
           class="w-full border border-dark-brown/40 rounded-sm p-3 font-body text-dark-brown placeholder:text-dark-brown/60 bg-white resize-y transition-colors focus:outline-none focus:border-neutral focus:ring-1 focus:ring-neutral/40"
         ></textarea>
+        {
+          getFieldError("message") ? (
+            <p class="font-body text-sm text-error">
+              {getFieldError("message")}
+            </p>
+          ) : null
+        }
       </div>
 
       <label class="inline-flex items-center gap-2">
@@ -152,6 +201,11 @@ import { actions } from "astro:actions";
         />
         <span class="font-body text-neutral font-bold">i am a human.</span>
       </label>
+      {
+        getFieldError("isHuman") ? (
+          <p class="font-body text-sm text-error">{getFieldError("isHuman")}</p>
+        ) : null
+      }
 
       <button
         type="submit"
