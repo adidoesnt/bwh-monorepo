@@ -1,6 +1,6 @@
 ---
 import { Logo, Navbar, SearchBar } from ".";
-import { CartIcon, MenuIcon, UserIcon } from "@repo/ui/icons";
+import { CartIcon, DumbbellIcon, MenuIcon } from "@repo/ui/icons";
 
 // TODO: Shift to environment variables
 const SHOP_URL = "https://shop.builtwithhabit.com";
@@ -28,8 +28,12 @@ const PT_URL = "https://pt.builtwithhabit.com";
       <button class="md:hidden flex btn btn-ghost aspect-square p-1">
         <MenuIcon className="md:size-6" />
       </button>
-      <a target="_blank" href={PT_URL} class="btn btn-ghost aspect-square p-1">
-        <UserIcon className="md:size-6" />
+      <a
+        target="_blank"
+        href={PT_URL}
+        class="md:flex hidden btn btn-ghost aspect-square p-1"
+      >
+        <DumbbellIcon className="md:size-6" />
       </a>
     </div>
   </div>

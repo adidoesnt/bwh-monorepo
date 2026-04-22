@@ -1,4 +1,5 @@
 export { default as CartIcon } from "./cartIcon.svelte";
+export { default as DumbbellIcon } from "./dumbbellIcon.svelte";
 export { default as EmailIcon } from "./emailIcon.svelte";
 export { default as HouseIcon } from "./houseIcon.svelte";
 export { default as InstagramIcon } from "./instagramIcon.svelte";
