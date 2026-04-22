@@ -1,0 +1,32 @@
+---
+import { SiteLayout } from "../layouts";
+---
+
+<SiteLayout>
+  <section
+    class="relative isolate flex h-[90dvh] w-full items-center justify-center bg-[url(/activewear-athlete.jpg)] bg-cover bg-center md:h-[85dvh]"
+  >
+    <div
+      class="absolute inset-0 z-0"
+      style="background-color: rgba(255, 255, 255, 0.7);"
+    >
+    </div>
+    <!-- NOTE: The Tailwind background opacity wasn't working for the overlay, so we used inline style instead -->
+    <div
+      class="relative z-10 flex flex-col items-center justify-center gap-4 font-body text-center p-4 md:p-8"
+    >
+      <p class="italic">join our waitlist!</p>
+      <h1 class="font-headings text-3xl font-bold">
+        activewear launching soon
+      </h1>
+      <p>
+        high-performance, seamless activewear made from natural, skin-safe
+        fibers
+      </p>
+      <p>
+        read our <a href="/blog" class="font-bold underline">blog</a> to learn about
+        all things lifting, low-tox living and entrepreneurship!
+      </p>
+    </div>
+  </section>
+</SiteLayout>
