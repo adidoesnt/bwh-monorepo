@@ -40,7 +40,7 @@ if (showSent) {
 ---
 
 <SiteLayout>
-  <div class="grid md:grid-cols-2 p-4 md:p-8 bg-base-200">
+  <div class="grid md:grid-cols-2 p-4 md:p-8 bg-base-200 gap-4">
     <!-- Info section -->
     <section class="flex flex-col gap-4 p-4 md:p-6">
       <h1 class="text-3xl font-bold font-headings">contact us</h1>
@@ -55,40 +55,44 @@ if (showSent) {
         </p>
       </div>
 
-      <h1 class="text-3xl font-bold font-headings">let's connect on socials</h1>
+      <div class="md:flex hidden flex-col gap-4">
+        <h1 class="text-3xl font-bold font-headings">
+          let's connect on socials
+        </h1>
 
-      <div class="flex gap-4">
-        <a
-          href="https://www.instagram.com/builtwithishita/"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <InstagramIcon className="size-8" />
-        </a>
+        <div class="hidden md:flex gap-4">
+          <a
+            href="https://www.instagram.com/builtwithishita/"
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            <InstagramIcon className="size-8" />
+          </a>
 
-        <a
-          href="https://www.linkedin.com/company/builtwithishita/"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <LinkedInIcon className="size-8" />
-        </a>
+          <a
+            href="https://www.linkedin.com/company/builtwithishita/"
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            <LinkedInIcon className="size-8" />
+          </a>
 
-        <a
-          href="https://www.pinterest.com/builtwithishita/"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <PinterestIcon className="size-8" />
-        </a>
+          <a
+            href="https://www.pinterest.com/builtwithishita/"
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            <PinterestIcon className="size-8" />
+          </a>
 
-        <a
-          href="https://www.tiktok.com/@builtwithishita/"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <TiktokIcon className="size-8" />
-        </a>
+          <a
+            href="https://www.tiktok.com/@builtwithishita/"
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            <TiktokIcon className="size-8" />
+          </a>
+        </div>
       </div>
     </section>
 
@@ -234,5 +238,43 @@ if (showSent) {
         ) : null
       }
     </form>
+
+    <div class="flex md:hidden flex-col gap-4 p-4">
+      <h1 class="text-3xl font-bold font-headings">let's connect on socials</h1>
+
+      <div class="flex md:hidden gap-4">
+        <a
+          href="https://www.instagram.com/builtwithishita/"
+          target="_blank"
+          rel="noopener noreferrer"
+        >
+          <InstagramIcon className="size-8" />
+        </a>
+
+        <a
+          href="https://www.linkedin.com/company/builtwithishita/"
+          target="_blank"
+          rel="noopener noreferrer"
+        >
+          <LinkedInIcon className="size-8" />
+        </a>
+
+        <a
+          href="https://www.pinterest.com/builtwithishita/"
+          target="_blank"
+          rel="noopener noreferrer"
+        >
+          <PinterestIcon className="size-8" />
+        </a>
+
+        <a
+          href="https://www.tiktok.com/@builtwithishita/"
+          target="_blank"
+          rel="noopener noreferrer"
+        >
+          <TiktokIcon className="size-8" />
+        </a>
+      </div>
+    </div>
   </div>
 </SiteLayout>
