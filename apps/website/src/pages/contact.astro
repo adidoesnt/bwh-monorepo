@@ -22,7 +22,20 @@ const getFieldError = (field: keyof typeof inputErrors) => {
 
 const isSuccess = Boolean(result?.data?.success);
 if (Astro.request.method === "POST" && isSuccess) {
+  Astro.cookies.set("contact_flash", "sent", {
+    path: "/contact",
+    httpOnly: true,
+    sameSite: "lax",
+    maxAge: 30, // 30 seconds
+  });
+
   return Astro.redirect("/contact", 303);
+}
+
+const flash = Astro.cookies.get("contact_flash")?.value;
+const showSent = flash === "sent";
+if (showSent) {
+  Astro.cookies.delete("contact_flash", { path: "/contact" });
 }
 ---
 
@@ -213,6 +226,13 @@ if (Astro.request.method === "POST" && isSuccess) {
       >
         send
       </button>
+      {
+        showSent ? (
+          <p class="rounded-sm border border-success/40 bg-success/20 px-3 py-2 font-body text-sm text-success">
+            message sent successfully.
+          </p>
+        ) : null
+      }
     </form>
   </div>
 </SiteLayout>
