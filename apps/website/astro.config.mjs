@@ -7,4 +7,7 @@ import { defineConfig } from "astro/config";
 export default defineConfig({
   integrations: [svelte()],
   adapter: vercel(),
+  server: {
+    port: 4321,
+  },
 });
