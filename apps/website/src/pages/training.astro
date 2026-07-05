@@ -1,6 +1,6 @@
 ---
 import { SiteLayout } from "../layouts";
-import { PackageCards, SessionFlowChevrons, TestimonialCards } from "../components";
+import { FaqSection, PackageCards, SessionFlowChevrons, TestimonialCards } from "../components";
 import { CircleCheckIcon } from "@repo/ui/icons";
 import {
   approachNarrative,
@@ -20,6 +20,7 @@ import {
   resonateItems,
   sessionFlowHeading,
   sessionFlowSteps,
+  faqSectionTitle,
   testimonialsSectionTitle,
 } from "../constants";
 
@@ -187,5 +188,17 @@ const approachCardClass =
   </section>
 
   <!-- FAQ Section -->
-  <section id="training-faq-section"></section>
+  <section
+    id="training-faq-section"
+    class="text-dark-brown bg-base-200 flex w-full flex-col items-center gap-4 overflow-x-hidden p-4 md:gap-8 md:p-8"
+  >
+    <h1
+      class="font-body text-center text-3xl md:text-4xl font-bold tracking-wide"
+    >
+      {faqSectionTitle}
+    </h1>
+    <div class="w-full min-w-0 max-w-6xl">
+      <FaqSection client:load />
+    </div>
+  </section>
 </SiteLayout>

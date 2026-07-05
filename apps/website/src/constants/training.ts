@@ -191,3 +191,94 @@ since training with ishita, i've become much more confident in the gym, especial
 i greatly appreciated her personalised approach, as well as her professional guidance, underpinned by a deep understanding of physical strength and fitness.`,
   },
 ];
+
+export const faqSectionTitle = "frequently asked questions!";
+
+export type FaqItem = {
+  question: string;
+  answerHtml: string;
+};
+
+export type FaqCategory = {
+  title: string;
+  items: FaqItem[];
+};
+
+export const faqCategories: FaqCategory[] = [
+  {
+    title: "sessions & logistics",
+    items: [
+      {
+        question: "how long are sessions?",
+        answerHtml: `each personal training session is <strong>60 minutes long</strong>, including warm-up, main workout and cool-down.`,
+      },
+      {
+        question: "what are your operating hours?",
+        answerHtml: `i am available for sessions between <strong>8 am and 7 pm</strong>, monday to saturday. session times outside of these hours may be accommodated on a case-by-case basis.`,
+      },
+      {
+        question: "where do sessions take place?",
+        answerHtml: `sessions take place at one of <strong>3 partner gym locations</strong> across singapore. the exact location will be confirmed when you book your session based on your convenience and availability.`,
+      },
+      {
+        question: "what should i expect in my first session?",
+        answerHtml: `your first session includes a <strong>consultation and movement assessment</strong> to understand your goals, experience and any limitations. we'll then move through a tailored warm-up, introduction to key exercises and a cool-down. you'll leave with clarity on your starting point and next steps.`,
+      },
+      {
+        question: "can i train with a friend or partner?",
+        answerHtml: `yes! <strong>partner sessions</strong> are available. training with someone you know can be motivating and fun — reach out to discuss partner pricing and scheduling.`,
+      },
+      {
+        question: "how often should i train?",
+        answerHtml: `most clients train <strong>1–2 times per week</strong>, depending on goals, schedule and recovery. we'll find a frequency that supports consistent progress without burnout.`,
+      },
+    ],
+  },
+  {
+    title: "programs & pricing",
+    items: [
+      {
+        question: "what packages do you offer?",
+        answerHtml: `i offer <strong>3 packages</strong> — discover (1 session), build (5 sessions) and transform (10 sessions). scroll up to the <strong>our packages</strong> section on this page for full details and pricing.`,
+      },
+      {
+        question: "how do i book and pay for sessions?",
+        answerHtml: `once you've chosen a package, you can book and pay through the <strong>builtwithhabit booking portal</strong>. if you have questions before booking, feel free to get in touch via the contact page.`,
+      },
+    ],
+  },
+  {
+    title: "training approach",
+    items: [
+      {
+        question: "what is your training style and philosophy?",
+        answerHtml: `my approach is <strong>individualised, evidence-based and holistic</strong>. sessions focus on building functional strength, confidence and sustainable habits — not quick fixes. every program is tailored to where you are and where you want to go.`,
+      },
+      {
+        question: "who do you train?",
+        answerHtml: `i primarily work with <strong>women</strong> of all ages and fitness levels — from complete beginners to those looking to level up their current routine.`,
+      },
+      {
+        question: "do i need prior gym experience?",
+        answerHtml: `<strong>not at all!</strong> many of my clients are new to strength training. i'll teach you proper form, gym etiquette and how to use equipment safely so you feel confident training on your own over time.`,
+      },
+      {
+        question: "can you work around injuries or health conditions?",
+        answerHtml: `yes. i take a careful, <strong>progressive approach</strong> and adapt exercises to work within your limitations. please share any injuries or health concerns during your initial consultation so we can train safely and effectively.`,
+      },
+      {
+        question: "do you provide nutrition advice?",
+        answerHtml: `i offer <strong>general nutrition guidance</strong> to support your training goals — things like protein intake, hydration and sustainable eating habits. for detailed meal plans or clinical nutrition, i'll refer you to a qualified dietitian.`,
+      },
+    ],
+  },
+  {
+    title: "policies",
+    items: [
+      {
+        question: "what is your cancellation policy?",
+        answerHtml: `please provide at least <strong>16 hours' notice</strong> if you need to cancel or reschedule a session. cancellations with less than 16 hours' notice will result in <strong>forfeiture of that session</strong>.`,
+      },
+    ],
+  },
+];
