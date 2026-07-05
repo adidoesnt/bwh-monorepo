@@ -6,6 +6,12 @@ description: Toggle draft status on a blog post (publish or unpublish). Use when
 
 Change the `draft` field in a post's frontmatter.
 
+## Repository path
+
+1. Read `~/.config/bwh-blog/repo-root` for the monorepo absolute path
+2. If missing or invalid, tell the user to run `/bwh-blog:configure-repo` first
+3. See `references/repo-config.md`
+
 ## Input
 
 Use `$ARGUMENTS` or ask the user for:
@@ -17,7 +23,7 @@ Example invocation: `/bwh-blog:toggle-draft welcome-to-builtwithhabit publish`
 
 ## Steps
 
-1. Read `apps/website/src/content/blog/<slug>.md`
+1. Read `{repoRoot}/apps/website/src/content/blog/<slug>.md`
 2. If the file does not exist, tell the user and stop
 3. Edit the frontmatter:
    - `publish` → set `draft: false`

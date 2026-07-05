@@ -5,24 +5,32 @@ A [Claude Code plugin](https://code.claude.com/docs/en/plugins) for writing and 
 ## One-time setup
 
 1. **Install [Claude Code](https://code.claude.com)** and sign in
-2. **Clone this repo** and configure git (name, email, GitHub access)
-3. **Load the plugin** from the repo root:
+2. **Clone this repo** (anywhere on your machine)
+3. **Load the plugin** and configure the repo path:
 
 ```bash
-cd /path/to/bwh-monorepo
-claude --plugin-dir ./plugins/bwh-blog
+claude --plugin-dir /path/to/bwh-monorepo/plugins/bwh-blog
 ```
+
+Then in Claude Code:
+
+```
+/bwh-blog:configure-repo /path/to/bwh-monorepo
+```
+
+You can paste the repo path or pass it as an argument — you do **not** need to `cd` into the repo first. Re-run configure if you move the clone.
 
 Or add the plugin via your team's marketplace once configured.
 
 ## Daily workflow
 
-Open Terminal, go to the repo, and start Claude Code:
+Start Claude Code with the plugin (from any directory):
 
 ```bash
-cd /path/to/bwh-monorepo
-claude --plugin-dir ./plugins/bwh-blog
+claude --plugin-dir /path/to/bwh-monorepo/plugins/bwh-blog
 ```
+
+If you haven't configured yet, run `/bwh-blog:configure-repo` first with your repo path.
 
 ### 1. Write a post
 
@@ -56,6 +64,7 @@ Claude will pull the latest changes, show what will be committed, and ask you to
 
 | Goal | Command |
 |------|---------|
+| First-time setup (repo path + git) | `/bwh-blog:configure-repo /path/to/bwh-monorepo` |
 | Write or import a post | `/bwh-blog:write-post` |
 | Hide a post from the live site | `/bwh-blog:toggle-draft my-slug unpublish` |
 | Make a post live | `/bwh-blog:toggle-draft my-slug publish` |

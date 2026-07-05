@@ -7,9 +7,16 @@ disable-model-invocation: true
 
 Commit and push blog content to the remote repository.
 
+## Repository path
+
+1. Read `~/.config/bwh-blog/repo-root` for the monorepo absolute path
+2. If missing or invalid, tell the user to run `/bwh-blog:configure-repo` first
+3. Run all git commands from `{repoRoot}` (`cd` there or use `git -C "{repoRoot}"`)
+4. See `references/repo-config.md`
+
 ## Scope
 
-Stage **only** files under:
+Stage **only** files under (relative to repo root):
 
 - `apps/website/src/content/blog/`
 - `public/blog/` (if images were added there)

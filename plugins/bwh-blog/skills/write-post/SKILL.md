@@ -6,21 +6,27 @@ description: Create or update a blog post in apps/website/src/content/blog/. Use
 
 Create or update a markdown file for the builtwithhabit blog.
 
+## Repository path
+
+1. Read `~/.config/bwh-blog/repo-root` for the monorepo absolute path
+2. If missing or invalid, tell the user to run `/bwh-blog:configure-repo` with their repo folder path first
+3. See `references/repo-config.md` for path resolution rules
+
 ## Target location
 
 Write **only** to:
 
 ```
-apps/website/src/content/blog/<slug>.md
+{repoRoot}/apps/website/src/content/blog/<slug>.md
 ```
 
 Never write blog content elsewhere in the repo.
 
 ## Before writing
 
-1. Read `plugins/bwh-blog/references/frontmatter-schema.md` for required frontmatter fields.
-2. Read `plugins/bwh-blog/assets/post-template.md` for the file format.
-3. If updating an existing post, read the current file first.
+1. Read `references/frontmatter-schema.md` for required frontmatter fields
+2. Read `assets/post-template.md` for the file format
+3. If updating an existing post, read the current file first
 
 ## Slug rules
 
@@ -61,7 +67,7 @@ The user provides a path to a local `.md` file (via `$ARGUMENTS` or in chat):
 
 1. Read the file
 2. Ensure frontmatter matches the schema (add or fix missing fields)
-3. Write the result to `apps/website/src/content/blog/<slug>.md`
+3. Write the result to `{repoRoot}/apps/website/src/content/blog/<slug>.md`
 
 ## After writing
 
