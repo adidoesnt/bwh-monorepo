@@ -2,6 +2,15 @@
 import { SiteLayout } from "../layouts";
 import { LogoIcon } from "@repo/ui/icons";
 import { PillarCards, MissionSection } from "../components";
+import {
+  heroHeadline,
+  heroTagline,
+  pillarsSectionTitle,
+  sloganHtml,
+  waitlistHeadline,
+  waitlistLinkText,
+  waitlistParagraphs,
+} from "../constants";
 ---
 
 <SiteLayout>
@@ -24,12 +33,12 @@ import { PillarCards, MissionSection } from "../components";
             <h1
               class="text-dark-brown md:text-4xl text-3xl font-normal tracking-wide drop-shadow-lg"
             >
-              sweat smarter,
+              {heroTagline}
             </h1>
             <h1
               class="text-dark-brown md:text-5xl text-4xl font-bold tracking-wide drop-shadow-lg"
             >
-              live stronger.
+              {heroHeadline}
             </h1>
           </div>
         </div>
@@ -42,12 +51,10 @@ import { PillarCards, MissionSection } from "../components";
     id="slogan-section"
     class="bg-base-100 grid min-h-[50dvh] place-items-center p-4 md:p-8"
   >
-    <p class="font-body text-dark-brown text-center text-lg md:text-2xl">
-      at <span class="font-bold">builtwithhabit,</span><br />our
-      <span class="font-bold">tailored personal training programs</span> and
-      <span class="font-bold">skin-safe high-performance activewear</span><br />
-      meet your body where it's at and supports where it's going.
-    </p>
+    <p
+      class="font-body text-dark-brown text-center text-lg md:text-2xl"
+      set:html={sloganHtml}
+    />
   </section>
 
   <!-- Mission Section -->
@@ -61,7 +68,7 @@ import { PillarCards, MissionSection } from "../components";
     <h1
       class="font-headings text-dark-brown text-center text-3xl md:text-4xl font-bold tracking-wide"
     >
-      our pillars
+      {pillarsSectionTitle}
     </h1>
     <div
       class="grid w-full max-w-6xl grid-cols-1 gap-4 md:grid-cols-3 md:gap-8"
@@ -83,25 +90,21 @@ import { PillarCards, MissionSection } from "../components";
         href="/contact?prefillType=activewear"
         class="font-headings text-dark-brown text-xl md:text-2xl font-normal italic tracking-wide underline transition-opacity hover:opacity-80"
       >
-        join our waitlist
+        {waitlistLinkText}
       </a>
       <h1
         class="font-headings text-dark-brown text-3xl md:text-4xl font-bold tracking-wide"
       >
-        launching soon.
+        {waitlistHeadline}
       </h1>
       <div class="max-w-4xl space-y-2">
-        <p
-          class="font-body text-dark-brown text-lg md:text-xl font-medium tracking-wide"
-        >
-          seamless, high-performance activewear engineered from skin-safe fibers
-        </p>
-        <p
-          class="font-body text-dark-brown text-lg md:text-xl font-medium tracking-wide"
-        >
-          read our blog to learn about all things lifting, low-tox living and
-          entrepreneurship!
-        </p>
+        {
+          waitlistParagraphs.map((paragraph) => (
+            <p class="font-body text-dark-brown text-lg md:text-xl font-medium tracking-wide">
+              {paragraph}
+            </p>
+          ))
+        }
       </div>
     </div>
   </section>

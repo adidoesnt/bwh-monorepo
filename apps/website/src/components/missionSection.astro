@@ -1,4 +1,6 @@
 ---
+import { missionParagraphs, missionSectionTitle } from "../constants";
+
 type Props = {
   imageSrc: string;
   imageAlt?: string;
@@ -18,7 +20,7 @@ const {
   <h1
     class="font-headings text-dark-brown text-center text-3xl md:text-4xl font-bold tracking-wide"
   >
-    our brand mission
+    {missionSectionTitle}
   </h1>
 
   <div
@@ -39,40 +41,14 @@ const {
       id="mission-text"
       class="order-2 flex flex-col justify-center gap-4 md:order-1"
     >
-      <p class="font-body text-dark-brown text-lg md:text-xl">
-        <span class="italic">sweat smarter.</span>
-        <span class="font-bold">live stronger.</span>
-      </p>
-      <p class="font-body text-dark-brown text-lg md:text-xl">
-        at <span class="italic">builtwithhabit,</span> we blend
-        <span class="font-bold"
-          >evidence-based coaching and skin-safe activewear</span
-        >
-        to help you train with intention, feel strong in your body and build habits
-        that last!
-      </p>
-      <p class="font-body text-dark-brown text-lg md:text-xl">
-        <span class="italic">on the coaching side,</span> i focus on the
-        <span class="font-bold"
-          >fundamentals: progressive resistance training, sustainable
-          programming and whole-food nutrition</span
-        >
-        - personalised to you.
-      </p>
-      <p class="font-body text-dark-brown text-lg md:text-xl">
-        <span class="italic">on the activewear front,</span> we're
-        <span class="font-bold">rethinking activewear from the fiber up.</span>
-        no polyester, no plastic-based coatings, no harmful dyes and no greenwashed
-        gimmicks - just
-        <span class="font-bold"
-          >skin-safe materials engineered for real performance.</span
-        >
-        from high-support bras to glute-sculpting leggings, every piece is
-        <span class="font-bold"
-          >designed to move with you! <span class="italic">[launching soon]</span></span
-        >
-      </p>
+      {
+        missionParagraphs.map((paragraph) => (
+          <p
+            class="font-body text-dark-brown text-lg md:text-xl"
+            set:html={paragraph}
+          />
+        ))
+      }
     </div>
   </div>
 </section>
-

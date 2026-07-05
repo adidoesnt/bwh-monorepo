@@ -1,3 +1,29 @@
+export const philosophySectionTitle = "our training philosophy";
+
+export const philosophyParagraphs: string[] = [
+  `i truly believe <strong>strength training is one of the most powerful tools</strong> for women of all ages to build <strong>confidence, longevity</strong> and <strong>resilience.</strong>`,
+  `with a background in <strong>life sciences,</strong> i'm passionate about cutting through <strong>fitness misinformation</strong> and focusing on <em><strong>what actually works: progressive lifting, consistency</strong></em> and <strong>respect</strong> for the body you're in!`,
+  `most importantly, i work closely with each client to understand <strong>what feels right for their body.</strong> there is <strong>no one-size-fits-all approach</strong> here! this enables me to create <strong>tailored, personalised</strong> programs that empower you to feel <strong>strong and capable</strong> - at <strong>any stage of life.</strong>`,
+];
+
+export const approachSectionTitle = "our approach";
+
+export const resonateHeading =
+  "this style of training may resonate with you if:";
+
+export const coachingHeading = "my coaching is centered around:";
+
+export const sessionFlowHeading =
+  "sessions are structured through a systematic flow:";
+
+export const promiseHeading = "my promise to you:";
+
+export const ctaHeadline = "excited to take the next step with me?";
+
+export const ctaSubtext = "or have any other questions?";
+
+export const ctaButtonLabel = "book a free consultation call!";
+
 export const resonateItems: string[] = [
   `the gym feels <strong>overwhelming</strong> and you're <strong>unsure where to begin</strong>`,
   `you enjoy movement but <strong>struggle with consistency or structure</strong>`,

@@ -5,8 +5,18 @@ import { CircleCheckIcon } from "@repo/ui/icons";
 import {
   approachNarrative,
   approachPromise,
+  approachSectionTitle,
+  coachingHeading,
   coachingPillars,
+  ctaButtonLabel,
+  ctaHeadline,
+  ctaSubtext,
+  philosophyParagraphs,
+  philosophySectionTitle,
+  promiseHeading,
+  resonateHeading,
   resonateItems,
+  sessionFlowHeading,
   sessionFlowSteps,
 } from "../constants";
 
@@ -20,42 +30,21 @@ const approachCardClass =
     id="training-philosophy-section"
     class="flex flex-col gap-4 p-4 md:p-8 bg-base-200"
   >
-    <!-- Section Header -->
     <h1
       class="font-body text-dark-brown text-center text-3xl md:text-4xl font-bold tracking-wide"
     >
-      our training philosophy
+      {philosophySectionTitle}
     </h1>
 
-    <!-- Section Content -->
     <div class="grid w-full gap-4 md:grid-cols-2 md:items-center">
       <div
         class="order-2 md:order-1 flex flex-col w-full gap-4 font-body p-4 md:p-8 justify-center text-lg md:text-xl"
       >
-        <p>
-          i truly believe <strong
-            >strength training is one of the most powerful tools</strong
-          > for women of all ages to build <strong>confidence, longevity</strong
-          > and <strong>resilience.</strong>
-        </p>
-        <p>
-          with a background in <strong>life sciences,</strong> i’m passionate about
-          cutting through <strong>fitness misinformation</strong> and focusing on
-          <em
-            ><strong
-              >what actually works: progressive lifting, consistency</strong
-            ></em
-          > and <strong>respect</strong> for the body you’re in!
-        </p>
-        <p>
-          most importantly, i work closely with each client to understand <strong
-            >what feels right for their body.</strong
-          > there is <strong>no one-size-fits-all approach</strong> here! this enables
-          me to create <strong>tailored, personalised</strong> programs that empower
-          you to feel <strong>strong and capable</strong> - at <strong
-            >any stage of life.</strong
-          >
-        </p>
+        {
+          philosophyParagraphs.map((paragraph) => (
+            <p set:html={paragraph} />
+          ))
+        }
       </div>
       <div
         class="order-1 md:order-2 flex w-full items-center justify-center p-4 md:p-8"
@@ -77,7 +66,7 @@ const approachCardClass =
     <h1
       class="font-body text-dark-brown text-center text-3xl md:text-4xl font-bold tracking-wide"
     >
-      our approach
+      {approachSectionTitle}
     </h1>
 
     <div
@@ -87,9 +76,7 @@ const approachCardClass =
         class="flex flex-col gap-4 font-body text-dark-brown text-lg md:text-xl"
       >
         <div class={approachCardClass}>
-          <h2 class="font-body font-bold">
-            this style of training may resonate with you if:
-          </h2>
+          <h2 class="font-body font-bold">{resonateHeading}</h2>
           <ul class="flex flex-col gap-3">
             {
               resonateItems.map((item) => (
@@ -103,7 +90,7 @@ const approachCardClass =
         </div>
 
         <div class={approachCardClass}>
-          <h2 class="font-body font-bold">my coaching is centered around:</h2>
+          <h2 class="font-body font-bold">{coachingHeading}</h2>
           <div class="flex flex-col gap-2">
             {
               coachingPillars.map(({ title, description }) => (
@@ -125,9 +112,7 @@ const approachCardClass =
         class="flex flex-col gap-4 font-body text-dark-brown text-lg md:text-xl h-full"
       >
         <div class={approachCardClass}>
-          <h2 class="font-body font-bold">
-            sessions are structured through a systematic flow:
-          </h2>
+          <h2 class="font-body font-bold">{sessionFlowHeading}</h2>
           <SessionFlowChevrons steps={sessionFlowSteps} />
         </div>
 
@@ -138,11 +123,9 @@ const approachCardClass =
         <div class={approachCardClass}>
           <div class="flex flex-col">
             <h2 class="font-body font-bold md:text-left text-center">
-              my promise to you:
+              {promiseHeading}
             </h2>
-            <p class="font-body md:text-left text-center">
-              {approachPromise}
-            </p>
+            <p class="font-body md:text-left text-center">{approachPromise}</p>
           </div>
         </div>
 
@@ -151,17 +134,15 @@ const approachCardClass =
         >
           <div class="flex flex-col">
             <p class="text-xl md:text-2xl font-bold tracking-wide">
-              excited to take the next step with me?
+              {ctaHeadline}
             </p>
-            <p class="text-lg md:text-xl tracking-wide">
-              or have any other questions?
-            </p>
+            <p class="text-lg md:text-xl tracking-wide">{ctaSubtext}</p>
           </div>
           <a
             href="/contact"
             class="inline-block rounded-sm bg-neutral text-neutral-content font-body text-xl px-8 py-3 transition-opacity hover:opacity-80"
           >
-            book a free consultation call!
+            {ctaButtonLabel}
           </a>
         </div>
       </div>

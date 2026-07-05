@@ -1,5 +1,10 @@
 ---
 import { SiteLayout } from "../layouts";
+import {
+  activewearDescriptionParagraphs,
+  activewearHeadline,
+  waitlistLabel,
+} from "../constants";
 ---
 
 <SiteLayout>
@@ -11,22 +16,20 @@ import { SiteLayout } from "../layouts";
       style="background-color: rgba(255, 255, 255, 0.7);"
     >
     </div>
-    <!-- NOTE: The Tailwind background opacity wasn't working for the overlay, so we used inline style instead -->
     <div
       class="relative z-10 flex flex-col items-center justify-center gap-4 font-body text-center p-4 md:p-8"
     >
-      <p class="italic">join our waitlist!</p>
-      <h1 class="font-headings text-3xl font-bold">
-        activewear launching soon
-      </h1>
-      <p>
-        high-performance, seamless activewear made from natural, skin-safe
-        fibers
-      </p>
-      <p>
-        read our <a href="/blog" class="font-bold underline">blog</a> to learn about
-        all things lifting, low-tox living and entrepreneurship!
-      </p>
+      <p class="italic">{waitlistLabel}</p>
+      <h1 class="font-headings text-3xl font-bold">{activewearHeadline}</h1>
+      {
+        activewearDescriptionParagraphs.map((paragraph, index) =>
+          index === 1 ? (
+            <p set:html={paragraph} />
+          ) : (
+            <p>{paragraph}</p>
+          ),
+        )
+      }
     </div>
   </section>
 </SiteLayout>

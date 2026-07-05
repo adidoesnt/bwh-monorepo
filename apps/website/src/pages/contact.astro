@@ -9,6 +9,15 @@ import {
   TiktokIcon,
 } from "@repo/ui/icons";
 import { actions, isInputError } from "astro:actions";
+import {
+  contactFormLabels,
+  contactFormPlaceholders,
+  contactIntroParagraphs,
+  contactPageTitle,
+  contactSuccessMessage,
+  socialsDescription,
+  socialsSectionTitle,
+} from "../constants";
 
 const result = Astro.getActionResult(actions.contact);
 const error = result?.error;
@@ -26,7 +35,7 @@ if (Astro.request.method === "POST" && isSuccess) {
     path: "/contact",
     httpOnly: true,
     sameSite: "lax",
-    maxAge: 30, // 30 seconds
+    maxAge: 30,
   });
 
   return Astro.redirect("/contact", 303);
@@ -41,30 +50,21 @@ if (showSent) {
 
 <SiteLayout>
   <div class="grid md:grid-cols-2 p-4 md:p-8 bg-base-200 gap-4">
-    <!-- Info section -->
     <section class="flex flex-col gap-4 p-4 md:p-6">
-      <h1 class="text-3xl font-bold font-headings">contact us</h1>
+      <h1 class="text-3xl font-bold font-headings">{contactPageTitle}</h1>
 
       <div class="flex flex-col gap-2 font-body text-lg md:text-xl">
-        <p>we'd love to hear from you!</p>
-        <p>
-          whether you have any questions about our blog, personal training
-          services, upcoming activewear collection, brand collaborations and
-          partnerships, or just want to say hello and share any feedback, please
-          feel free to reach out.
-        </p>
+        {
+          contactIntroParagraphs.map((paragraph) => <p>{paragraph}</p>)
+        }
       </div>
 
       <div class="md:flex hidden flex-col gap-4 font-body text-lg md:text-xl">
         <h1 class="text-3xl font-bold font-headings">
-          let's connect on socials
+          {socialsSectionTitle}
         </h1>
 
-        <p>
-          we love providing value and interacting with our community on a
-          regular basis - follow us on socials for some fun yet insightful
-          content!
-        </p>
+        <p>{socialsDescription}</p>
 
         <div class="hidden md:flex gap-4">
           <a
@@ -102,7 +102,6 @@ if (showSent) {
       </div>
     </section>
 
-    <!-- Form section -->
     <form
       method="POST"
       action={actions.contact}
@@ -112,13 +111,13 @@ if (showSent) {
       <div class="grid md:grid-cols-2 gap-4">
         <div class="flex flex-col gap-1">
           <label for="firstName" class="font-body text-neutral font-bold">
-            first name
+            {contactFormLabels.firstName}
           </label>
           <input
             id="firstName"
             name="firstName"
             type="text"
-            placeholder="john"
+            placeholder={contactFormPlaceholders.firstName}
             required
             class="w-full border border-dark-brown/40 rounded-sm p-3 font-body text-dark-brown placeholder:text-dark-brown/60 bg-white transition-colors focus:outline-none focus:border-neutral focus:ring-1 focus:ring-neutral/40"
           />
@@ -133,13 +132,13 @@ if (showSent) {
 
         <div class="flex flex-col gap-1">
           <label for="lastName" class="font-body text-neutral font-bold">
-            last name
+            {contactFormLabels.lastName}
           </label>
           <input
             id="lastName"
             name="lastName"
             type="text"
-            placeholder="doe"
+            placeholder={contactFormPlaceholders.lastName}
             required
             class="w-full border border-dark-brown/40 rounded-sm p-3 font-body text-dark-brown placeholder:text-dark-brown/60 bg-white transition-colors focus:outline-none focus:border-neutral focus:ring-1 focus:ring-neutral/40"
           />
@@ -154,13 +153,14 @@ if (showSent) {
       </div>
 
       <div class="flex flex-col gap-1">
-        <label for="email" class="font-body text-neutral font-bold">email</label
-        >
+        <label for="email" class="font-body text-neutral font-bold">
+          {contactFormLabels.email}
+        </label>
         <input
           id="email"
           name="email"
           type="email"
-          placeholder="john.doe@example.com"
+          placeholder={contactFormPlaceholders.email}
           required
           class="w-full border border-dark-brown/40 rounded-sm p-3 font-body text-dark-brown placeholder:text-dark-brown/60 bg-white transition-colors focus:outline-none focus:border-neutral focus:ring-1 focus:ring-neutral/40"
         />
@@ -173,13 +173,13 @@ if (showSent) {
 
       <div class="flex flex-col gap-1">
         <label for="subject" class="font-body text-neutral font-bold">
-          subject
+          {contactFormLabels.subject}
         </label>
         <input
           id="subject"
           name="subject"
           type="text"
-          placeholder="type your subject here..."
+          placeholder={contactFormPlaceholders.subject}
           required
           class="w-full border border-dark-brown/40 rounded-sm p-3 font-body text-dark-brown placeholder:text-dark-brown/60 bg-white transition-colors focus:outline-none focus:border-neutral focus:ring-1 focus:ring-neutral/40"
         />
@@ -194,12 +194,12 @@ if (showSent) {
 
       <div class="flex flex-col gap-1">
         <label for="message" class="font-body text-neutral font-bold">
-          message
+          {contactFormLabels.message}
         </label>
         <textarea
           id="message"
           name="message"
-          placeholder="type your message here..."
+          placeholder={contactFormPlaceholders.message}
           rows={10}
           required
           class="w-full border border-dark-brown/40 rounded-sm p-3 font-body text-dark-brown placeholder:text-dark-brown/60 bg-white resize-y transition-colors focus:outline-none focus:border-neutral focus:ring-1 focus:ring-neutral/40"
@@ -222,7 +222,9 @@ if (showSent) {
           required
           class="checkbox checkbox-sm rounded-sm border-dark-brown/40 bg-white focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-neutral/40"
         />
-        <span class="font-body text-neutral font-bold">i am a human.</span>
+        <span class="font-body text-neutral font-bold">
+          {contactFormLabels.isHuman}
+        </span>
       </label>
       {
         getFieldError("isHuman") ? (
@@ -234,24 +236,21 @@ if (showSent) {
         type="submit"
         class="w-full rounded-sm bg-neutral text-neutral-content font-headings text-xl py-2 transition-opacity duration-300 hover:opacity-80 cursor-pointer"
       >
-        send
+        {contactFormLabels.submit}
       </button>
       {
         showSent ? (
           <p class="rounded-sm border border-success/40 bg-success/20 px-3 py-2 font-body text-sm text-success">
-            message sent successfully.
+            {contactSuccessMessage}
           </p>
         ) : null
       }
     </form>
 
     <div class="flex md:hidden flex-col gap-4 p-4 font-body text-lg md:text-xl">
-      <h1 class="text-3xl font-bold font-headings">let's connect on socials</h1>
+      <h1 class="text-3xl font-bold font-headings">{socialsSectionTitle}</h1>
 
-      <p>
-        we love providing value and interacting with our community on a regular
-        basis - follow us on socials for some fun yet insightful content!
-      </p>
+      <p>{socialsDescription}</p>
 
       <div class="flex md:hidden gap-4">
         <a
