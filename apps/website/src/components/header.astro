@@ -1,5 +1,6 @@
 ---
-import { SHOP_URL, PT_URL } from "../constants/links";
+import { PT_ENABLED, SHOP_ENABLED } from "../constants/featureFlags";
+import { PT_URL, SHOP_URL } from "../constants/links";
 import { Logo, Navbar, SearchBar } from ".";
 import { CartIcon, DumbbellIcon, MenuIcon } from "@repo/ui/icons";
 ---
@@ -15,23 +16,31 @@ import { CartIcon, DumbbellIcon, MenuIcon } from "@repo/ui/icons";
       <a href="/"><Logo /></a>
     </div>
     <div class="flex w-full justify-end md:gap-1">
-      <a
-        target="_blank"
-        href={SHOP_URL}
-        class="md:flex hidden btn btn-ghost aspect-square p-1"
-      >
-        <CartIcon className="md:size-6" />
-      </a>
+      {
+        SHOP_ENABLED && (
+          <a
+            target="_blank"
+            href={SHOP_URL}
+            class="md:flex hidden btn btn-ghost aspect-square p-1"
+          >
+            <CartIcon className="md:size-6" />
+          </a>
+        )
+      }
       <button class="md:hidden flex btn btn-ghost aspect-square p-1">
         <MenuIcon className="md:size-6" />
       </button>
-      <a
-        target="_blank"
-        href={PT_URL}
-        class="md:flex hidden btn btn-ghost aspect-square p-1"
-      >
-        <DumbbellIcon className="md:size-6" />
-      </a>
+      {
+        PT_ENABLED && (
+          <a
+            target="_blank"
+            href={PT_URL}
+            class="md:flex hidden btn btn-ghost aspect-square p-1"
+          >
+            <DumbbellIcon className="md:size-6" />
+          </a>
+        )
+      }
     </div>
   </div>
   <div class="md:block hidden">
