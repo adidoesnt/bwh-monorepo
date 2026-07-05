@@ -18,6 +18,13 @@ const visiblePillars = getPillars({ blogEnabled: BLOG_ENABLED });
 const visibleWaitlistParagraphs = BLOG_ENABLED
   ? waitlistParagraphs
   : waitlistParagraphs.filter((paragraph) => !paragraph.includes("blog"));
+
+const pillarGridClass =
+  visiblePillars.length === 1
+    ? "grid w-full max-w-md grid-cols-1 gap-4 md:gap-8"
+    : visiblePillars.length === 2
+      ? "grid w-full max-w-4xl grid-cols-1 gap-4 md:grid-cols-2 md:gap-8"
+      : "grid w-full max-w-6xl grid-cols-1 gap-4 md:grid-cols-3 md:gap-8";
 ---
 
 <SiteLayout>
@@ -77,9 +84,7 @@ const visibleWaitlistParagraphs = BLOG_ENABLED
     >
       {pillarsSectionTitle}
     </h1>
-    <div
-      class="grid w-full max-w-6xl grid-cols-1 gap-4 md:grid-cols-3 md:gap-8"
-    >
+    <div class={pillarGridClass}>
       <PillarCards pillars={visiblePillars} />
     </div>
   </section>
