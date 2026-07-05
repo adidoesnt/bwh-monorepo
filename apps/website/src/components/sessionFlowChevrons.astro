@@ -1,0 +1,92 @@
+---
+import type { SessionFlowStep } from "../constants";
+import { ChevronsDownIcon } from "@repo/ui/icons";
+
+type Props = {
+  steps: SessionFlowStep[];
+};
+
+const { steps } = Astro.props as Props;
+
+const stepColors = [
+  "bg-base-300 text-base-content",
+  "bg-secondary text-secondary-content",
+  "bg-primary text-primary-content",
+  "bg-accent text-accent-content",
+];
+
+const getPosition = (index: number, total: number) => {
+  if (index === 0) return "first";
+  if (index === total - 1) return "last";
+  return "middle";
+};
+---
+
+<!-- Mobile: simple stacked blocks with chevron separators -->
+<div class="flex md:hidden flex-col items-center gap-1 w-full">
+  {
+    steps.map((step, index) => (
+      <>
+        {index > 0 && (
+          <ChevronsDownIcon className="size-6 text-base-content/50 shrink-0" />
+        )}
+        <div
+          class:list={[
+            "flex w-full flex-col items-center justify-center rounded-sm px-4 py-4 text-center",
+            stepColors[index],
+          ]}
+        >
+          <p class="font-bold text-sm">{step.title}</p>
+          <p class="text-xs mt-1">{step.description}</p>
+        </div>
+      </>
+    ))
+  }
+</div>
+
+<!-- Desktop: horizontal chevrons pointing right -->
+<div class="hidden md:flex w-full min-h-28">
+  {
+    steps.map((step, index) => (
+      <div
+        class:list={[
+          "flow-step-h flex flex-1 flex-col items-center justify-center px-4 py-4 text-center",
+          stepColors[index],
+          getPosition(index, steps.length),
+          index > 0 && "-ml-3",
+        ]}
+      >
+        <p class="font-bold text-sm">{step.title}</p>
+        <p class="text-xs mt-1">{step.description}</p>
+      </div>
+    ))
+  }
+</div>
+
+<style>
+  /* Horizontal chevrons (desktop) */
+  .flow-step-h.first {
+    clip-path: polygon(
+      0 0,
+      calc(100% - 1rem) 0,
+      100% 50%,
+      calc(100% - 1rem) 100%,
+      0 100%
+    );
+  }
+
+  .flow-step-h.middle {
+    clip-path: polygon(
+      0 0,
+      calc(100% - 1rem) 0,
+      100% 50%,
+      calc(100% - 1rem) 100%,
+      0 100%,
+      1rem 50%
+    );
+  }
+
+  .flow-step-h.last {
+    clip-path: polygon(0 0, 100% 0, 100% 100%, 0 100%, 1rem 50%);
+  }
+</style>

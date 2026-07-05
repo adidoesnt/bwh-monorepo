@@ -6,3 +6,4 @@ export { default as Navbar } from "./navbar.astro";
 export { default as MissionSection } from "./missionSection.astro";
 export { default as PillarCards } from "./pillarCards.svelte";
 export { default as SearchBar } from "./searchBar.svelte";
+export { default as SessionFlowChevrons } from "./sessionFlowChevrons.astro";

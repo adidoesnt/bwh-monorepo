@@ -1,3 +1,5 @@
+export { default as ChevronsDownIcon } from "./chevronsDownIcon.svelte";
+export { default as CircleCheckIcon } from "./circleCheckIcon.svelte";
 export { default as CartIcon } from "./cartIcon.svelte";
 export { default as DumbbellIcon } from "./dumbbellIcon.svelte";
 export { default as EmailIcon } from "./emailIcon.svelte";

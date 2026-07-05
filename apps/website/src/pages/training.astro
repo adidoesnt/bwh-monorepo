@@ -1,5 +1,17 @@
 ---
 import { SiteLayout } from "../layouts";
+import { SessionFlowChevrons } from "../components";
+import { CircleCheckIcon } from "@repo/ui/icons";
+import {
+  approachNarrative,
+  approachPromise,
+  coachingPillars,
+  resonateItems,
+  sessionFlowSteps,
+} from "../constants";
+
+const approachCardClass =
+  "bg-white rounded-sm p-4 md:p-6 shadow-md flex flex-col gap-4";
 ---
 
 <SiteLayout>
@@ -10,7 +22,7 @@ import { SiteLayout } from "../layouts";
   >
     <!-- Section Header -->
     <h1
-      class="font-headings text-dark-brown text-center text-3xl md:text-4xl font-bold tracking-wide"
+      class="font-body text-dark-brown text-center text-3xl md:text-4xl font-bold tracking-wide"
     >
       our training philosophy
     </h1>
@@ -45,7 +57,9 @@ import { SiteLayout } from "../layouts";
           >
         </p>
       </div>
-      <div class="order-1 md:order-2 flex w-full items-center justify-center p-4 md:p-8">
+      <div
+        class="order-1 md:order-2 flex w-full items-center justify-center p-4 md:p-8"
+      >
         <img
           src="/training-image-2.png"
           alt="Founder in the gym"
@@ -56,7 +70,103 @@ import { SiteLayout } from "../layouts";
   </section>
 
   <!-- Training Approach Section -->
-  <section id="training-approach-section"></section>
+  <section
+    id="training-approach-section"
+    class="flex flex-col gap-4 p-4 md:p-8 bg-beige"
+  >
+    <h1
+      class="font-body text-dark-brown text-center text-3xl md:text-4xl font-bold tracking-wide"
+    >
+      our approach
+    </h1>
+
+    <div
+      class="grid w-full max-w-6xl mx-auto gap-4 md:grid-cols-2 md:gap-6 md:items-stretch"
+    >
+      <div
+        class="flex flex-col gap-4 font-body text-dark-brown text-lg md:text-xl"
+      >
+        <div class={approachCardClass}>
+          <h2 class="font-body font-bold">
+            this style of training may resonate with you if:
+          </h2>
+          <ul class="flex flex-col gap-3">
+            {
+              resonateItems.map((item) => (
+                <li class="flex gap-3 items-center">
+                  <CircleCheckIcon className="size-6 text-success shrink-0 mt-0.5" />
+                  <span set:html={item} />
+                </li>
+              ))
+            }
+          </ul>
+        </div>
+
+        <div class={approachCardClass}>
+          <h2 class="font-body font-bold">my coaching is centered around:</h2>
+          <div class="flex flex-col gap-2">
+            {
+              coachingPillars.map(({ title, description }) => (
+                <div class="flex items-center overflow-hidden rounded-sm bg-secondary text-secondary-content">
+                  <span class="flex text-center w-1/2 justify-center items-center self-stretch border-r border-secondary-content/20 px-3 py-2 font-bold">
+                    {title}
+                  </span>
+                  <span class="w-1/2 px-3 py-2 text-sm md:text-base">
+                    {description}
+                  </span>
+                </div>
+              ))
+            }
+          </div>
+        </div>
+      </div>
+
+      <div
+        class="flex flex-col gap-4 font-body text-dark-brown text-lg md:text-xl h-full"
+      >
+        <div class={approachCardClass}>
+          <h2 class="font-body font-bold">
+            sessions are structured through a systematic flow:
+          </h2>
+          <SessionFlowChevrons steps={sessionFlowSteps} />
+        </div>
+
+        <div class={`${approachCardClass} md:text-left text-center`}>
+          {approachNarrative.map((paragraph) => <p set:html={paragraph} />)}
+        </div>
+
+        <div class={approachCardClass}>
+          <div class="flex flex-col">
+            <h2 class="font-body font-bold md:text-left text-center">
+              my promise to you:
+            </h2>
+            <p class="font-body md:text-left text-center">
+              {approachPromise}
+            </p>
+          </div>
+        </div>
+
+        <div
+          class={`${approachCardClass} md:flex-1 items-center justify-center text-center font-body`}
+        >
+          <div class="flex flex-col">
+            <p class="text-xl md:text-2xl font-bold tracking-wide">
+              excited to take the next step with me?
+            </p>
+            <p class="text-lg md:text-xl tracking-wide">
+              or have any other questions?
+            </p>
+          </div>
+          <a
+            href="/contact"
+            class="inline-block rounded-sm bg-neutral text-neutral-content font-body text-xl px-8 py-3 transition-opacity hover:opacity-80"
+          >
+            book a free consultation call!
+          </a>
+        </div>
+      </div>
+    </div>
+  </section>
 
   <!-- Testimonials Section -->
   <section id="training-testimonials-section"></section>
