@@ -1,6 +1,6 @@
 ---
 import { SiteLayout } from "../layouts";
-import { PackageCards, SessionFlowChevrons } from "../components";
+import { PackageCards, SessionFlowChevrons, TestimonialCards } from "../components";
 import { CircleCheckIcon } from "@repo/ui/icons";
 import {
   approachNarrative,
@@ -20,6 +20,7 @@ import {
   resonateItems,
   sessionFlowHeading,
   sessionFlowSteps,
+  testimonialsSectionTitle,
 } from "../constants";
 
 const approachCardClass =
@@ -152,12 +153,24 @@ const approachCardClass =
   </section>
 
   <!-- Testimonials Section -->
-  <section id="training-testimonials-section"></section>
+  <section
+    id="training-testimonials-section"
+    class="text-dark-brown bg-base-200 flex w-full flex-col items-center gap-4 overflow-x-hidden p-4 md:gap-8 md:p-8"
+  >
+    <h1
+      class="font-headings text-center text-3xl md:text-4xl font-bold italic tracking-wide"
+    >
+      {testimonialsSectionTitle}
+    </h1>
+    <div class="w-full min-w-0 max-w-6xl">
+      <TestimonialCards client:load />
+    </div>
+  </section>
 
   <!-- Training Packages Section -->
   <section
     id="training-packages-section"
-    class="text-dark-brown bg-base-200 flex w-full flex-col items-center gap-4 overflow-x-hidden p-4 md:gap-8 md:p-8"
+    class="text-dark-brown flex w-full flex-col items-center gap-4 overflow-x-hidden p-4 md:gap-8 md:p-8"
   >
     <h1
       class="font-headings text-center text-3xl md:text-4xl font-bold italic tracking-wide"

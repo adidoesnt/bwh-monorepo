@@ -1,11 +1,20 @@
 <script lang="ts">
+  import { StarIcon } from "@repo/ui/icons";
   import {
-    trainingPackages,
-    type TrainingPackage,
+    testimonials,
+    type Testimonial,
   } from "../constants/training";
 
   let carouselEl: HTMLDivElement | undefined = $state();
   let activeIndex = $state(0);
+
+  const getInitials = (authorName: string) =>
+    authorName
+      .split(/\s+/)
+      .map((word) => word[0] ?? "")
+      .join("")
+      .slice(0, 2)
+      .toUpperCase();
 
   const scrollToIndex = (index: number) => {
     if (!carouselEl) return;
@@ -38,29 +47,37 @@
   });
 </script>
 
-{#snippet packageCard(pkg: TrainingPackage)}
+{#snippet testimonialCard(item: Testimonial)}
   <div
     class="bg-white flex h-full w-full flex-col overflow-hidden rounded-sm shadow-md"
   >
     <header
-      class="bg-base-200 text-secondary-content flex flex-col items-center gap-2 p-4 text-center md:p-6"
+      class="bg-base-100 text-secondary-content flex flex-col items-center gap-3 p-4 text-center md:p-6"
     >
-      <h2
-        class="font-headings text-3xl font-bold uppercase tracking-wide drop-shadow-sm"
+      <div
+        class="bg-neutral text-neutral-content flex size-14 items-center justify-center rounded-full font-body text-lg font-bold normal-case"
+        aria-hidden="true"
       >
-        {pkg.title}
-      </h2>
-      <p class="font-body">{pkg.sessionsLabel}</p>
-      <p class="font-body italic">{pkg.tagline}</p>
+        {getInitials(item.authorName)}
+      </div>
+      <p class="font-body font-bold">{item.authorName}</p>
+      <div
+        class="flex gap-1"
+        role="img"
+        aria-label="{item.rating} out of 5 stars"
+      >
+        {#each Array.from({ length: 5 }, (_, index) => index) as starIndex (starIndex)}
+          <StarIcon
+            className="size-4 {starIndex < item.rating
+              ? 'fill-current'
+              : 'fill-none opacity-40'}"
+          />
+        {/each}
+      </div>
     </header>
 
     <div class="flex flex-1 flex-col p-4 text-center md:p-6">
-      <p class="font-body text-dark-brown text-base">{@html pkg.descriptionHtml}</p>
-    </div>
-
-    <div class="bg-neutral text-neutral-content normal-case p-4 text-center">
-      <p class="font-body text-lg font-bold md:text-xl">{pkg.pricePerSession}</p>
-      <p class="font-body text-sm md:text-base">{pkg.totalPrice}</p>
+      <p class="font-body text-dark-brown text-base">{item.quote}</p>
     </div>
   </div>
 {/snippet}
@@ -72,29 +89,29 @@
       class="@container w-full max-w-full snap-x snap-mandatory overflow-x-auto overscroll-x-contain scroll-smooth [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
       role="region"
       aria-roledescription="carousel"
-      aria-label="Training packages"
+      aria-label="Client testimonials"
     >
       <div class="grid auto-cols-[100cqw] grid-flow-col">
-        {#each trainingPackages as pkg, index (pkg.title)}
+        {#each testimonials as item, index (item.authorName)}
           <div
             class="box-border snap-center px-0.5"
             data-slide-index={index}
             aria-roledescription="slide"
-            aria-label="{index + 1} of {trainingPackages.length}"
+            aria-label="{index + 1} of {testimonials.length}"
           >
-            {@render packageCard(pkg)}
+            {@render testimonialCard(item)}
           </div>
         {/each}
       </div>
     </div>
 
     <div class="mt-4 flex justify-center gap-2" role="tablist">
-      {#each trainingPackages as pkg, index (pkg.title)}
+      {#each testimonials as item, index (item.authorName)}
         <button
           type="button"
           role="tab"
           aria-selected={activeIndex === index}
-          aria-label="Go to {pkg.title} package"
+          aria-label="Go to {item.authorName}'s testimonial"
           class="size-2 rounded-full transition-colors {activeIndex === index
             ? 'bg-neutral'
             : 'bg-neutral/30'}"
@@ -105,8 +122,8 @@
   </div>
 
   <div class="hidden md:grid md:grid-cols-3 md:gap-8">
-    {#each trainingPackages as pkg (pkg.title)}
-      {@render packageCard(pkg)}
+    {#each testimonials as item (item.authorName)}
+      {@render testimonialCard(item)}
     {/each}
   </div>
 </div>

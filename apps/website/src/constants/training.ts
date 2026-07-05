@@ -75,8 +75,7 @@ export const sessionFlowSteps: SessionFlowStep[] = [
   },
   {
     title: "dynamic stretching",
-    description:
-      "to ease the muscles into bearing weight and prevent injury!",
+    description: "to ease the muscles into bearing weight and prevent injury!",
   },
   {
     title: "resistance training",
@@ -133,5 +132,35 @@ export const trainingPackages: TrainingPackage[] = [
     descriptionHtml: `a <strong>comprehensive program</strong> to drive <strong>sustainable change</strong> in your training, performance and lifestyle. over 10 sessions, we'll dive deep into <strong>progressive overload</strong>, <strong>conditioning and nutritional guidance</strong>, designed to help you achieve long term transformation, all while keeping sessions <strong>fresh, interesting and tailored</strong> to where you're at!`,
     pricePerSession: "SG$80.00 per session",
     totalPrice: "SG$800.00 in total",
+  },
+];
+
+export const testimonialsSectionTitle = "what our clients say";
+
+export type Testimonial = {
+  authorName: string;
+  rating: number;
+  quote: string;
+};
+
+// TODO: Replace with actual testimonials
+export const testimonials: Testimonial[] = [
+  {
+    authorName: "sarah lim",
+    rating: 5,
+    quote:
+      "after my first session, i finally felt confident walking into the gym on my own. ishita's form cues and encouragement made all the difference!",
+  },
+  {
+    authorName: "priya nair",
+    rating: 5,
+    quote:
+      "five sessions in and i'm already moving with more consistency than i have in years. every session feels structured but still fits my schedule.",
+  },
+  {
+    authorName: "emily chen",
+    rating: 5,
+    quote:
+      "the 10-session program pushed me in the best way — i'm stronger, have more energy, and still look forward to every workout!",
   },
 ];

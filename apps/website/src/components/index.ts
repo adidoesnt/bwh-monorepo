@@ -9,3 +9,4 @@ export { default as PackageCards } from "./packageCards.svelte";
 export { default as PillarCards } from "./pillarCards.svelte";
 export { default as SearchBar } from "./searchBar.svelte";
 export { default as SessionFlowChevrons } from "./sessionFlowChevrons.astro";
+export { default as TestimonialCards } from "./testimonialCards.svelte";
