@@ -47,7 +47,7 @@
 
 {#snippet testimonialCard(item: Testimonial)}
   <div
-    class="bg-white flex max-h-96 w-full flex-col overflow-hidden rounded-sm shadow-md md:max-h-[28rem]"
+    class="bg-white flex max-h-96 w-full flex-col overflow-hidden rounded-sm shadow-md md:max-h-112"
   >
     <header
       class="bg-base-100 text-secondary-content flex shrink-0 flex-col items-center gap-3 p-4 text-center md:p-6"
