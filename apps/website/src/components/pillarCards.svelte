@@ -1,8 +1,14 @@
 <script lang="ts">
-  import { pillars } from "../constants/pillars";
+  import type { Pillar } from "../constants/pillars";
+
+  interface Props {
+    pillars: Pillar[];
+  }
+
+  let { pillars }: Props = $props();
 </script>
 
-{#each pillars as pillar}
+{#each pillars as pillar (pillar.href)}
   <a href={pillar.href}>
     <div
       class="bg-white flex h-full flex-col gap-4 rounded-sm p-4 shadow-md transition-all duration-300 hover:shadow-lg hover:scale-105"

@@ -1,5 +1,7 @@
 ---
 import FooterLinks from "./footerLinks.svelte";
+import { BLOG_ENABLED } from "../constants/featureFlags";
+import { getFooterLinks } from "../constants/navLinks";
 import {
   EmailIcon,
   MobileIcon,
@@ -9,6 +11,8 @@ import {
   PinterestIcon,
   TiktokIcon,
 } from "@repo/ui/icons";
+
+const footerLinks = getFooterLinks({ blogEnabled: BLOG_ENABLED });
 ---
 
 <footer class="bg-neutral text-neutral-content p-8">
@@ -31,7 +35,7 @@ import {
         </p>
       </div>
 
-      <FooterLinks />
+      <FooterLinks links={footerLinks} />
 
       <div id="footer-contact" class="flex flex-col gap-6">
         <div class="flex flex-col gap-4">

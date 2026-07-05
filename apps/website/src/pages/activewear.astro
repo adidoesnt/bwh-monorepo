@@ -1,10 +1,17 @@
 ---
 import { SiteLayout } from "../layouts";
+import { BLOG_ENABLED } from "../constants/featureFlags";
 import {
   activewearDescriptionParagraphs,
   activewearHeadline,
   waitlistLabel,
 } from "../constants";
+
+const visibleDescriptionParagraphs = BLOG_ENABLED
+  ? activewearDescriptionParagraphs
+  : activewearDescriptionParagraphs.filter(
+      (paragraph) => !paragraph.includes("/blog"),
+    );
 ---
 
 <SiteLayout>
@@ -22,8 +29,8 @@ import {
       <p class="italic">{waitlistLabel}</p>
       <h1 class="font-headings text-3xl font-bold">{activewearHeadline}</h1>
       {
-        activewearDescriptionParagraphs.map((paragraph, index) =>
-          index === 1 ? (
+        visibleDescriptionParagraphs.map((paragraph) =>
+          paragraph.includes("<") ? (
             <p set:html={paragraph} />
           ) : (
             <p>{paragraph}</p>

@@ -1,5 +1,11 @@
 ---
-import { navLinks } from "../constants/navLinks";
+import type { NavLink } from "../constants/navLinks";
+
+interface Props {
+  navLinks: NavLink[];
+}
+
+const { navLinks } = Astro.props;
 ---
 
 <nav class="mt-4 pb-4 drop-shadow-lg font-body">

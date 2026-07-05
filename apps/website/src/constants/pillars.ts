@@ -44,3 +44,13 @@ export const pillars: Pillar[] = [
       "join our waitlist for updates on our upcoming skin-safe activewear launch!",
   },
 ];
+
+export function getPillars(options?: { blogEnabled?: boolean }) {
+  const blogEnabled = options?.blogEnabled ?? true;
+
+  if (blogEnabled) {
+    return pillars;
+  }
+
+  return pillars.filter((pillar) => pillar.href !== "/blog");
+}

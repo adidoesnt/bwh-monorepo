@@ -1,6 +1,6 @@
 <script lang="ts">
   import { fade, fly } from "svelte/transition";
-  import { navLinks } from "../constants/navLinks";
+  import type { NavLink } from "../constants/navLinks";
   import {
     CartIcon,
     DumbbellIcon,
@@ -9,13 +9,14 @@
   } from "@repo/ui/icons";
 
   interface Props {
+    navLinks: NavLink[];
     shopEnabled: boolean;
     ptEnabled: boolean;
     shopUrl: string;
     ptUrl: string;
   }
 
-  let { shopEnabled, ptEnabled, shopUrl, ptUrl }: Props = $props();
+  let { navLinks, shopEnabled, ptEnabled, shopUrl, ptUrl }: Props = $props();
 
   let isOpen = $state(false);
 

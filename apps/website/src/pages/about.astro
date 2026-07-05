@@ -1,6 +1,7 @@
 ---
 import { SiteLayout } from "../layouts";
 import { MissionSection } from "../components";
+import { BLOG_ENABLED } from "../constants/featureFlags";
 import { journeyLinkText, whyParagraphs, whySectionTitle } from "../constants";
 ---
 
@@ -32,12 +33,16 @@ import { journeyLinkText, whyParagraphs, whySectionTitle } from "../constants";
           />
         </div>
 
-        <a
-          href="/blog"
-          class="hidden md:inline-flex text-lg text-dark-brown underline transition-opacity duration-300 hover:opacity-50 font-body mt-4"
-        >
-          {journeyLinkText}
-        </a>
+        {
+          BLOG_ENABLED && (
+            <a
+              href="/blog"
+              class="hidden md:inline-flex text-lg text-dark-brown underline transition-opacity duration-300 hover:opacity-50 font-body mt-4"
+            >
+              {journeyLinkText}
+            </a>
+          )
+        }
       </div>
 
       <div id="why-text" class="order-2 flex flex-col gap-4 md:order-2">
@@ -50,12 +55,16 @@ import { journeyLinkText, whyParagraphs, whySectionTitle } from "../constants";
           ))
         }
 
-        <a
-          href="/blog"
-          class="inline-flex md:hidden text-dark-brown underline transition-opacity duration-300 hover:opacity-50 font-body mt-4"
-        >
-          {journeyLinkText}
-        </a>
+        {
+          BLOG_ENABLED && (
+            <a
+              href="/blog"
+              class="inline-flex md:hidden text-dark-brown underline transition-opacity duration-300 hover:opacity-50 font-body mt-4"
+            >
+              {journeyLinkText}
+            </a>
+          )
+        }
       </div>
     </div>
   </section>
