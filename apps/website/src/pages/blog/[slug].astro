@@ -1,8 +1,12 @@
 ---
 import { SiteLayout } from "../../layouts";
+import { BlogDraftDevNotice } from "../../components";
 import { BLOG_ENABLED } from "../../constants/featureFlags";
 import {
   blogBackLinkLabel,
+  blogBackToAllPostsLabel,
+  blogBackToTopLabel,
+  blogDraftBadgeLabel,
 } from "../../constants/blog";
 import { formatBlogDate, getPublishedPosts } from "../../utils/blog";
 import { render } from "astro:content";
@@ -25,56 +29,88 @@ if (!BLOG_ENABLED) {
 
 const { post } = Astro.props;
 const { Content } = await render(post);
-const { title, description, pubDate, tags, thumbnail } = post.data;
+const { title, description, pubDate, tags, thumbnail, draft } = post.data;
+const isDev = import.meta.env.DEV;
+const showDraftNotice = isDev && draft;
 ---
 
 <SiteLayout title={title} description={description}>
   <article
+    id="blog-post-top"
     class="text-dark-brown bg-beige flex w-full flex-col items-center gap-6 overflow-x-hidden p-4 md:gap-8 md:p-8"
   >
-    <div class="flex w-full max-w-3xl flex-col gap-6">
+    <div class="flex w-full max-w-5xl flex-col gap-6">
       <a
         href="/blog"
-        class="font-body text-dark-brown hover:opacity-80 w-fit text-lg underline transition-opacity"
+        class="font-body font-bold text-dark-brown hover:opacity-80 w-fit text-lg underline transition-opacity"
       >
         {blogBackLinkLabel}
       </a>
 
-      <header class="flex flex-col gap-4">
-        <h1
-          class="font-headings text-3xl font-bold tracking-wide md:text-4xl"
-        >
-          {title}
-        </h1>
-        <div class="flex flex-wrap items-center gap-3">
-          <time
-            datetime={pubDate.toISOString()}
-            class="font-body text-dark-brown/80 text-base"
-          >
-            {formatBlogDate(pubDate)}
-          </time>
-          {
-            tags.map((tag) => (
-              <span class="badge badge-neutral badge-sm font-body">{tag}</span>
-            ))
-          }
+      {showDraftNotice && <BlogDraftDevNotice variant="post" />}
+
+      <div class="bg-white overflow-hidden rounded-sm shadow-md">
+        <div class="h-44 w-full overflow-hidden md:h-56">
+          <img
+            src={thumbnail.src}
+            alt={thumbnail.alt}
+            class="h-full w-full object-cover"
+          />
         </div>
-      </header>
 
-      <div
-        class="aspect-video overflow-hidden rounded-sm shadow-md"
-      >
-        <img
-          src={thumbnail.src}
-          alt={thumbnail.alt}
-          class="h-full w-full object-cover"
-        />
-      </div>
+        <div class="flex flex-col gap-6 p-4 md:gap-8 md:p-8">
+          <header class="flex flex-col gap-4">
+            <h1
+              class="font-headings text-3xl font-bold tracking-wide md:text-4xl"
+            >
+              {title}
+            </h1>
+            <div class="flex flex-col gap-3">
+              <time
+                datetime={pubDate.toISOString()}
+                class="font-body text-dark-brown/80 text-base"
+              >
+                {formatBlogDate(pubDate)}
+              </time>
+              <div class="flex flex-wrap gap-2">
+                {
+                  tags.map((tag) => (
+                    <span class="badge badge-neutral badge-sm font-body">{tag}</span>
+                  ))
+                }
+                {showDraftNotice && (
+                  <span class="badge badge-warning badge-sm font-body">{blogDraftBadgeLabel}</span>
+                )}
+              </div>
+            </div>
+          </header>
 
-      <div
-        class="font-body blog-content text-dark-brown flex flex-col gap-4 text-base md:text-lg"
-      >
-        <Content />
+          <hr class="border-dark-brown/15" />
+
+          <div
+            class="font-body blog-content text-dark-brown flex flex-col gap-4 text-base md:text-lg"
+          >
+            <Content />
+          </div>
+
+          <nav
+            class="border-dark-brown/15 font-body flex flex-col flex-wrap gap-4 border-t pt-6 text-lg"
+            aria-label="Post navigation"
+          >
+            <a
+              href="#blog-post-top"
+              class="text-dark-brown font-bold hover:opacity-80 underline transition-opacity"
+            >
+              {blogBackToTopLabel}
+            </a>
+            <a
+              href="/blog"
+              class="text-dark-brown font-bold hover:opacity-80 underline transition-opacity"
+            >
+              {blogBackToAllPostsLabel}
+            </a>
+          </nav>
+        </div>
       </div>
     </div>
   </article>

@@ -1,4 +1,6 @@
 <script lang="ts">
+  import { blogDraftBadgeLabel } from "../constants/blog";
+
   export type BlogPostCard = {
     slug: string;
     title: string;
@@ -10,6 +12,7 @@
       src: string;
       alt: string;
     };
+    draft?: boolean;
   };
 
   interface Props {
@@ -26,12 +29,19 @@
       href={`/blog/${post.slug}`}
       class="bg-white grid h-full min-h-0 grid-rows-subgrid row-span-6 gap-4 rounded-sm p-4 shadow-md transition-all duration-300 hover:scale-105 hover:shadow-lg"
     >
-      <div class="aspect-video overflow-hidden rounded-sm">
+      <div class="aspect-video overflow-hidden rounded-sm relative">
         <img
           src={post.thumbnail.src}
           alt={post.thumbnail.alt}
           class="h-full w-full object-cover"
         />
+        {#if post.draft}
+          <span
+            class="badge badge-warning badge-sm font-body absolute top-2 right-2"
+          >
+            {blogDraftBadgeLabel}
+          </span>
+        {/if}
       </div>
 
       <h2

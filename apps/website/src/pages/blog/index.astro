@@ -1,15 +1,16 @@
 ---
 import { SiteLayout } from "../../layouts";
-import { BlogPostCards } from "../../components";
+import { BlogIndex, BlogDraftDevNotice } from "../../components";
 import { BLOG_ENABLED } from "../../constants/featureFlags";
-import { blogEmptyState, blogSectionTitle } from "../../constants/blog";
-import { blogPostGridClass, formatBlogDate, getPublishedPosts } from "../../utils/blog";
+import { blogSectionTitle } from "../../constants/blog";
+import { formatBlogDate, getPublishedPosts } from "../../utils/blog";
 
 if (!BLOG_ENABLED) {
   return Astro.redirect("/404");
 }
 
 const posts = await getPublishedPosts();
+const isDev = import.meta.env.DEV;
 const postCards = posts.map((post) => ({
   slug: post.id,
   title: post.data.title,
@@ -18,8 +19,8 @@ const postCards = posts.map((post) => ({
   pubDateIso: post.data.pubDate.toISOString(),
   tags: post.data.tags,
   thumbnail: post.data.thumbnail,
+  draft: isDev ? post.data.draft : false,
 }));
-const gridClass = blogPostGridClass(postCards.length);
 ---
 
 <SiteLayout title={blogSectionTitle} description={blogSectionTitle}>
@@ -33,14 +34,12 @@ const gridClass = blogPostGridClass(postCards.length);
       {blogSectionTitle}
     </h1>
 
-    {
-      postCards.length === 0 ? (
-        <p class="font-body text-dark-brown text-center text-lg md:text-xl">
-          {blogEmptyState}
-        </p>
-      ) : (
-        <BlogPostCards posts={postCards} gridClass={gridClass} />
-      )
-    }
+    {isDev && (
+      <div class="w-full max-w-6xl">
+        <BlogDraftDevNotice variant="index" />
+      </div>
+    )}
+
+    <BlogIndex client:load posts={postCards} />
   </section>
 </SiteLayout>

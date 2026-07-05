@@ -1,0 +1,28 @@
+---
+import {
+  blogDraftDevIndexNotice,
+  blogDraftDevNoticeTitle,
+  blogDraftDevPostNotice,
+} from "../constants/blog";
+
+interface Props {
+  variant: "index" | "post";
+}
+
+const { variant } = Astro.props;
+
+const message =
+  variant === "post" ? blogDraftDevPostNotice : blogDraftDevIndexNotice;
+---
+
+<div
+  class="border-amber-500/40 bg-amber-50 text-dark-brown w-full rounded-sm border px-4 py-3 shadow-sm"
+  role="status"
+>
+  <p class="font-headings text-base font-bold tracking-wide md:text-lg">
+    {blogDraftDevNoticeTitle}
+  </p>
+  <p class="font-body mt-1 text-sm leading-relaxed md:text-base">
+    {message}
+  </p>
+</div>

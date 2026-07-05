@@ -9,16 +9,33 @@ import { getNavLinks } from "../constants/navLinks";
 import { PT_URL, SHOP_URL } from "../constants/links";
 import { Logo, MobileMenu, Navbar, SearchBar } from ".";
 import { CartIcon, DumbbellIcon } from "@repo/ui/icons";
+import { getPublishedPosts } from "../utils/blog";
 
 const navLinks = getNavLinks({ blogEnabled: BLOG_ENABLED });
+
+const blogSearchPosts =
+  SEARCH_ENABLED && BLOG_ENABLED
+    ? (await getPublishedPosts()).map((post) => ({
+        slug: post.id,
+        title: post.data.title,
+        description: post.data.description,
+        tags: post.data.tags,
+        pubDateIso: post.data.pubDate.toISOString(),
+      }))
+    : [];
 ---
 
 <header class="sticky top-0 z-50 h-[12dvh] bg-base-100 shadow-md md:h-[17dvh]">
   <div
     class="grid md:grid-cols-3 grid-cols-[1fr_auto] items-center p-4 md:p-8 md:pb-0"
   >
-    <div class="hidden md:flex w-full justify-start">
-      {SEARCH_ENABLED && <SearchBar client:load />}
+    <div class="hidden md:flex max-w-[200px] justify-start">
+      {SEARCH_ENABLED && (
+        <SearchBar
+          client:load
+          searchSources={{ blogPosts: blogSearchPosts }}
+        />
+      )}
     </div>
     <div class="flex w-full md:justify-center justify-start ml-2 md:ml-0">
       <a href="/"><Logo /></a>
