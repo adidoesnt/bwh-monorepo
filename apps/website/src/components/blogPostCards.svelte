@@ -3,6 +3,8 @@
     slug: string;
     title: string;
     description: string;
+    pubDateLabel: string;
+    pubDateIso: string;
     tags: string[];
     thumbnail: {
       src: string;
@@ -12,37 +14,52 @@
 
   interface Props {
     posts: BlogPostCard[];
+    gridClass: string;
   }
 
-  let { posts }: Props = $props();
+  let { posts, gridClass }: Props = $props();
 </script>
 
-{#each posts as post (post.slug)}
-  <a href={`/blog/${post.slug}`}>
-    <div
-      class="bg-white flex h-full flex-col gap-4 rounded-sm p-4 shadow-md transition-all duration-300 hover:scale-105 hover:shadow-lg"
+<div class={gridClass}>
+  {#each posts as post (post.slug)}
+    <a
+      href={`/blog/${post.slug}`}
+      class="bg-white grid h-full min-h-0 grid-rows-subgrid row-span-6 gap-4 rounded-sm p-4 shadow-md transition-all duration-300 hover:scale-105 hover:shadow-lg"
     >
-      <div
-        class="flex aspect-video items-center justify-center overflow-hidden rounded-sm"
-      >
+      <div class="aspect-video overflow-hidden rounded-sm">
         <img
           src={post.thumbnail.src}
           alt={post.thumbnail.alt}
           class="h-full w-full object-cover"
         />
       </div>
+
       <h2
-        class="font-headings text-dark-brown text-3xl font-bold tracking-wide"
+        class="font-headings text-dark-brown line-clamp-2 text-3xl font-bold tracking-wide"
       >
         {post.title}
       </h2>
+
+      <time
+        datetime={post.pubDateIso}
+        class="font-body text-dark-brown/80 text-sm"
+      >
+        {post.pubDateLabel}
+      </time>
+
       <hr class="border-dark-brown/60" />
-      <p class="font-body text-dark-brown text-base">{post.description}</p>
-      <div class="flex flex-wrap gap-2">
+
+      <p
+        class="font-body text-dark-brown line-clamp-3 h-18 overflow-hidden text-base leading-6"
+      >
+        {post.description}
+      </p>
+
+      <div class="flex flex-wrap content-start gap-2">
         {#each post.tags as tag (tag)}
           <span class="badge badge-neutral badge-sm font-body">{tag}</span>
         {/each}
       </div>
-    </div>
-  </a>
-{/each}
+    </a>
+  {/each}
+</div>

@@ -9,8 +9,7 @@
     "dev:shop": "turbo run dev --filter=shop",
     "lint": "turbo run lint",
     "format": "prettier --write \"**/*.{ts,tsx,md}\"",
-    "check-types": "turbo run check-types",
-    "package:blog-plugin": "bash plugins/bwh-blog/scripts/package.sh"
+    "check-types": "turbo run check-types"
   },
   "devDependencies": {
     "prettier": "^3.7.4",

@@ -3,7 +3,7 @@ import { SiteLayout } from "../../layouts";
 import { BlogPostCards } from "../../components";
 import { BLOG_ENABLED } from "../../constants/featureFlags";
 import { blogEmptyState, blogSectionTitle } from "../../constants/blog";
-import { blogPostGridClass, getPublishedPosts } from "../../utils/blog";
+import { blogPostGridClass, formatBlogDate, getPublishedPosts } from "../../utils/blog";
 
 if (!BLOG_ENABLED) {
   return Astro.redirect("/404");
@@ -14,6 +14,8 @@ const postCards = posts.map((post) => ({
   slug: post.id,
   title: post.data.title,
   description: post.data.description,
+  pubDateLabel: formatBlogDate(post.data.pubDate),
+  pubDateIso: post.data.pubDate.toISOString(),
   tags: post.data.tags,
   thumbnail: post.data.thumbnail,
 }));
@@ -37,9 +39,7 @@ const gridClass = blogPostGridClass(postCards.length);
           {blogEmptyState}
         </p>
       ) : (
-        <div class={gridClass}>
-          <BlogPostCards posts={postCards} />
-        </div>
+        <BlogPostCards posts={postCards} gridClass={gridClass} />
       )
     }
   </section>
