@@ -1,6 +1,6 @@
 ---
 import { SiteLayout } from "../layouts";
-import { SessionFlowChevrons } from "../components";
+import { PackageCards, SessionFlowChevrons } from "../components";
 import { CircleCheckIcon } from "@repo/ui/icons";
 import {
   approachNarrative,
@@ -11,6 +11,8 @@ import {
   ctaButtonLabel,
   ctaHeadline,
   ctaSubtext,
+  packagesIntroHtml,
+  packagesSectionTitle,
   philosophyParagraphs,
   philosophySectionTitle,
   promiseHeading,
@@ -153,7 +155,25 @@ const approachCardClass =
   <section id="training-testimonials-section"></section>
 
   <!-- Training Packages Section -->
-  <section id="training-packages-section"></section>
+  <section
+    id="training-packages-section"
+    class="text-dark-brown bg-base-200 flex flex-col place-items-center gap-4 p-4 md:gap-8 md:p-8"
+  >
+    <h1
+      class="font-headings text-center text-3xl md:text-4xl font-bold italic tracking-wide"
+    >
+      {packagesSectionTitle}
+    </h1>
+    <p
+      class="font-body text-center text-lg md:text-xl max-w-4xl"
+      set:html={packagesIntroHtml}
+    />
+    <div
+      class="grid w-full max-w-6xl grid-cols-1 gap-4 md:grid-cols-3 md:gap-8"
+    >
+      <PackageCards />
+    </div>
+  </section>
 
   <!-- FAQ Section -->
   <section id="training-faq-section"></section>

@@ -95,3 +95,43 @@ export const approachNarrative: string[] = [
 
 export const approachPromise =
   "whether your goal is hypertrophy, fat loss or something else entirely, i will meet you where you are at and get you to where you want to be!";
+
+export const packagesSectionTitle = "our packages";
+
+export const packagesIntroHtml = `whether you're <strong>new to strength training</strong> or <strong>looking to level up your current routine</strong>, i offer a range of personal training programs that are <em>individualised, holistic and grounded in science.</em>`;
+
+export type TrainingPackage = {
+  title: string;
+  sessionsLabel: string;
+  tagline: string;
+  descriptionHtml: string;
+  pricePerSession: string;
+  totalPrice: string;
+};
+
+export const trainingPackages: TrainingPackage[] = [
+  {
+    title: "DISCOVER",
+    sessionsLabel: "1 session",
+    tagline: "perfect for a trial session.",
+    descriptionHtml: `this <strong>one-time session</strong> is perfect for those who want to explore <strong>personal training</strong>, discuss <strong>goals</strong> and get a professional assessment of your current <strong>physical state and potential.</strong> in this session, we'll chat and then get you lifting!`,
+    pricePerSession: "SG$95.00 per session",
+    totalPrice: "SG$95.00 in total",
+  },
+  {
+    title: "BUILD",
+    sessionsLabel: "5 sessions",
+    tagline: "helpful for finding your rhythm.",
+    descriptionHtml: `a <strong>short term plan</strong> to <strong>build consistency</strong> and develop a training routine that is tailored to <strong>your goals, lifestyle and schedule.</strong> through guided sessions and exercise instruction, we'll work towards establishing a <strong>sustainable routine</strong> that supports lasting change!`,
+    pricePerSession: "SG$90.00 per session",
+    totalPrice: "SG$450.00 in total",
+  },
+  {
+    title: "TRANSFORM",
+    sessionsLabel: "10 sessions",
+    tagline: "for a complete transformation.",
+    descriptionHtml: `a <strong>comprehensive program</strong> to drive <strong>sustainable change</strong> in your training, performance and lifestyle. over 10 sessions, we'll dive deep into <strong>progressive overload</strong>, <strong>conditioning and nutritional guidance</strong>, designed to help you achieve long term transformation, all while keeping sessions <strong>fresh, interesting and tailored</strong> to where you're at!`,
+    pricePerSession: "SG$80.00 per session",
+    totalPrice: "SG$800.00 in total",
+  },
+];
