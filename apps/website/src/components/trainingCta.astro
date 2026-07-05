@@ -1,0 +1,27 @@
+---
+import { ctaButtonLabel, ctaHeadline, ctaSubtext } from "../constants/training";
+
+interface Props {
+  variant?: "card" | "standalone";
+}
+
+const { variant = "standalone" } = Astro.props;
+
+const wrapperClass =
+  variant === "card"
+    ? "bg-white rounded-sm p-4 md:p-6 shadow-md flex flex-col gap-4 md:flex-1 items-center justify-center text-center font-body"
+    : "bg-white rounded-sm p-6 md:p-8 shadow-md flex flex-col gap-4 items-center justify-center text-center font-body w-full";
+---
+
+<div class={wrapperClass}>
+  <div class="flex flex-col gap-1">
+    <p class="text-xl md:text-2xl font-bold tracking-wide">{ctaHeadline}</p>
+    <p class="text-lg md:text-xl tracking-wide">{ctaSubtext}</p>
+  </div>
+  <a
+    href="/contact"
+    class="inline-block rounded-sm bg-neutral text-neutral-content font-body text-xl px-8 py-3 transition-opacity hover:opacity-80"
+  >
+    {ctaButtonLabel}
+  </a>
+</div>

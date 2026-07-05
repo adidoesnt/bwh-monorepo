@@ -1,6 +1,12 @@
 ---
 import { SiteLayout } from "../layouts";
-import { FaqSection, PackageCards, SessionFlowChevrons, TestimonialCards } from "../components";
+import {
+  FaqSection,
+  PackageCards,
+  SessionFlowChevrons,
+  TestimonialCards,
+  TrainingCta,
+} from "../components";
 import { CircleCheckIcon } from "@repo/ui/icons";
 import {
   approachNarrative,
@@ -8,9 +14,6 @@ import {
   approachSectionTitle,
   coachingHeading,
   coachingPillars,
-  ctaButtonLabel,
-  ctaHeadline,
-  ctaSubtext,
   packagesIntroHtml,
   packagesSectionTitle,
   philosophyParagraphs,
@@ -133,22 +136,7 @@ const approachCardClass =
           </div>
         </div>
 
-        <div
-          class={`${approachCardClass} md:flex-1 items-center justify-center text-center font-body`}
-        >
-          <div class="flex flex-col">
-            <p class="text-xl md:text-2xl font-bold tracking-wide">
-              {ctaHeadline}
-            </p>
-            <p class="text-lg md:text-xl tracking-wide">{ctaSubtext}</p>
-          </div>
-          <a
-            href="/contact"
-            class="inline-block rounded-sm bg-neutral text-neutral-content font-body text-xl px-8 py-3 transition-opacity hover:opacity-80"
-          >
-            {ctaButtonLabel}
-          </a>
-        </div>
+        <TrainingCta variant="card" />
       </div>
     </div>
   </section>
@@ -185,6 +173,9 @@ const approachCardClass =
     <div class="w-full min-w-0 max-w-6xl">
       <PackageCards client:load />
     </div>
+    <div class="w-full min-w-0 max-w-6xl">
+      <TrainingCta />
+    </div>
   </section>
 
   <!-- FAQ Section -->
@@ -199,6 +190,9 @@ const approachCardClass =
     </h1>
     <div class="w-full min-w-0 max-w-6xl">
       <FaqSection client:load />
+    </div>
+    <div class="w-full min-w-0 max-w-6xl">
+      <TrainingCta />
     </div>
   </section>
 </SiteLayout>
