@@ -143,24 +143,51 @@ export type Testimonial = {
   quote: string;
 };
 
-// TODO: Replace with actual testimonials
 export const testimonials: Testimonial[] = [
   {
-    authorName: "sarah lim",
+    authorName: "neha & kartisha",
     rating: 5,
-    quote:
-      "after my first session, i finally felt confident walking into the gym on my own. ishita's form cues and encouragement made all the difference!",
+    quote: `i would like to describe ishita as a kind human being and an exceptional, passionate gym coach. my 12-year-old daughter, who is a competitive swimmer in singapore, has been working with her to improve overall strength and muscle development.
+
+from the initial assessment through to ongoing training, ishita has taken a highly structured and thoughtful approach, carefully considering my daughter's abilities, strengths, and areas for improvement. she provides clear guidance and consistent, timely feedback, while also helping us as parents understand how we can support our daughter's journey toward a fitter and healthier lifestyle.
+
+my daughter has felt very comfortable and motivated throughout the training process. in her own words, "ishita is easy to talk to, very easy to work with, guides me properly, and motivates me to reach my full potential. it's fun to go to gym with coach ishita"
+
+we are extremely happy with the progress and overall experience, and deeply appreciate ishita's professionalism, dedication, and supportive coaching style. i would highly recommend her to anyone looking for a knowledgeable and encouraging coach to achieve a healthier and fitter lifestyle.`,
   },
   {
-    authorName: "priya nair",
+    authorName: "aishwarya",
     rating: 5,
-    quote:
-      "five sessions in and i'm already moving with more consistency than i have in years. every session feels structured but still fits my schedule.",
+    quote: `training with ishita has honestly been such a wonderful experience! she is incredibly motivating, positive, professional and always makes every session feel comfortable and encouraging. i truly admire her technical knowledge and understanding of workouts and nutrition - she always knows exactly how to guide me according to my goals of fat loss and achieving a toned body.
+
+since we have started training, i've noticed a big improvement in my strength, energy levels and overall fitness. my clothes fit much better now and i feel far more motivated and confident to stay consistent with workouts.
+
+thank you for always pushing me in the best way possible while also being so supportive and helpful throughout the journey. i'm really grateful for all your effort and guidance!`,
   },
   {
-    authorName: "emily chen",
+    authorName: "anesh",
     rating: 5,
-    quote:
-      "the 10-session program pushed me in the best way — i'm stronger, have more energy, and still look forward to every workout!",
+    quote: `i have been working with ishita for the last 10 weeks. she has a very pleasant disposition which helps making the sessions enjoyable. she is very knowledgeable and takes every care to ensure i am comfortable and not going to injure myself. i have managed to perform a forearm plank for 1 minute - consistently for the last 7 weeks. that accomplishment was thanks to ishita's guidance, drive and encouragement during our sessions.`,
+  },
+  {
+    authorName: "sonali",
+    rating: 5,
+    quote: `training with ishita has been a truly positive experience. she brings a wonderful balance of technical expertise, care, and motivation to every session, always taking the time to understand my individual needs while ensuring i train safely and effectively. what i especially appreciate is how encouraging and supportive she has been, gently pushing me beyond what i thought i was capable of while remaining attentive and caring throughout the process.
+
+over time, i have noticed a significant improvement in my overall strength. her professionalism, knowledge, and genuine commitment to her clients' wellbeing have made a real difference, and i'm very grateful for the journey we've had training together.`,
+  },
+  {
+    authorName: "claudia",
+    rating: 5,
+    quote: `training with ishita has been such an enjoyable and rewarding experience. she's incredibly thorough in her explanations and always takes the time to answer all my questions patiently and in detail. every session feels engaging, and there's always something new to learn and look forward to.
+
+since training with ishita, i've become much more confident in the gym, especially when working out on my own. my knowledge of gym equipment has improved significantly, and i've also noticed a real improvement in my stamina.`,
+  },
+  {
+    authorName: "sapna",
+    rating: 5,
+    quote: `i found my sessions with ishita incredibly helpful. she patiently listened to my concerns and objectives, adapting my program as we went along to take into account injury risks, and both age and gender specific concerns.
+
+i greatly appreciated her personalised approach, as well as her professional guidance, underpinned by a deep understanding of physical strength and fitness.`,
   },
 ];

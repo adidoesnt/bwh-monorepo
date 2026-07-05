@@ -5,30 +5,28 @@
     type Testimonial,
   } from "../constants/training";
 
-  let carouselEl: HTMLDivElement | undefined = $state();
+  let mobileCarouselEl: HTMLDivElement | undefined = $state();
   let activeIndex = $state(0);
 
+  const showDesktopCarousel = testimonials.length > 3;
+
   const getInitials = (authorName: string) =>
-    authorName
-      .split(/\s+/)
-      .map((word) => word[0] ?? "")
-      .join("")
-      .slice(0, 2)
-      .toUpperCase();
+    (authorName.trim()[0] ?? "").toUpperCase();
 
   const scrollToIndex = (index: number) => {
-    if (!carouselEl) return;
+    if (!mobileCarouselEl) return;
 
-    carouselEl.scrollTo({
-      left: carouselEl.clientWidth * index,
+    mobileCarouselEl.scrollTo({
+      left: mobileCarouselEl.clientWidth * index,
       behavior: "smooth",
     });
   };
 
   $effect(() => {
-    if (!carouselEl) return;
+    if (!mobileCarouselEl) return;
 
-    const slides = carouselEl.querySelectorAll<HTMLElement>("[data-slide-index]");
+    const slides =
+      mobileCarouselEl.querySelectorAll<HTMLElement>("[data-slide-index]");
     const observer = new IntersectionObserver(
       (entries) => {
         for (const entry of entries) {
@@ -39,7 +37,7 @@
           }
         }
       },
-      { root: carouselEl, threshold: 0.6 },
+      { root: mobileCarouselEl, threshold: 0.6 },
     );
 
     slides.forEach((slide) => observer.observe(slide));
@@ -49,10 +47,10 @@
 
 {#snippet testimonialCard(item: Testimonial)}
   <div
-    class="bg-white flex h-full w-full flex-col overflow-hidden rounded-sm shadow-md"
+    class="bg-white flex max-h-96 w-full flex-col overflow-hidden rounded-sm shadow-md md:max-h-[28rem]"
   >
     <header
-      class="bg-base-100 text-secondary-content flex flex-col items-center gap-3 p-4 text-center md:p-6"
+      class="bg-base-100 text-secondary-content flex shrink-0 flex-col items-center gap-3 p-4 text-center md:p-6"
     >
       <div
         class="bg-neutral text-neutral-content flex size-14 items-center justify-center rounded-full font-body text-lg font-bold normal-case"
@@ -76,16 +74,29 @@
       </div>
     </header>
 
-    <div class="flex flex-1 flex-col p-4 text-center md:p-6">
-      <p class="font-body text-dark-brown text-base">{item.quote}</p>
+    <div class="min-h-0 flex-1 overflow-y-auto p-4 text-center md:p-6">
+      <p class="font-body text-dark-brown whitespace-pre-line text-base">
+        {item.quote}
+      </p>
     </div>
+  </div>
+{/snippet}
+
+{#snippet carouselSlide(item: Testimonial, index: number, total: number)}
+  <div
+    class="box-border h-full snap-center px-0.5"
+    data-slide-index={index}
+    aria-roledescription="slide"
+    aria-label="{index + 1} of {total}"
+  >
+    {@render testimonialCard(item)}
   </div>
 {/snippet}
 
 <div class="w-full min-w-0 max-w-full">
   <div class="md:hidden w-full max-w-full overflow-hidden">
     <div
-      bind:this={carouselEl}
+      bind:this={mobileCarouselEl}
       class="@container w-full max-w-full snap-x snap-mandatory overflow-x-auto overscroll-x-contain scroll-smooth [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
       role="region"
       aria-roledescription="carousel"
@@ -93,14 +104,7 @@
     >
       <div class="grid auto-cols-[100cqw] grid-flow-col">
         {#each testimonials as item, index (item.authorName)}
-          <div
-            class="box-border snap-center px-0.5"
-            data-slide-index={index}
-            aria-roledescription="slide"
-            aria-label="{index + 1} of {testimonials.length}"
-          >
-            {@render testimonialCard(item)}
-          </div>
+          {@render carouselSlide(item, index, testimonials.length)}
         {/each}
       </div>
     </div>
@@ -121,9 +125,30 @@
     </div>
   </div>
 
-  <div class="hidden md:grid md:grid-cols-3 md:gap-8">
-    {#each testimonials as item (item.authorName)}
-      {@render testimonialCard(item)}
-    {/each}
-  </div>
+  {#if showDesktopCarousel}
+    <div
+      class="hidden md:block w-full max-w-full overflow-hidden"
+      role="region"
+      aria-roledescription="carousel"
+      aria-label="Client testimonials"
+    >
+      <div
+        class="@container w-full max-w-full snap-x snap-mandatory overflow-x-auto overscroll-x-contain scroll-smooth [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+      >
+        <div class="grid auto-cols-[calc((100cqw-4rem)/3)] grid-flow-col gap-8">
+          {#each testimonials as item, index (item.authorName)}
+            <div class="box-border h-full snap-start">
+              {@render testimonialCard(item)}
+            </div>
+          {/each}
+        </div>
+      </div>
+    </div>
+  {:else}
+    <div class="hidden md:grid md:grid-cols-3 md:gap-8">
+      {#each testimonials as item (item.authorName)}
+        {@render testimonialCard(item)}
+      {/each}
+    </div>
+  {/if}
 </div>
