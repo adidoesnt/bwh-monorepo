@@ -1,8 +1,8 @@
 ---
 import { PT_ENABLED, SHOP_ENABLED } from "../constants/featureFlags";
 import { PT_URL, SHOP_URL } from "../constants/links";
-import { Logo, Navbar, SearchBar } from ".";
-import { CartIcon, DumbbellIcon, MenuIcon } from "@repo/ui/icons";
+import { Logo, MobileMenu, Navbar, SearchBar } from ".";
+import { CartIcon, DumbbellIcon } from "@repo/ui/icons";
 ---
 
 <header class="sticky top-0 z-50 h-[12dvh] bg-base-100 shadow-md md:h-[17dvh]">
@@ -27,9 +27,13 @@ import { CartIcon, DumbbellIcon, MenuIcon } from "@repo/ui/icons";
           </a>
         )
       }
-      <button class="md:hidden flex btn btn-ghost aspect-square p-1">
-        <MenuIcon className="md:size-6" />
-      </button>
+      <MobileMenu
+        client:load
+        shopEnabled={SHOP_ENABLED}
+        ptEnabled={PT_ENABLED}
+        shopUrl={SHOP_URL}
+        ptUrl={PT_URL}
+      />
       {
         PT_ENABLED && (
           <a

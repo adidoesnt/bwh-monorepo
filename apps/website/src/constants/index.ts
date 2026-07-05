@@ -4,5 +4,6 @@ export * from "./contact";
 export * from "./email";
 export * from "./home";
 export * from "./mission";
+export * from "./navLinks";
 export * from "./pillars";
 export * from "./training";

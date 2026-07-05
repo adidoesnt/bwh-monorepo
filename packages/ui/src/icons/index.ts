@@ -13,3 +13,4 @@ export { default as PinterestIcon } from "./pinterestIcon.svelte";
 export { default as SearchIcon } from "./searchIcon.svelte";
 export { default as TiktokIcon } from "./tiktokIcon.svelte";
 export { default as UserIcon } from "./userIcon.svelte";
+export { default as XIcon } from "./xIcon.svelte";
