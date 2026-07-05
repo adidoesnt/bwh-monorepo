@@ -1,0 +1,46 @@
+---
+import { SiteLayout } from "../../layouts";
+import { BlogPostCards } from "../../components";
+import { BLOG_ENABLED } from "../../constants/featureFlags";
+import { blogEmptyState, blogSectionTitle } from "../../constants/blog";
+import { blogPostGridClass, getPublishedPosts } from "../../utils/blog";
+
+if (!BLOG_ENABLED) {
+  return Astro.redirect("/404");
+}
+
+const posts = await getPublishedPosts();
+const postCards = posts.map((post) => ({
+  slug: post.id,
+  title: post.data.title,
+  description: post.data.description,
+  tags: post.data.tags,
+  thumbnail: post.data.thumbnail,
+}));
+const gridClass = blogPostGridClass(postCards.length);
+---
+
+<SiteLayout title={blogSectionTitle} description={blogSectionTitle}>
+  <section
+    id="blog-section"
+    class="text-dark-brown bg-beige flex min-h-[50dvh] flex-col place-items-center gap-4 overflow-x-hidden p-4 md:gap-8 md:p-8"
+  >
+    <h1
+      class="font-headings text-dark-brown text-center text-3xl font-bold tracking-wide md:text-4xl"
+    >
+      {blogSectionTitle}
+    </h1>
+
+    {
+      postCards.length === 0 ? (
+        <p class="font-body text-dark-brown text-center text-lg md:text-xl">
+          {blogEmptyState}
+        </p>
+      ) : (
+        <div class={gridClass}>
+          <BlogPostCards posts={postCards} />
+        </div>
+      )
+    }
+  </section>
+</SiteLayout>

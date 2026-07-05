@@ -1,0 +1,120 @@
+---
+import { SiteLayout } from "../../layouts";
+import { BLOG_ENABLED } from "../../constants/featureFlags";
+import {
+  blogBackLinkLabel,
+} from "../../constants/blog";
+import { formatBlogDate, getPublishedPosts } from "../../utils/blog";
+import { render } from "astro:content";
+
+export async function getStaticPaths() {
+  if (!BLOG_ENABLED) {
+    return [];
+  }
+
+  const posts = await getPublishedPosts();
+  return posts.map((post) => ({
+    params: { slug: post.id },
+    props: { post },
+  }));
+}
+
+if (!BLOG_ENABLED) {
+  return Astro.redirect("/404");
+}
+
+const { post } = Astro.props;
+const { Content } = await render(post);
+const { title, description, pubDate, tags, thumbnail } = post.data;
+---
+
+<SiteLayout title={title} description={description}>
+  <article
+    class="text-dark-brown bg-beige flex w-full flex-col items-center gap-6 overflow-x-hidden p-4 md:gap-8 md:p-8"
+  >
+    <div class="flex w-full max-w-3xl flex-col gap-6">
+      <a
+        href="/blog"
+        class="font-body text-dark-brown hover:opacity-80 w-fit text-lg underline transition-opacity"
+      >
+        {blogBackLinkLabel}
+      </a>
+
+      <header class="flex flex-col gap-4">
+        <h1
+          class="font-headings text-3xl font-bold tracking-wide md:text-4xl"
+        >
+          {title}
+        </h1>
+        <div class="flex flex-wrap items-center gap-3">
+          <time
+            datetime={pubDate.toISOString()}
+            class="font-body text-dark-brown/80 text-base"
+          >
+            {formatBlogDate(pubDate)}
+          </time>
+          {
+            tags.map((tag) => (
+              <span class="badge badge-neutral badge-sm font-body">{tag}</span>
+            ))
+          }
+        </div>
+      </header>
+
+      <div
+        class="aspect-video overflow-hidden rounded-sm shadow-md"
+      >
+        <img
+          src={thumbnail.src}
+          alt={thumbnail.alt}
+          class="h-full w-full object-cover"
+        />
+      </div>
+
+      <div
+        class="font-body blog-content text-dark-brown flex flex-col gap-4 text-base md:text-lg"
+      >
+        <Content />
+      </div>
+    </div>
+  </article>
+</SiteLayout>
+
+<style>
+  .blog-content :global(h2) {
+    font-family: var(--font-headings, serif);
+    font-size: 1.5rem;
+    font-weight: 700;
+    letter-spacing: 0.025em;
+  }
+
+  @media (min-width: 768px) {
+    .blog-content :global(h2) {
+      font-size: 1.875rem;
+    }
+  }
+
+  .blog-content :global(p),
+  .blog-content :global(li) {
+    line-height: 1.625;
+  }
+
+  .blog-content :global(ul) {
+    list-style-type: disc;
+    padding-left: 1.5rem;
+  }
+
+  .blog-content :global(a) {
+    font-weight: 700;
+    text-decoration: underline;
+    transition: opacity 0.2s;
+  }
+
+  .blog-content :global(a:hover) {
+    opacity: 0.8;
+  }
+
+  .blog-content :global(strong) {
+    font-weight: 700;
+  }
+</style>

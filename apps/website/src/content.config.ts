@@ -1,7 +1,17 @@
-/**
- * Content collections config. Export an empty registry until you add real collections;
- * this satisfies Astro’s content layer so the dev server stops warning that no config loaded.
- *
- * @see https://docs.astro.build/en/guides/content-collections/
- */
-export const collections = {};
+import { defineCollection } from "astro:content";
+import { glob } from "astro/loaders";
+import { z } from "astro/zod";
+
+const blog = defineCollection({
+  loader: glob({ pattern: "**/*.md", base: "./src/content/blog" }),
+  schema: z.object({
+    title: z.string(),
+    description: z.string(),
+    pubDate: z.coerce.date(),
+    tags: z.array(z.string()).min(1),
+    thumbnail: z.object({ src: z.string(), alt: z.string() }),
+    draft: z.boolean().default(false),
+  }),
+});
+
+export const collections = { blog };

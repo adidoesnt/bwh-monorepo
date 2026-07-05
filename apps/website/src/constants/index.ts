@@ -1,5 +1,6 @@
 export * from "./about";
 export * from "./activewear";
+export * from "./blog";
 export * from "./contact";
 export * from "./email";
 export * from "./home";
