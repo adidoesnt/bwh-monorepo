@@ -1,0 +1,5 @@
+{
+  "name": "bwh-blog",
+  "description": "Write and publish builtwithhabit blog posts without using git directly",
+  "version": "1.0.0"
+}
