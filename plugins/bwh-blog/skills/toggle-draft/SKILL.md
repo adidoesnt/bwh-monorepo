@@ -8,9 +8,7 @@ Change the `draft` field in a post's frontmatter. This skill only edits the file
 
 ## Repository path
 
-1. Read `~/.config/bwh-blog/repo-root`.
-2. If missing, or the path no longer exists, tell the user to run `/bwh-blog:configure-repo` first and stop.
-3. See `references/repo-config.md`.
+Operate relative to the current working directory (the monorepo root). See `references/repo-config.md` for the sanity check to run first.
 
 ## Input
 
@@ -23,7 +21,7 @@ Example invocation: `/bwh-blog:toggle-draft why-i-started-lifting publish`
 
 ## Steps
 
-1. Read `{repoRoot}/apps/website/src/content/blog/<slug>.md`. If it doesn't exist, tell the user and list the closest matching filenames you can find in that folder.
+1. Read `apps/website/src/content/blog/<slug>.md`. If it doesn't exist, tell the user and list the closest matching filenames you can find in that folder.
 2. Edit only the `draft` field:
    - `publish` → `draft: false`
    - `unpublish` → `draft: true`

@@ -1,31 +1,16 @@
-# Repository configuration
+# Repository path
 
-After `/bwh-blog:configure-repo` runs successfully, the monorepo root is saved to:
+Every `/bwh-blog:*` skill is launched via a `bun run` script in the monorepo's root `package.json` (e.g. `bun run blog:write-post`), so Claude Code always starts with the current working directory already set to the monorepo root. There is no saved config to read — use relative paths and plain `git` commands directly:
 
-```
-~/.config/bwh-blog/repo-root
-```
+- Blog posts: `apps/website/src/content/blog/`
+- Blog images: `apps/website/public/`
+- Git commands: run normally (e.g. `git status`), no `-C` flag needed
 
-The file contains a single absolute path, no trailing newline required, e.g.:
+## Sanity check
 
-```
-/Users/you/projects/bwh-monorepo
-```
+Before any file or git operation, confirm the working directory looks like the right repo:
 
-## Using the repo root in other skills
+- `apps/website/src/content/blog/` exists
+- `apps/website/src/content.config.ts` exists
 
-Before any file or git operation:
-
-1. Read `~/.config/bwh-blog/repo-root`.
-2. If the file is missing, or the path it contains no longer exists, tell the user to run `/bwh-blog:configure-repo` first and stop.
-3. Resolve paths relative to that root:
-   - Blog posts: `{repoRoot}/apps/website/src/content/blog/`
-   - Blog images: `{repoRoot}/apps/website/public/`
-4. Run git commands with `-C "{repoRoot}"` (e.g. `git -C "{repoRoot}" status`) rather than `cd`-ing, so the skill works no matter what directory Claude Code was started from.
-
-## Valid monorepo markers
-
-The configured path must contain:
-
-- `apps/website/src/content/blog/` (directory)
-- `apps/website/src/content.config.ts` (file)
+If either is missing, stop and tell the user to run the skill via the `bun run` script from the `bwh-monorepo` root (e.g. `bun run blog:write-post`) rather than starting Claude Code some other way.

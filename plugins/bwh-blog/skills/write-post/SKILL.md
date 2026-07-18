@@ -8,9 +8,7 @@ Create or update a markdown file for the builtwithhabit blog. This skill only wr
 
 ## Repository path
 
-1. Read `~/.config/bwh-blog/repo-root`.
-2. If missing, or the path no longer exists, tell the user to run `/bwh-blog:configure-repo` first and stop.
-3. See `references/repo-config.md` for path resolution rules.
+Operate relative to the current working directory (the monorepo root). See `references/repo-config.md` for the sanity check to run first.
 
 ## Before writing
 
@@ -20,7 +18,7 @@ Create or update a markdown file for the builtwithhabit blog. This skill only wr
 
 ## Target location
 
-Write **only** to `{repoRoot}/apps/website/src/content/blog/<slug>.md`. Never write blog content anywhere else in the repo.
+Write **only** to `apps/website/src/content/blog/<slug>.md`. Never write blog content anywhere else in the repo.
 
 ## Slug rules
 
@@ -37,9 +35,9 @@ Write **only** to `{repoRoot}/apps/website/src/content/blog/<slug>.md`. Never wr
 1. Read it
 2. If it already has frontmatter, check it against `references/frontmatter-schema.md` and fix or ask about anything missing/invalid
 3. If it has no frontmatter, treat the whole file as the body and ask for title/description/tags/thumbnail
-4. Write the result to `{repoRoot}/apps/website/src/content/blog/<slug>.md`
+4. Write the result to `apps/website/src/content/blog/<slug>.md`
 
-**Image assets** — if the user provides a local image to use as the thumbnail, copy it into `{repoRoot}/apps/website/public/` (keep the original filename unless it collides, in which case ask) and set `thumbnail.src` to `/<filename>`.
+**Image assets** — if the user provides a local image to use as the thumbnail, copy it into `apps/website/public/` (keep the original filename unless it collides, in which case ask) and set `thumbnail.src` to `/<filename>`.
 
 ## Frontmatter defaults
 

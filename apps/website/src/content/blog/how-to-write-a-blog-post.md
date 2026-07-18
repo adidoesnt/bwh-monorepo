@@ -12,6 +12,30 @@ draft: true
 
 Every blog post is a single markdown file. You add the file, open a pull request and once it is merged the site rebuilds and the post goes live.
 
+## the easy way: use the blog plugin
+
+If you have [Claude Code](https://code.claude.com) installed, you don't need to touch git or markdown by hand. From the `bwh-monorepo` root:
+
+```bash
+bun run blog:write-post
+```
+
+Paste your title, description, tags and body in chat (or point Claude at an existing draft file) and it saves the post as a draft for you. When you're ready:
+
+```bash
+bun run blog:toggle-draft
+```
+
+publishes or unpublishes a post — just give it the slug when asked. Then:
+
+```bash
+bun run blog:publish
+```
+
+commits and pushes the change to `main` for you, after showing you exactly what will be published and asking you to confirm. You never run a git command yourself.
+
+The rest of this guide covers doing it by hand, if you'd rather have full control or don't have Claude Code set up.
+
 ## where to put your file
 
 Create a new `.md` file here:

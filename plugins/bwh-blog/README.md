@@ -8,47 +8,35 @@ A [Claude Code plugin](https://code.claude.com/docs/en/plugins) that lets non-te
 2. **Clone this repo** somewhere on your machine (you don't need to know your way around it):
    ```bash
    git clone https://github.com/adidoesnt/bwh-monorepo
+   cd bwh-monorepo
    ```
-3. **Start Claude Code with the plugin**, pointing at the clone:
-   ```bash
-   claude --plugin-dir /path/to/bwh-monorepo/plugins/bwh-blog
-   ```
-4. **Configure the repo path:**
-   ```
-   /bwh-blog:configure-repo /path/to/bwh-monorepo
-   ```
-   You can paste the path, or just tell Claude where you cloned it — you do not need to `cd` into the repo first.
 
-Re-run `/bwh-blog:configure-repo` if you ever move the clone.
+That's it — no separate configuration step. Every command below is a `bun run` script defined in the repo's root `package.json`, so it always runs from the right place.
 
 ## Daily workflow
 
-Start Claude Code with the plugin (from any directory):
-
-```bash
-claude --plugin-dir /path/to/bwh-monorepo/plugins/bwh-blog
-```
+Run these from inside your `bwh-monorepo` clone.
 
 ### 1. Write a post
 
-```
-/bwh-blog:write-post
+```bash
+bun run blog:write-post
 ```
 
 Then either paste your title, description, tags and body in chat, or point Claude at an existing markdown draft file. New posts are saved as **drafts** and are not visible on the live site yet.
 
 ### 2. Make it live
 
-```
-/bwh-blog:toggle-draft my-post-slug publish
+```bash
+bun run blog:toggle-draft
 ```
 
-Replace `my-post-slug` with your post's filename, without `.md`.
+Claude will ask for the post's slug (its filename without `.md`) and whether to publish or unpublish it.
 
 ### 3. Publish to the live site
 
-```
-/bwh-blog:publish
+```bash
+bun run blog:publish
 ```
 
 Claude pulls the latest changes, shows you exactly what will be committed and asks you to confirm before pushing to `main`. You never run a git command yourself. Vercel deploys automatically once the push lands.
@@ -57,11 +45,9 @@ Claude pulls the latest changes, shows you exactly what will be committed and as
 
 | Goal | Command |
 |------|---------|
-| First-time setup | `/bwh-blog:configure-repo /path/to/bwh-monorepo` |
-| Write or import a post | `/bwh-blog:write-post` |
-| Hide a post from the live site | `/bwh-blog:toggle-draft my-slug unpublish` |
-| Make a post live | `/bwh-blog:toggle-draft my-slug publish` |
-| Push changes to GitHub | `/bwh-blog:publish` |
+| Write or import a post | `bun run blog:write-post` |
+| Hide or show a post on the live site | `bun run blog:toggle-draft` |
+| Push changes to GitHub | `bun run blog:publish` |
 
 ## Example prompts
 
@@ -75,7 +61,7 @@ Claude pulls the latest changes, shows you exactly what will be committed and as
 
 **Publish:**
 
-> `/bwh-blog:toggle-draft why-skin-safe-activewear-matters publish` then `/bwh-blog:publish`
+> `bun run blog:toggle-draft` (slug: `why-skin-safe-activewear-matters`, action: publish), then `bun run blog:publish`
 
 ## Post format
 
@@ -86,7 +72,7 @@ See `assets/post-template.md` and `references/frontmatter-schema.md` in this fol
 From the repo root:
 
 ```bash
-bun run package:blog-plugin
+bun run blog:package
 ```
 
 This creates `plugins/bwh-blog.plugin` (gitignored). Distribute that file, or install/test it directly:
