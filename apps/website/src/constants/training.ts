@@ -206,31 +206,40 @@ export type FaqCategory = {
 
 export const faqCategories: FaqCategory[] = [
   {
+    title: "about the trainer",
+    items: [
+      {
+        question: "what are your qualifications?",
+        answerHtml: `i am a registered <strong>nasm personal fitness trainer [non ncca-accredited certificate]</strong>; i'm also <strong>cpr-aed certified</strong>, trained to respond appropriately in the unlikely event of a medical emergency!`,
+      },
+      {
+        question: "what differentiates you as a trainer?",
+        answerHtml: `i'm incredibly <strong>passionate</strong> about the work i do! i always show up early, with a <strong>fresh hand-written plan</strong> and loads of <strong>energy</strong>! i'm a <strong>visual learner</strong> - so having a <strong>keen eye</strong> and instructing my clients through <strong>proper form</strong> comes naturally to me!`,
+      },
+    ],
+  },
+  {
     title: "sessions & logistics",
     items: [
       {
-        question: "how long are sessions?",
-        answerHtml: `each personal training session is <strong>60 minutes long</strong>, including warm-up, main workout and cool-down.`,
+        question: "where do the sessions happen?",
+        answerHtml: `i train in the <strong>east</strong> and <strong>central</strong> areas (along the <strong>brown line</strong>): either (a) at <strong>clients' condo</strong> (if facilities are sufficient!) or (b) at the <strong>katong activesg gym</strong>; it's low-cost ($2.50/ entry) and accessible with <strong>state-of-the-art facilities</strong>!`,
       },
       {
-        question: "what are your operating hours?",
-        answerHtml: `i am available for sessions between <strong>8 am and 7 pm</strong>, monday to saturday. session times outside of these hours may be accommodated on a case-by-case basis.`,
+        question: "are you able to train in the cbd area during the lunch time?",
+        answerHtml: `yes! a lot of my clients are <strong>busy working professionals</strong> - i have partnered with <strong>peak gym (cecil street)</strong> to cater to this need; a <strong>$30 rental fee</strong> will be charged to use the space, in addition to the cost of the session :)`,
       },
       {
-        question: "where do sessions take place?",
-        answerHtml: `sessions take place at one of <strong>3 partner gym locations</strong> across singapore. the exact location will be confirmed when you book your session based on your convenience and availability.`,
+        question: "how many sessions should i do per week?",
+        answerHtml: `i recommend <strong>2-3 sessions/ week</strong> to maximise how much you're getting out of the program but ultimately, <strong>whatever is feasible <em>and</em> sustainable is always ideal</strong>!`,
       },
       {
-        question: "what should i expect in my first session?",
-        answerHtml: `your first session includes a <strong>consultation and movement assessment</strong> to understand your goals, experience and any limitations. we'll then move through a tailored warm-up, introduction to key exercises and a cool-down. you'll leave with clarity on your starting point and next steps.`,
+        question: "how long are the sessions?",
+        answerHtml: `sessions are intended to be <strong>60 minutes long</strong> - they do occasionally <strong>run overtime [~70-75 minutes]</strong> but please let me know if you have a <strong>hard stop</strong>!`,
       },
       {
-        question: "can i train with a friend or partner?",
-        answerHtml: `yes! <strong>partner sessions</strong> are available. training with someone you know can be motivating and fun — reach out to discuss partner pricing and scheduling.`,
-      },
-      {
-        question: "how often should i train?",
-        answerHtml: `most clients train <strong>1–2 times per week</strong>, depending on goals, schedule and recovery. we'll find a frequency that supports consistent progress without burnout.`,
+        question: "when do you offer sessions?",
+        answerHtml: `i offer sessions anytime from <strong>8 am - 7 pm</strong> on <strong>weekdays and weekends</strong>!!`,
       },
     ],
   },
@@ -238,12 +247,16 @@ export const faqCategories: FaqCategory[] = [
     title: "programs & pricing",
     items: [
       {
-        question: "what packages do you offer?",
-        answerHtml: `i offer <strong>3 packages</strong> — discover (1 session), build (5 sessions) and transform (10 sessions). scroll up to the <strong>our packages</strong> section on this page for full details and pricing.`,
+        question: "what packages do you offer and do you do a trial session?",
+        answerHtml: `i offer <strong>3 different packages</strong>: <em>discover</em> [1 session] - trial session, <em>build</em> [5 sessions] and <em>transform</em> [10 sessions]; the cost of an individual session <strong>works out more reasonable, the bigger the package is</strong> ❤️`,
       },
       {
-        question: "how do i book and pay for sessions?",
-        answerHtml: `once you've chosen a package, you can book and pay through the <strong>builtwithhabit booking portal</strong>. if you have questions before booking, feel free to get in touch via the contact page.`,
+        question: "do you offer couples training? can i work out with a buddy?",
+        answerHtml: `yes, i totally understand that many people <strong>find comfort</strong> in being able to train with a <strong>partner</strong> or a <strong>friend</strong>! i charge <strong>$30 extra per head</strong> per session.`,
+      },
+      {
+        question: "when and how do i make the payment for the package?",
+        answerHtml: `the <strong>full payment</strong> is made <strong>before the first session</strong> takes place (via <strong>paynow @ +65 8934 9627</strong>) and a <strong>formal invoice</strong> can be <strong>requested by the client</strong> for record-keeping purposes!`,
       },
     ],
   },
@@ -251,24 +264,17 @@ export const faqCategories: FaqCategory[] = [
     title: "training approach",
     items: [
       {
-        question: "what is your training style and philosophy?",
-        answerHtml: `my approach is <strong>individualised, evidence-based and holistic</strong>. sessions focus on building functional strength, confidence and sustainable habits — not quick fixes. every program is tailored to where you are and where you want to go.`,
+        question: "how are the sessions structured?",
+        answerHtml: `sessions follow a <strong>systematic flow: light cardio &gt; dynamic stretching &gt; resistance training &gt; static stretch &amp; cool down</strong>! this <strong>primes the body</strong> for movement, <strong>maximises hypertrophy</strong> and <strong>prevents injury</strong>!`,
       },
       {
-        question: "who do you train?",
-        answerHtml: `i primarily work with <strong>women</strong> of all ages and fitness levels — from complete beginners to those looking to level up their current routine.`,
+        question: "how is the first session unique?",
+        answerHtml: `i do a <strong>diagnostic</strong> that involves baselining through a: (a) <strong>posture and movement screening</strong>, (b) <strong>cardiorespiratory fitness test</strong>, (c) <strong>rudimentary resistance training movements</strong> and (d) <strong>goal setting</strong>!`,
       },
       {
-        question: "do i need prior gym experience?",
-        answerHtml: `<strong>not at all!</strong> many of my clients are new to strength training. i'll teach you proper form, gym etiquette and how to use equipment safely so you feel confident training on your own over time.`,
-      },
-      {
-        question: "can you work around injuries or health conditions?",
-        answerHtml: `yes. i take a careful, <strong>progressive approach</strong> and adapt exercises to work within your limitations. please share any injuries or health concerns during your initial consultation so we can train safely and effectively.`,
-      },
-      {
-        question: "do you provide nutrition advice?",
-        answerHtml: `i offer <strong>general nutrition guidance</strong> to support your training goals — things like protein intake, hydration and sustainable eating habits. for detailed meal plans or clinical nutrition, i'll refer you to a qualified dietitian.`,
+        question:
+          "do you work with people of all fitness levels or do i need prior experience?",
+        answerHtml: `i work with clients of <strong>all fitness levels</strong> (tons of <strong>first-timers</strong>)! i can also tailor the program if clients have certain <strong>mobility constraints</strong> or <strong>history of injury</strong>, as long as they're <strong>cleared to work out by a physician</strong>!`,
       },
     ],
   },
@@ -276,8 +282,8 @@ export const faqCategories: FaqCategory[] = [
     title: "policies",
     items: [
       {
-        question: "what is your cancellation policy?",
-        answerHtml: `please provide at least <strong>16 hours' notice</strong> if you need to cancel or reschedule a session. cancellations with less than 16 hours' notice will result in <strong>forfeiture of that session</strong>.`,
+        question: "what is your rescheduling policy for sessions?",
+        answerHtml: `i always try to be as <strong>accommodating</strong> as possible (life happens!) but a <strong>24-hour notice</strong> is required for the session to <strong>not be forfeited/ defaulted</strong>! provided 24 hour notice, <strong>one free reschedule</strong> is permitted, within the <strong>following 7 days</strong>.`,
       },
     ],
   },
