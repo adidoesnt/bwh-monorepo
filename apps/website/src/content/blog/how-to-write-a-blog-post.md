@@ -10,7 +10,7 @@ thumbnail:
 draft: true
 ---
 
-Every blog post is a single markdown file. You add the file, open a pull request, and once it is merged the site rebuilds and the post goes live.
+Every blog post is a single markdown file. You add the file, open a pull request and once it is merged the site rebuilds and the post goes live.
 
 ## where to put your file
 
@@ -76,7 +76,7 @@ The block between the `---` lines at the top is **frontmatter**. Every field is 
 
 > **Draft posts are visible in development only.**  
 > While running `bun run dev`, any post with `draft: true` shows up on `/blog` and can be opened at its URL. The site also displays a **development mode** notice and a **draft** badge so you do not mistake a preview for a live post.  
-> On the production site, draft posts are completely hidden — they are excluded from the blog index, search, and individual post pages.
+> On the production site, draft posts are completely hidden — they are excluded from the blog index, search and individual post pages.
 
 | `draft` value | Local dev (`bun run dev`) | Live site (after deploy) |
 | --- | --- | --- |
@@ -124,4 +124,4 @@ Existing images in `public/` (such as `/pillars-learn.jpg`) can be reused if you
 2. Open a pull request.
 3. After review and merge, the site deploys automatically and your post appears on `/blog`.
 
-If something fails to build, check that dates, tags, and thumbnail fields match the format in the template above.
+If something fails to build, check that dates, tags and thumbnail fields match the format in the template above.

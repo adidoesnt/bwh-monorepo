@@ -59,6 +59,6 @@ This skill may set `git config user.name` / `user.email` after explicit user con
 
 Tell the user:
 
-1. The repo path that was saved, and that other `/bwh-blog:` skills will use it automatically from now on
+1. The repo path that was saved and that other `/bwh-blog:` skills will use it automatically from now on
 2. What to do next: `/bwh-blog:write-post` to draft a post, then `/bwh-blog:publish` when ready to make it live
 3. They will never need to run a `git` command themselves — the `publish` skill handles that

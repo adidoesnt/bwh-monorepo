@@ -7,7 +7,7 @@ export const blogBackToTopLabel = "back to top";
 export const blogBackToAllPostsLabel = "back to all posts";
 
 export const blogEmptyState =
-  "no posts yet — check back soon for stories on lifting, wellness, and entrepreneurship.";
+  "no posts yet — check back soon for stories on lifting, wellness and entrepreneurship.";
 
 export const blogNoResultsState =
   "no posts match your search — try different keywords or clear your filters.";

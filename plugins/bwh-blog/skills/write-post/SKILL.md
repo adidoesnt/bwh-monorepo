@@ -26,7 +26,7 @@ Write **only** to `{repoRoot}/apps/website/src/content/blog/<slug>.md`. Never wr
 
 - Kebab-case filename: title "Why I Started Lifting" → `why-i-started-lifting.md`
 - Derive the slug from the title unless the user specifies one
-- Only `a-z`, `0-9`, and hyphens
+- Only `a-z`, `0-9` and hyphens
 - If a file with that slug already exists and the user didn't say they're updating it, ask whether to overwrite, pick a new slug, or append a suffix
 
 ## Input modes

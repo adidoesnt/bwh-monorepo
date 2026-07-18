@@ -28,8 +28,8 @@ Run `git -C "{repoRoot}" status` first. If it shows changes outside this scope, 
    - If it's `main`, continue.
    - If it's anything else: check whether there are uncommitted changes outside the blog scope above (`git -C "{repoRoot}" status`). If there are none, switch with `git -C "{repoRoot}" checkout main`. If there are unrelated changes, stop and explain the situation to the user instead of switching for them — this may be someone else's in-progress work.
 2. **Sync with GitHub.** `git -C "{repoRoot}" pull --ff-only origin main`.
-   - If this fails because the branch has diverged in a way that isn't a fast-forward, stop and explain that someone else's changes conflict with local state, and that you won't attempt a rebase/merge automatically — ask the user how they'd like to proceed (or suggest they get help).
-3. **Show what will be published.** Run `git -C "{repoRoot}" status` and `git -C "{repoRoot}" diff -- apps/website/src/content/blog/ apps/website/public/` (or `--stat` for brevity if the diff is large). Summarize in plain language: which post(s), new vs. updated, and current draft status of each.
+   - If this fails because the branch has diverged in a way that isn't a fast-forward, stop and explain that someone else's changes conflict with local state and that you won't attempt a rebase/merge automatically — ask the user how they'd like to proceed (or suggest they get help).
+3. **Show what will be published.** Run `git -C "{repoRoot}" status` and `git -C "{repoRoot}" diff -- apps/website/src/content/blog/ apps/website/public/` (or `--stat` for brevity if the diff is large). Summarize in plain language: which post(s), new vs. updated and current draft status of each.
 4. **Confirm.** Ask the user to confirm before doing anything that touches the remote. Do not proceed without an explicit yes.
 5. **Stage.** `git -C "{repoRoot}" add apps/website/src/content/blog/` and, if relevant, `git -C "{repoRoot}" add apps/website/public/<file>` for specific new images only — never a bare `add -A`.
 6. **Commit** with a clear message reflecting what happened:

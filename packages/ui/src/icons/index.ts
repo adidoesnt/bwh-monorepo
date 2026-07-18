@@ -1,3 +1,5 @@
+export { default as ChevronLeftIcon } from "./chevronLeftIcon.svelte";
+export { default as ChevronRightIcon } from "./chevronRightIcon.svelte";
 export { default as ChevronsDownIcon } from "./chevronsDownIcon.svelte";
 export { default as CircleCheckIcon } from "./circleCheckIcon.svelte";
 export { default as CartIcon } from "./cartIcon.svelte";

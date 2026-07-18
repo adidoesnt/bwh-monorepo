@@ -35,7 +35,7 @@ claude --plugin-dir /path/to/bwh-monorepo/plugins/bwh-blog
 /bwh-blog:write-post
 ```
 
-Then either paste your title, description, tags, and body in chat, or point Claude at an existing markdown draft file. New posts are saved as **drafts** and are not visible on the live site yet.
+Then either paste your title, description, tags and body in chat, or point Claude at an existing markdown draft file. New posts are saved as **drafts** and are not visible on the live site yet.
 
 ### 2. Make it live
 
@@ -51,7 +51,7 @@ Replace `my-post-slug` with your post's filename, without `.md`.
 /bwh-blog:publish
 ```
 
-Claude pulls the latest changes, shows you exactly what will be committed, and asks you to confirm before pushing to `main`. You never run a git command yourself. Vercel deploys automatically once the push lands.
+Claude pulls the latest changes, shows you exactly what will be committed and asks you to confirm before pushing to `main`. You never run a git command yourself. Vercel deploys automatically once the push lands.
 
 ## Cheat sheet
 

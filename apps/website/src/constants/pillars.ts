@@ -19,7 +19,7 @@ export const pillars: Pillar[] = [
       alt: "learn",
     },
     description:
-      "learn about all things wellness, sustainability, and entrepreneurship!",
+      "learn about all things wellness, sustainability and entrepreneurship!",
   },
   {
     title: "train",
@@ -30,7 +30,7 @@ export const pillars: Pillar[] = [
       alt: "training",
     },
     description:
-      "explore our personal training packages to improve strength, conditioning, and mobility!",
+      "explore our personal training packages to improve strength, conditioning and mobility!",
   },
   {
     title: "shop",
