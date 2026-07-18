@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { ChevronLeftIcon, ChevronRightIcon, StarIcon } from "@repo/ui/icons";
+  import { ChevronLeftIcon, ChevronRightIcon } from "@repo/ui/icons";
   import {
     testimonials,
     type Testimonial,
@@ -106,19 +106,6 @@
         {getInitials(item.authorName)}
       </div>
       <p class="font-body font-bold">{item.authorName}</p>
-      <div
-        class="flex gap-1"
-        role="img"
-        aria-label="{item.rating} out of 5 stars"
-      >
-        {#each Array.from({ length: 5 }, (_, index) => index) as starIndex (starIndex)}
-          <StarIcon
-            className="size-4 {starIndex < item.rating
-              ? 'fill-current'
-              : 'fill-none opacity-40'}"
-          />
-        {/each}
-      </div>
     </header>
 
     <div class="min-h-0 flex-1 overflow-y-auto p-4 text-center md:p-6">
