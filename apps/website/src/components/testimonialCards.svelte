@@ -1,14 +1,18 @@
 <script lang="ts">
-  import { StarIcon } from "@repo/ui/icons";
+  import { ChevronLeftIcon, ChevronRightIcon, StarIcon } from "@repo/ui/icons";
   import {
     testimonials,
     type Testimonial,
   } from "../constants/training";
 
   let mobileCarouselEl: HTMLDivElement | undefined = $state();
+  let desktopCarouselEl: HTMLDivElement | undefined = $state();
   let activeIndex = $state(0);
 
   const showDesktopCarousel = testimonials.length > 3;
+
+  let canScrollLeft = $state(false);
+  let canScrollRight = $state(showDesktopCarousel);
 
   const getInitials = (authorName: string) =>
     (authorName.trim()[0] ?? "").toUpperCase();
@@ -21,6 +25,49 @@
       behavior: "smooth",
     });
   };
+
+  const updateDesktopScrollState = () => {
+    if (!desktopCarouselEl) return;
+
+    const { scrollLeft, scrollWidth, clientWidth } = desktopCarouselEl;
+    canScrollLeft = scrollLeft > 1;
+    canScrollRight = scrollLeft < scrollWidth - clientWidth - 1;
+  };
+
+  const scrollDesktopCarousel = (direction: -1 | 1) => {
+    if (!desktopCarouselEl) return;
+
+    const slides =
+      desktopCarouselEl.querySelectorAll<HTMLElement>(
+        "[data-desktop-slide-index]",
+      );
+    if (slides.length < 2) return;
+
+    const step = slides[1]!.offsetLeft - slides[0]!.offsetLeft;
+
+    desktopCarouselEl.scrollBy({
+      left: direction * step,
+      behavior: "smooth",
+    });
+  };
+
+  $effect(() => {
+    if (!desktopCarouselEl) return;
+
+    const el = desktopCarouselEl;
+    updateDesktopScrollState();
+
+    const resizeObserver = new ResizeObserver(updateDesktopScrollState);
+    resizeObserver.observe(el);
+    el.addEventListener("scroll", updateDesktopScrollState, {
+      passive: true,
+    });
+
+    return () => {
+      resizeObserver.disconnect();
+      el.removeEventListener("scroll", updateDesktopScrollState);
+    };
+  });
 
   $effect(() => {
     if (!mobileCarouselEl) return;
@@ -127,22 +174,47 @@
 
   {#if showDesktopCarousel}
     <div
-      class="hidden md:block w-full max-w-full overflow-hidden"
+      class="relative hidden md:block w-full max-w-full overflow-hidden"
       role="region"
       aria-roledescription="carousel"
       aria-label="Client testimonials"
     >
-      <div
-        class="@container w-full max-w-full snap-x snap-mandatory overflow-x-auto overscroll-x-contain scroll-smooth [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
-      >
-        <div class="grid auto-cols-[calc((100cqw-4rem)/3)] grid-flow-col gap-8">
-          {#each testimonials as item, index (item.authorName)}
-            <div class="box-border h-full snap-start">
-              {@render testimonialCard(item)}
-            </div>
-          {/each}
+      <div class="px-12">
+        <div
+          bind:this={desktopCarouselEl}
+          class="@container w-full max-w-full snap-x snap-mandatory overflow-x-auto overscroll-x-contain scroll-smooth [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+        >
+          <div
+            class="grid auto-cols-[calc((100cqw-4rem)/3)] grid-flow-col gap-8"
+          >
+            {#each testimonials as item, index (item.authorName)}
+              <div class="box-border h-full snap-start" data-desktop-slide-index={index}>
+                {@render testimonialCard(item)}
+              </div>
+            {/each}
+          </div>
         </div>
       </div>
+
+      <button
+        type="button"
+        class="btn btn-circle btn-sm absolute top-1/2 left-1 z-10 -translate-y-1/2 bg-white shadow-md transition-opacity hover:bg-base-100 disabled:pointer-events-none disabled:opacity-30"
+        aria-label="Scroll testimonials left"
+        disabled={!canScrollLeft}
+        onclick={() => scrollDesktopCarousel(-1)}
+      >
+        <ChevronLeftIcon className="size-5" />
+      </button>
+
+      <button
+        type="button"
+        class="btn btn-circle btn-sm absolute top-1/2 right-1 z-10 -translate-y-1/2 bg-white shadow-md transition-opacity hover:bg-base-100 disabled:pointer-events-none disabled:opacity-30"
+        aria-label="Scroll testimonials right"
+        disabled={!canScrollRight}
+        onclick={() => scrollDesktopCarousel(1)}
+      >
+        <ChevronRightIcon className="size-5" />
+      </button>
     </div>
   {:else}
     <div class="hidden md:grid md:grid-cols-3 md:gap-8">
