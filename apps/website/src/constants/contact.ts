@@ -29,3 +29,6 @@ export const contactFormPlaceholders = {
 } as const;
 
 export const contactSuccessMessage = "message sent successfully.";
+
+export const contactErrorMessage =
+  "something went wrong sending your message. please try again later.";

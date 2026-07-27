@@ -11,7 +11,11 @@ const handleContact = async (input: ContactInput) => {
       return { error: "Please verify that you are human" };
     }
 
-    await sendContactFormEmail(input);
+    const result = await sendContactFormEmail(input);
+    if (!result.success) {
+      return { error: "Failed to send contact form email" };
+    }
+
     console.log("Email sent successfully");
 
     return { success: true };

@@ -10,6 +10,7 @@ import {
 } from "@repo/ui/icons";
 import { actions, isInputError } from "astro:actions";
 import {
+  contactErrorMessage,
   contactFormLabels,
   contactFormPlaceholders,
   contactIntroParagraphs,
@@ -21,7 +22,9 @@ import {
 
 const result = Astro.getActionResult(actions.contact);
 const error = result?.error;
-const inputErrors = isInputError(error) ? error.fields : {};
+const isFieldError = isInputError(error);
+const inputErrors = isFieldError ? error.fields : {};
+const showError = Boolean(error) && !isFieldError;
 
 const getFieldError = (field: keyof typeof inputErrors) => {
   const value = inputErrors[field];
@@ -242,6 +245,13 @@ if (showSent) {
         showSent ? (
           <p class="rounded-sm border border-success/40 bg-success/20 px-3 py-2 font-body text-sm text-success">
             {contactSuccessMessage}
+          </p>
+        ) : null
+      }
+      {
+        showError ? (
+          <p class="rounded-sm border border-error/40 bg-error/20 px-3 py-2 font-body text-sm text-error">
+            {contactErrorMessage}
           </p>
         ) : null
       }
