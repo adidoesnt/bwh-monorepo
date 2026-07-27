@@ -3,9 +3,19 @@ import { SiteLayout } from "../layouts";
 import { MissionSection } from "../components";
 import { BLOG_ENABLED } from "../constants/featureFlags";
 import { journeyLinkText, whyParagraphs, whySectionTitle } from "../constants";
+import { getPersonJsonLd } from "../utils/seo";
+
+const pageTitle = "about ishita | builtwithhabit personal trainer";
+const pageDescription =
+  "meet ishita, a nasm personal trainer in singapore helping women build strength, confidence and a sustainable relationship with movement.";
 ---
 
-<SiteLayout>
+<SiteLayout
+  title={pageTitle}
+  description={pageDescription}
+  image="/headshot.png"
+  jsonLd={getPersonJsonLd()}
+>
   <section
     id="why-section"
     class="bg-base-200 grid min-h-[50dvh] place-items-center p-4 md:p-8 gap-4"

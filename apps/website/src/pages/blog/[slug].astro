@@ -9,6 +9,7 @@ import {
   blogDraftBadgeLabel,
 } from "../../constants/blog";
 import { formatBlogDate, getPublishedPosts } from "../../utils/blog";
+import { getBlogPostingJsonLd } from "../../utils/seo";
 import { render } from "astro:content";
 
 export async function getStaticPaths() {
@@ -32,9 +33,24 @@ const { Content } = await render(post);
 const { title, description, pubDate, tags, thumbnail, draft } = post.data;
 const isDev = import.meta.env.DEV;
 const showDraftNotice = isDev && draft;
+
+const blogPostingJsonLd = getBlogPostingJsonLd({
+  title,
+  description,
+  pubDate,
+  tags,
+  thumbnail,
+  slug: post.id,
+});
 ---
 
-<SiteLayout title={title} description={description}>
+<SiteLayout
+  title={title}
+  description={description}
+  image={thumbnail.src}
+  type="article"
+  jsonLd={blogPostingJsonLd}
+>
   <article
     id="blog-post-top"
     class="text-dark-brown bg-beige flex w-full flex-col items-center gap-6 overflow-x-hidden p-4 md:gap-8 md:p-8"

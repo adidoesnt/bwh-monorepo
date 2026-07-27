@@ -26,6 +26,10 @@ const isFieldError = isInputError(error);
 const inputErrors = isFieldError ? error.fields : {};
 const showError = Boolean(error) && !isFieldError;
 
+const pageTitle = "contact us | builtwithhabit";
+const pageDescription =
+  "get in touch with builtwithhabit for personal training inquiries, activewear updates, brand partnerships or general feedback.";
+
 const getFieldError = (field: keyof typeof inputErrors) => {
   const value = inputErrors[field];
   if (Array.isArray(value)) return value[0];
@@ -51,7 +55,7 @@ if (showSent) {
 }
 ---
 
-<SiteLayout>
+<SiteLayout title={pageTitle} description={pageDescription}>
   <div class="grid md:grid-cols-2 p-4 md:p-8 bg-base-200 gap-4">
     <section class="flex flex-col gap-4 p-4 md:p-6">
       <h1 class="text-3xl font-bold font-headings">{contactPageTitle}</h1>

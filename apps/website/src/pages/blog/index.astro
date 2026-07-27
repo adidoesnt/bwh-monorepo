@@ -21,9 +21,13 @@ const postCards = posts.map((post) => ({
   thumbnail: post.data.thumbnail,
   draft: isDev ? post.data.draft : false,
 }));
+
+const pageTitle = "blog | builtwithhabit";
+const pageDescription =
+  "stories and guides on lifting, low-tox living and entrepreneurship from builtwithhabit.";
 ---
 
-<SiteLayout title={blogSectionTitle} description={blogSectionTitle}>
+<SiteLayout title={pageTitle} description={pageDescription}>
   <section
     id="blog-section"
     class="text-dark-brown bg-beige flex min-h-[50dvh] flex-col place-items-center gap-4 overflow-x-hidden p-4 md:gap-8 md:p-8"

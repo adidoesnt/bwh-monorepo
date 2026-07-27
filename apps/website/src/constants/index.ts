@@ -7,4 +7,5 @@ export * from "./home";
 export * from "./mission";
 export * from "./navLinks";
 export * from "./pillars";
+export * from "./site";
 export * from "./training";

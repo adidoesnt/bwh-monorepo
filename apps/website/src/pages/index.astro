@@ -4,6 +4,7 @@ import { LogoIcon } from "@repo/ui/icons";
 import { PillarCards, MissionSection } from "../components";
 import { BLOG_ENABLED } from "../constants/featureFlags";
 import { getPillars } from "../constants/pillars";
+import { getBusinessJsonLd } from "../utils/seo";
 import {
   heroHeadline,
   heroTagline,
@@ -25,9 +26,17 @@ const pillarGridClass =
     : visiblePillars.length === 2
       ? "grid w-full max-w-4xl grid-cols-1 gap-4 md:grid-cols-2 md:gap-8"
       : "grid w-full max-w-6xl grid-cols-1 gap-4 md:grid-cols-3 md:gap-8";
+
+const pageTitle = "builtwithhabit | personal training & skin-safe activewear";
+const pageDescription =
+  "personal training and skin-safe, high-performance activewear in singapore. tailored strength coaching for women, with engineered activewear launching soon.";
 ---
 
-<SiteLayout>
+<SiteLayout
+  title={pageTitle}
+  description={pageDescription}
+  jsonLd={getBusinessJsonLd()}
+>
   <!-- Hero Section -->
   <section
     id="hero-section"
