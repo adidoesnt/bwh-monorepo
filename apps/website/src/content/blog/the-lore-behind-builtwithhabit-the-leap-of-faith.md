@@ -17,7 +17,7 @@ tags:
 thumbnail:
   src: "/leap-of-faith-1.png"
   alt: "An upcycled product prototype from Circle, a circular design startup"
-draft: true
+draft: false
 ---
 
 an unfiltered look at the quiet pivots, unexpected detours, and “canon events” that shaped my path: from science and consulting to starting a skin-safe activewear brand. this isn’t just a story about business. it’s about building a brand that feels aligned with who i am!
