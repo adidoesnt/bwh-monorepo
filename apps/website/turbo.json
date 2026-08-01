@@ -1,0 +1,22 @@
+{
+  "$schema": "https://turborepo.dev/schema.json",
+  "extends": ["//"],
+  "tasks": {
+    "build": {
+      "env": [
+        "BLOG_ENABLED",
+        "SEARCH_ENABLED",
+        "SHOP_ENABLED",
+        "PT_ENABLED",
+        "SHOP_URL",
+        "PT_URL",
+        "SES_SMTP_HOST",
+        "SES_SMTP_PORT",
+        "SES_SMTP_USER",
+        "SES_SMTP_PASS",
+        "RECEIVER_EMAIL",
+        "SENDER_EMAIL"
+      ]
+    }
+  }
+}
