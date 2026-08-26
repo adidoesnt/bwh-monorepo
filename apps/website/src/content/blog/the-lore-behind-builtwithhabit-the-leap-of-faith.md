@@ -15,7 +15,7 @@ tags:
   - nontoxic
   - sustainability
 thumbnail:
-  src: "/leap-of-faith-1.png"
+  src: "/leap-of-faith-1.jpg"
   alt: "An upcycled product prototype from Circle, a circular design startup"
 draft: false
 ---
@@ -38,7 +38,7 @@ at the time, i definitely didn’t think of it as entrepreneurship.
 
 i just liked **creating**.
 
-![Circle Product Prototype](/leap-of-faith-1.png)*(an upcycled product prototype from 'circle;' we partnered with a local theatre to incorporate the lamp into their stage set!)*
+![Circle Product Prototype](/leap-of-faith-1.jpg)*(an upcycled product prototype from 'circle;' we partnered with a local theatre to incorporate the lamp into their stage set!)*
 
 ## the science track: and the first of many pivots *[2018-2023]*
 
@@ -50,7 +50,7 @@ i was *absolutely* fascinated by how biology drives behavior, how health is shap
 
 to this day, this lens - from cell to system - shapes how i think about building products. not just what looks good, but what *performs well*, *supports the body* on a biological level, and *scales viably* in the real world.
 
-![College Research Lab](/leap-of-faith-2.png)*(the research lab i worked in for a semester, where i learnt about reverse genetics, high throughput genomics sequencing technology, scRNAseq expression profiling, and supervised machine learning analysis!)*
+![College Research Lab](/leap-of-faith-2.jpg)*(the research lab i worked in for a semester, where i learnt about reverse genetics, high throughput genomics sequencing technology, scRNAseq expression profiling, and supervised machine learning analysis!)*
 
 then, in my second year of college, covid hit. the world as we knew it, changed almost overnight.
 
@@ -61,13 +61,13 @@ that was my first glimpse into **the power of habit**: how discipline, stacked d
 **confidence isn’t something you’re born with.**  
 **it’s something you earn, by keeping the promises you make to yourself.**
 
-![Lifting During Covid](/leap-of-faith-3.png)*(when i first got serious about lifting; i was working up towards a pull up in the first picture, and coincidentally wearing the same outfit in the second - talk about sustainability!)*
+![Lifting During Covid](/leap-of-faith-3.jpg)*(when i first got serious about lifting; i was working up towards a pull up in the first picture, and coincidentally wearing the same outfit in the second - talk about sustainability!)*
 
 after graduation, i entered my bridge year at an orthopedic hospital. again, i *loved* the science. the intimacy of care. the privilege of hearing people’s stories.
 
 i was in awe of the clinicians i worked with: their commitment, their stamina, their compassion.
 
-![Working at an Orthopedic Hospital](/leap-of-faith-4.png)*(i learnt so much about the incredible anatomy of the hips and knees; i interacted with so many of the kindest elderly patients, whose stories i will forever remember!)*
+![Working at an Orthopedic Hospital](/leap-of-faith-4.jpg)*(i learnt so much about the incredible anatomy of the hips and knees; i interacted with so many of the kindest elderly patients, whose stories i will forever remember!)*
 
 but i also began zooming out: i was drawn to systems. how is healthcare delivered? who gets left behind? what drives long-term change? where does innovation come into play?
 
@@ -87,21 +87,21 @@ i learned how to:
 
 these skills were transferable: i just didn’t know where they’d take me *yet*.
 
-![Kpmg Whitepaper Full Circle](/leap-of-faith-5.png)*(this was such a full-circle moment for me: i had attended this conference in my first week at the company [baby me, pictured on the left], and a year later, i helped author the headlining thought leadership piece [not-so baby me, pictured on the right]!)*
+![Kpmg Whitepaper Full Circle](/leap-of-faith-5.jpg)*(this was such a full-circle moment for me: i had attended this conference in my first week at the company [baby me, pictured on the left], and a year later, i helped author the headlining thought leadership piece [not-so baby me, pictured on the right]!)*
 
 ## a new understanding of wellness *[2025]*
 
 by this time, lifting had become more than a hobby: it was an anchor. i felt so passionately about the difference that strength training had made in my life, in the last 5 years. in april, i got my nasm personal fitness trainer certificate and started coaching women on strength, nutrition, and health literacy. 
 
-![Becoming a NASM PT](/leap-of-faith-6.png)*(i feel so incredibly grateful to get to help clients experience the same kind of transformation that i did: not just physically, but also emotionally, psychologically, and even - spiritually!)*
+![Becoming a NASM PT](/leap-of-faith-6.jpg)*(i feel so incredibly grateful to get to help clients experience the same kind of transformation that i did: not just physically, but also emotionally, psychologically, and even - spiritually!)*
 
 i also started exploring wellness more *holistically*: diving into ancient healing systems, ayurvedic nutrition, hormonal health, sleep hygiene, and the gut-brain connection. i cleaned up my sleep, my food, my skincare, my supplements, even my screen time. 
 
 i became **deeply intentional** about what i was putting in and on my body. phthalates, bisphenols, pfas, and pesticides… i wanted to learn about it all, so i could protect myself and the people around me!
 
-![Healthy Eating Collage 1](/leap-of-faith-7.png)
+![Healthy Eating Collage 1](/leap-of-faith-7.jpg)
 
-![Healthy Eating Collage 2](/leap-of-faith-8.png)*(anyone who knows me, knows that i take breakfast very seriously - making a nourishing meal in the morning, is one of my favorite forms of self-care: it helps me practice being more present before i start my day!)*
+![Healthy Eating Collage 2](/leap-of-faith-8.jpg)*(anyone who knows me, knows that i take breakfast very seriously - making a nourishing meal in the morning, is one of my favorite forms of self-care: it helps me practice being more present before i start my day!)*
 
 ## the moment everything changed *[2025]*
 
@@ -154,9 +154,9 @@ a conviction that we deserve better: from what we wear to how we live.
 
 i’m *obsessed* with getting this right.
 
-![Bts of Building a Business 1](/leap-of-faith-9.png)
+![Bts of Building a Business 1](/leap-of-faith-9.jpg)
 
-![Bts of Building a Business 2](/leap-of-faith-10.png)*(some exciting sneak peaks of the behind-the-scenes; leveraging my network, finalising tech packs, talking to vendors, and having the flexibility to work under the sun! super exciting stuff!)*
+![Bts of Building a Business 2](/leap-of-faith-10.jpg)*(some exciting sneak peaks of the behind-the-scenes; leveraging my network, finalising tech packs, talking to vendors, and having the flexibility to work under the sun! super exciting stuff!)*
 
 if you’ve made it this far: *thank you.*
 
