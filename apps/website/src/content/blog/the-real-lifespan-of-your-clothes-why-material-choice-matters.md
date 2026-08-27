@@ -11,7 +11,7 @@ tags:
 thumbnail:
   src: "/the-real-lifespan-of-your-clothes-why-material-choice-matters-1.jpg"
   alt: "Placeholder thumbnail — update before publishing"
-draft: true
+draft: false
 ---
 
 most people don’t realize how differently fabrics behave once we throw them away: some break down in months, while others stay on the planet for centuries. in this post, i break down credible, research-backed data on biodegradation timelines across natural, synthetic and semi-synthetic fibers and why these differences matter for our skin and the environment! if you care about conscious consumerism, circularity or simply want to understand your clothes beyond the label, this guide is for you!

@@ -10,7 +10,7 @@ tags:
 thumbnail:
   src: "/built-with-habit-the-reality-of-trying-to-get-it-right-5.jpg"
   alt: "What \"Gold Standard\" Actually Means (to Me)"
-draft: true
+draft: false
 ---
 
 when i left my corporate job in april last year to start builtwithhabit - a truly skin-safe activewear brand, i had no clue what would be in store for us! as we navigate 'the messy middle' and the complexities of sourcing, i wanted to take some time to reflect on our brand ethos and how that's shaped this whole journey! bottom line: if doing it 'right' takes longer, then we've got all the time in the world. i'm not here to be the first to market - i'm here to be the one you can actually trust!

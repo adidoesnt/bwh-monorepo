@@ -9,7 +9,7 @@ tags:
 thumbnail:
   src: "/the-low-tox-living-starter-pack-where-swaps-matter-the-most-5.jpg"
   alt: "4. Bedroom"
-draft: true
+draft: false
 ---
 
 in a world where it feels like everything is quietly toxic, i share a simple framework for making your home a little safer, one room at a time. from the kitchen to the closet, this guide breaks down red flags to watch out for and low-tox swaps you can start with today (without overhauling your entire life overnight)!

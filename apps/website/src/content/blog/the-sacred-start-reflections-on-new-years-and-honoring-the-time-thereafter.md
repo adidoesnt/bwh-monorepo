@@ -9,7 +9,7 @@ tags:
 thumbnail:
   src: "/the-sacred-start-reflections-on-new-years-and-honoring-the-time-thereafter-2.jpg"
   alt: "new years are cultural"
-draft: true
+draft: false
 ---
 
 happy new year! another year, another revolution around the sun... and a lot of pressure to: reflect, set intentions, deep clean, vision board, nail it professionally, connect with loved ones - and the list goes on? in this post, i wanted to unpack (ironically) why **there's so much implicit expectation to re-invent oneself**, especially with the rise of self-help culture... and how we can embrace january but also the magical 11 months thereafter!

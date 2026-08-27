@@ -23,7 +23,7 @@ an unfiltered look at the quiet pivots, unexpected detours, and “canon events�
 
 ## a different kind of start *[2014-2018]*
 
-i've always been a **builder**.
+i've always been a *builder*.
 
 when i was younger, that meant doodling ‘cool gadgets’ in my notebooks or pitching an app idea with a friend at dinner (powerpoint and all… yes, the food did get cold 😭).
 
@@ -31,7 +31,7 @@ in high school, i co-led a circular design startup called '*circle*,' where we b
 
 at the time, i definitely didn’t think of it as entrepreneurship.
 
-i just liked **creating**.
+i just liked *creating*.
 
 ![Circle Product Prototype](/leap-of-faith-1.jpg)*(an upcycled product prototype from 'circle;' we partnered with a local theater to incorporate the lamp into their stage set!)*
 
@@ -74,11 +74,11 @@ at kpmg, i entered the world of healthcare and life sciences strategy consulting
 
 i learned how to:
 
-- **break down complexity**  
-- **pressure-test ideas**  
-- **balance long-term vision** with short-term constraints  
-- **systematically build capabilities** for businesses  
-- **build from first principles** - and then scale it responsibly
+- break down complexity  
+- pressure-test ideas  
+- balance long-term vision with short-term constraints  
+- systematically build capabilities for businesses  
+- build from first principles - and then scale it responsibly
 
 these skills were transferable: i just didn’t know where they’d take me *yet*.
 
@@ -104,7 +104,7 @@ one day, while getting ready for the gym, i was rummaging through my closet and 
 
 **polyester. nylon. elastane.**
 
-i recognized those. **petroleum-derived. microplastic-laced. hormone-disrupting.**
+i recognized those. *petroleum-derived. microplastic-laced. hormone-disrupting.*
 
 the kind of thing i’d stopped putting on my plate and in my personal care products…  
 but was still *apparently* putting on my skin - again, little to my knowledge.

@@ -9,7 +9,7 @@ tags:
 thumbnail:
   src: "/beyond-protein-a-case-for-fiber-maxxing-5.jpg"
   alt: "The Bigger Picture"
-draft: true
+draft: false
 ---
 
 while tracking protein intake has become mainstream in the nutrition space, fiber has really taken a hit. many western-style diets average fewer than 10-15 grams of fiber per day... when the recommended intake sits closer to 25-38 grams daily. that gap is the difference between: healthy digestion, lowered ldl cholesterol, stable blood sugar, clearance of carcinogens in the gut, resilient gut microbiome - and well, the opposite of that. so read ahead to see what you can do to fiber maxx!

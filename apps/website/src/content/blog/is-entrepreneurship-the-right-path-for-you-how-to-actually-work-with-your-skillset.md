@@ -10,7 +10,7 @@ tags:
 thumbnail:
   src: "/is-entrepreneurship-the-right-path-for-you-how-to-actually-work-with-your-skillset-2.jpg"
   alt: "Traits That Thrive in Entrepreneurship Vs. Corporate Life"
-draft: true
+draft: false
 ---
 
 this blog post was inspired by a conversation i had at the bar (!)... it got me thinking about whether there are some innate characteristics that lend themselves to corporate vs. entrepreneurship! it also gave me space to reflect on my own journey: including my year and a half stint at kpmg - in healthcare & life sciences consulting - and now (and hopefully, forever hehe) building builtwithhabit!

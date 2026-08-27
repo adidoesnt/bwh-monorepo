@@ -11,7 +11,7 @@ tags:
 thumbnail:
   src: "/closing-one-low-tox-eye-travel-control-and-the-cost-of-hyper-vigilance-2.jpg"
   alt: "A Personal Note"
-draft: true
+draft: false
 ---
 
 low-tox living can sharpen your awareness in powerful ways - but it can also really narrow your world. when you travel, you lose control over oils, water filters, cookware and countless unseen variables. this is my reflection on choosing adaptability over anxiety - and why flexibility might be one of the most protective practices of all!

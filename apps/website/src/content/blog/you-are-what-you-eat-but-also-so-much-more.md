@@ -9,7 +9,7 @@ tags:
 thumbnail:
   src: "/you-are-what-you-eat-but-also-so-much-more-4.jpg"
   alt: "Tending to Your Inner Environment"
-draft: true
+draft: false
 ---
 
 wellness is shaped by far more than what you eat or how you move: it’s influenced by your relationships, your self-talk, your habits, your purpose and the inner world you’re quietly cultivating every day!! the older i get, the more i realize that everything really is that deep: **what we consume emotionally, mentally, and spiritually compounds** 🤍

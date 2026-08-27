@@ -9,7 +9,7 @@ tags:
 thumbnail:
   src: "/food-across-borders-how-your-zip-code-shapes-your-eating-habits-1.jpg"
   alt: "Placeholder thumbnail — update before publishing"
-draft: true
+draft: false
 ---
 
 food looks different everywhere: not just because of culture, but because of policy, regulation, access and what each society considers “normal.” after living in the us, south korea and singapore + spending months in europe, i started noticing just how deeply food systems shape our health. this post breaks down the differences, the surprising insights and the habits we can learn from each region!

@@ -9,7 +9,7 @@ tags:
 thumbnail:
   src: "/disconnecting-from-intuition-the-cost-of-outsourcing-your-inner-compass-1.jpg"
   alt: "Placeholder thumbnail — update before publishing"
-draft: true
+draft: false
 ---
 
 another vulnerable blog post for this week! as the year wraps up, i've been reflecting a lot on how i've grown. in many ways, i'm incredibly proud of the ways in which: i've asserted myself more boldly, bet on my aspirations and connected meaningfully with the people in my life who matter most! however, i also realized that i've been struggling with **outsourcing my inner compass**. i.e. silencing my own intuition, crowdsourcing opinions and leaning on external validation as a crutch. that was a super profound realization for me! here's to 2026 and re-building or re-fortifying that belief i have in my own discernment (my favorite word right now!!).

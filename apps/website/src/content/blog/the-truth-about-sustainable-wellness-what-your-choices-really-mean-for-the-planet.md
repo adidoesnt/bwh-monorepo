@@ -10,7 +10,7 @@ tags:
 thumbnail:
   src: "/the-truth-about-sustainable-wellness-what-your-choices-really-mean-for-the-planet-1.jpg"
   alt: "Placeholder thumbnail — update before publishing"
-draft: true
+draft: false
 ---
 
 sometimes, wellness isn’t always as “green” as it looks. in this post, i dive into the surprising environmental costs of supplements, skincare, gadgets, and gear. i also share the small, everyday shifts that actually move the needle.

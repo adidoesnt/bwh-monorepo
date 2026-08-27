@@ -10,7 +10,7 @@ tags:
 thumbnail:
   src: "/challenging-limiting-beliefs-the-six-mental-reframes-that-changed-the-way-i-build-2.jpg"
   alt: "Feeling “Ready”"
-draft: true
+draft: false
 ---
 
 the founder journey has a way of holding up a mirror: showing you not just what you’re building, but who you’re becoming in the process! these six mindset reframes have reshaped how I think about progress, self-trust, and growth; they’re lessons in patience, perspective, and remembering that discomfort is often data.

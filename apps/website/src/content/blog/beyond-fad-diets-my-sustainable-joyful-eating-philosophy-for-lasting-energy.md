@@ -11,7 +11,7 @@ tags:
 thumbnail:
   src: "/beyond-fad-diets-my-sustainable-joyful-eating-philosophy-for-lasting-energy-6.jpg"
   alt: "Culture, Comfort, Etc"
-draft: true
+draft: false
 ---
 
 i really feel like food shouldn’t feel as complicated as it does right now... this post is about how i approach eating in a way that fuels strength, supports gut health, and still celebrates flavor, culture, and creativity!

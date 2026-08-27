@@ -9,7 +9,7 @@ tags:
 thumbnail:
   src: "/things-all-women-should-be-taught-in-school-lifting-edition-6.jpg"
   alt: "Lifting Supports Mental Health (in a Very Real Way)"
-draft: true
+draft: false
 ---
 
 "if exercise could be packed in a pill, it would be the single most widely prescribed and beneficial medicine in the nation." ~ dr. robert n. butler. in this blog post, i discuss the well-documented/ evidence-backed benefits of weightlifting for women! it is absolutely mind-blowing to think about the impact it has on: disease management, bone density, joint stabilization, functional strength and mental health <3 go gymmm!

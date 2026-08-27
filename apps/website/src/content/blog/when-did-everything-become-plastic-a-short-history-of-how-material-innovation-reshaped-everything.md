@@ -9,7 +9,7 @@ tags:
 thumbnail:
   src: "/when-did-everything-become-plastic-a-short-history-of-how-material-innovation-reshaped-everything-1.jpg"
   alt: "Placeholder thumbnail — update before publishing"
-draft: true
+draft: false
 ---
 
 in this blog post, i wanted to do a bit of a dive into the historical evolution of plastics and how they took root in the 20th and 21st century! part of reimagining a more sustainable future for material innovation involves understanding our past: where did the need for disposable and industrially-predictable materials come from and how did we lose sight of all that natural fibers have to offer?

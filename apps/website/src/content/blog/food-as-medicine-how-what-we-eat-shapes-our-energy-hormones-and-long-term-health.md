@@ -9,7 +9,7 @@ tags:
 thumbnail:
   src: "/food-as-medicine-how-what-we-eat-shapes-our-energy-hormones-and-long-term-health-8.jpg"
   alt: "Closing Reflection"
-draft: true
+draft: false
 ---
 
 to me, this is one of THE coolest spaces in health sciences: food as medicine. our diets influence everything from: inflammation, gut health, neurotransmitter production, blood sugar regulation, immune resilience and even how our genes express themselves over time. again, this isn't about: perfection, restriction, moralizing food choices or advocating for “superfoods” replacing medical care. more so, it's about raising awareness about: how diet is undeniably a core pillar, upholding our health and wellbeing!

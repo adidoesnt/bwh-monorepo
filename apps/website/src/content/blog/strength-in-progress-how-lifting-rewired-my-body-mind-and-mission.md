@@ -13,7 +13,7 @@ tags:
 thumbnail:
   src: "/strength-in-progress-how-lifting-rewired-my-body-mind-and-mission-1.jpg"
   alt: "Placeholder thumbnail — update before publishing"
-draft: true
+draft: false
 ---
 
 i never anticipated that the gym would become such a central part of my life. what started as an hour (or three!) of structure during the pandemic turned into my anchor: this is the story of how strength training shaped not just my body, but the way i live, think, and build my business!

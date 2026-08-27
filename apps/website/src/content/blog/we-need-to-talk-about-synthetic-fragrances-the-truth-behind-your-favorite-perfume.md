@@ -9,7 +9,7 @@ tags:
 thumbnail:
   src: "/we-need-to-talk-about-synthetic-fragrances-the-truth-behind-your-favorite-perfume-1.jpg"
   alt: "Placeholder thumbnail — update before publishing"
-draft: true
+draft: false
 ---
 
 fragrance is everywhere. perfume and cologne, obviously - but also body sprays, deodorants, candles, laundry detergent, skincare and cleaning products. 'fragrance' is a legal umbrella term (or corporate loophole) that can mask a complex cocktail of hundreds of chemicals - many of which have been linked to: hormone disruption, systemic inflammation, reproductive issues, neurological damage and more... so what do we do about it?

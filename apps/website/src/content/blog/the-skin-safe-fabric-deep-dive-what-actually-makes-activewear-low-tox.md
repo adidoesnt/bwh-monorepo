@@ -10,7 +10,7 @@ tags:
 thumbnail:
   src: "/the-skin-safe-fabric-deep-dive-what-actually-makes-activewear-low-tox-3.jpg"
   alt: "Fabrics Worth Wearing (With Caveats)"
-draft: true
+draft: false
 ---
 
 with so much jargon on clothing tags, it can be hard to understand what fabrics we should be avoiding versus opting for! this skin-safe fabrics deep dive summarizes the 'go's' and 'no-go's' in the garments space, with some insight into what we're doing differently at bwh!

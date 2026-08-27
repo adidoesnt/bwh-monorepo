@@ -9,7 +9,7 @@ tags:
 thumbnail:
   src: "/a-gut-healthy-grocery-list-an-evidence-based-guide-to-shopping-for-your-microbiome-3.jpg"
   alt: "Fermentation Fuel"
-draft: true
+draft: false
 ---
 
 it's absolutely mind-boggling that the bacteria, viruses and fungi that have colonized our gastrointestinal tracts are intrinsically tied to: mental health, immune function, chronic disease and more. this post is particularly important for anyone (myself included!) who might be equating 'a healthy, well-balanced diet' with 'getting your macros in.' the reality is a lot more nuanced than that: so read to find out how you can eat to support your incredible microbiome!

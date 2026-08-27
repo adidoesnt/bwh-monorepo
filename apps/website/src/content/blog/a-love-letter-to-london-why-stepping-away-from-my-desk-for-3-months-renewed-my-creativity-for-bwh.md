@@ -9,7 +9,7 @@ tags:
 thumbnail:
   src: "/a-love-letter-to-london-why-stepping-away-from-my-desk-for-3-months-renewed-my-creativity-for-bwh-1.jpg"
   alt: "Placeholder thumbnail — update before publishing"
-draft: true
+draft: false
 ---
 
 i spent six weeks in london (and a month traveling around southern europe before that!): my longest stretch away from my desk since starting builtwithhabit. i thought stepping away would slow me down, but it did the opposite. this is a love letter to the city that reminded me why creativity, connection, and curiosity are just as essential to building a business as discipline and focus!

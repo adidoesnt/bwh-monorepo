@@ -10,7 +10,7 @@ tags:
 thumbnail:
   src: "/the-neuroscience-of-hobbies-what-movement-creativity-and-play-do-for-your-brain-1.jpg"
   alt: "Placeholder thumbnail — update before publishing"
-draft: true
+draft: false
 ---
 
 hobbies aren’t just ‘pastimes’ - they’re biologically essential! neuroscience shows that different types of hobbies activate different neural systems, improving stress regulation, focus, emotional resilience, memory and long-term brain health. this post breaks down why your brain thrives on diverse forms of play, movement, creativity, learning and inner work… and how the right mix can change the way you think, feel and show up in your life :)

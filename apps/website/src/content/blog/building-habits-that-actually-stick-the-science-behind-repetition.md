@@ -9,7 +9,7 @@ tags:
 thumbnail:
   src: "/building-habits-that-actually-stick-the-science-behind-repetition-3.jpg"
   alt: "How to “Biohack” Better Habits"
-draft: true
+draft: false
 ---
 
 the secret to transformation isn’t willpower: it’s systems and wiring. in this post, i unpack the brain science behind habit formation and how i’ve leveraged it to build both strength in the gym and builtwithhabit from the ground up!

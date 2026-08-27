@@ -9,7 +9,7 @@ tags:
 thumbnail:
   src: "/whats-really-in-my-control-lessons-from-building-a-brand-in-my-20s-1.jpg"
   alt: "Placeholder thumbnail — update before publishing"
-draft: true
+draft: false
 ---
 
 the last few months have been tricky for me to navigate... i realized by and large, this has been because i've struggled to discern what is in my realm of control versus what isn't - and so, i've been applying pressure on the wrong things! this blog post really applies to anyone and everyone: whether it's about a career, relationship, lifestyle or any other goal/ ambition you may have, we can't force things into existence. we can, however, stack the odds in our favor <3
