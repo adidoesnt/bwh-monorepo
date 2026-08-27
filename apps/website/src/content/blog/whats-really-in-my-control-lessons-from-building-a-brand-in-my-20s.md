@@ -3,14 +3,16 @@ title: "what's really in my control: lessons from building a brand in my 20s"
 description: "The last few months have been tricky to navigate as I've struggled to discern what's actually in my control versus what isn't. A reflection on why we can't force things into existence — but we can stack the odds in our favor."
 pubDate: 2025-12-12
 tags:
-  - tbd
+  - founder
+  - habits
+  - mindset
 thumbnail:
   src: "/whats-really-in-my-control-lessons-from-building-a-brand-in-my-20s-1.jpg"
   alt: "Placeholder thumbnail — update before publishing"
 draft: true
 ---
 
-the last few months have been tricky for me to navigate... i realised by and large, this has been because i've struggled to discern what is in my realm of control versus what isn't - and so, i've been applying pressure on the wrong things! this blog post really applies to anyone and everyone: whether it's about a career, relationship, lifestyle or any other goal/ ambition you may have, we can't force things into existence. we can, however, stack the odds in our favor <3
+the last few months have been tricky for me to navigate... i realized by and large, this has been because i've struggled to discern what is in my realm of control versus what isn't - and so, i've been applying pressure on the wrong things! this blog post really applies to anyone and everyone: whether it's about a career, relationship, lifestyle or any other goal/ ambition you may have, we can't force things into existence. we can, however, stack the odds in our favor <3
 
 *By Ishita R Mahajan*
 
@@ -22,9 +24,9 @@ the last few months have been tricky for me to navigate... i realised by and lar
 
 when i left big 4 consulting to build *builtwithhabit*, i genuinely believed that if i was disciplined *enough*, worked hard *enough* and powered through *enough*, with sheer willpower… things would automatically fall into place. spoiler: sometimes, there’s more to the equation!
 
-i’m building a business that depends on *global supply chains*, *specialised machinery*, *external partners* across four time zones and *timelines i don’t directly manage*. don’t get me wrong: i’m up for the challenge (most of the time)! but it’s also forced me to get super honest about *what’s actually within my realm of control… and what isn’t.* over the past few months, i’ve kind of found myself *falling short in the areas i can influence, while trying too hard to manipulate the things i can’t.*
+i’m building a business that depends on *global supply chains*, *specialized machinery*, *external partners* across four time zones and *timelines i don’t directly manage*. don’t get me wrong: i’m up for the challenge (most of the time)! but it’s also forced me to get super honest about *what’s actually within my realm of control… and what isn’t.* over the past few months, i’ve kind of found myself *falling short in the areas i can influence, while trying too hard to manipulate the things i can’t.*
 
-ironically, the more i try to “control everything,” the more i’m reminded that *my real leverage* sits in a smaller (but infinitely more meaningful) arena: the way i show up. there’s this concept in spiritual philosophy - the law of detachment - that describes *the art of pursuing your goals without attaching to the outcome so fiercely that the journey loses its intrinsic value and beauty*. it’s not about inaction or passivity; it’s about acceptance. sometimes, *when you stop forcing things, you create space for them to unfold… divinely.*
+ironically, the more i try to “control everything,” the more i’m reminded that *my real leverage* sits in a smaller (but infinitely more meaningful) arena: **the way i show up.** there’s this concept in spiritual philosophy - the law of detachment - that describes *the art of pursuing your goals without attaching to the outcome so fiercely that the journey loses its intrinsic value and beauty*. it’s not about inaction or passivity; it’s about acceptance. sometimes, *when you stop forcing things, you create space for them to unfold… divinely.*
 
 eight months into building *bwh* full-time, these are the lessons that grounded me most: what’s firmly *in my hands*… and what i’ve had to make peace with *surrendering*.
 
@@ -48,9 +50,9 @@ people can feel intention from a mile away! they can sense when something is don
 
 ### → my mindset
 
-the way i talk to myself when things get hard or confusing is *everything*. mindset is the difference between spiralling into *“nothing is working” and* recognising *“i just don’t have all the puzzle pieces yet.”* this is something i’m actively working on. i’m definitely my own harshest critic - as we all tend to be - but i'm trying to be more deliberate about shutting down the negative self-talk when it creeps in and reframing my limiting beliefs (shoutout to everyone for their incredible pep talks iykyk, *you're so, so appreciated*!).
+**the way i talk to myself when things get hard or confusing is everything.** mindset is the difference between spiraling into *“nothing is working” and* recognizing *“i just don’t have all the puzzle pieces yet.”* this is something i’m actively working on. i’m definitely my own harshest critic - as we all tend to be - but i'm trying to be more deliberate about shutting down the negative self-talk when it creeps in and reframing my limiting beliefs (shoutout to everyone for their incredible pep talks iykyk, *you're so, so appreciated*!).
 
-### → what i choose to prioritise
+### → what i choose to prioritize
 
 my time is one of the only things that’s *truly mine*. where i allocate it - strategy, learning, building, ops, outreach, rest - totally shapes the direction of the brand!
 
@@ -78,7 +80,7 @@ every conversation, every mistake, every expert interview *teaches me something*
 
 ![What I Can’t Control: the External Reality and Outputs](/whats-really-in-my-control-lessons-from-building-a-brand-in-my-20s-3.jpg)*(this is the flip-side of the coin: there are things that are definitely not in our hands. but this is good too (!): by distinguishing intentionally, we can put our time and energy into the 'right' places!)*
 
-these are the parts of the journey that remain outside my hands - no matter how prepared, organised or disciplined i am!
+these are the parts of the journey that remain outside my hands - no matter how prepared, organized or disciplined i am!
 
 ### → vendor responsiveness
 
@@ -100,9 +102,9 @@ sgs, intertek, oeko-tex: these testing labs have *strict protocols* and they wil
 
 global politics (and tariffs!), economic downturns, currency swings, supply chain disruptions, shipping rates - *all entirely outside my influence*.
 
-### → algorithm behaviour
+### → algorithm behavior
 
-i can choose what i post (and ensure that it is representative of who i am and the brand i’m building). i can’t choose who sees it, how it performs or what goes viral. *analytics are lowkey a black box…*
+i can choose what i post (and ensure that it is representative of who i am and the brand i’m building). **i can’t choose who sees it, how it performs or what goes viral.** *analytics are lowkey a black box…*
 
 ### → how people perceive me
 
@@ -112,7 +114,7 @@ whether someone thinks i’m too naive, too intense, too public, too much or not
 
 people will always have opinions but i'm firmly believe: *“don't take advice from someone you wouldn't trade places with!”* ultimately, i have to make decisions based on what feels intelligent, aligned and sustainable for me.
 
-### → competitor behaviour
+### → competitor behavior
 
 what they release, how fast they launch, how they price, how they market - *i can observe, learn (a lot!) and appreciate*… but not replicate.
 
@@ -128,17 +130,27 @@ building a brand has taught me that maturity is knowing the difference between: 
 
 this isn’t just a founder lesson: it’s a human one! anyone building anything, whether it’s a dream, career, relationship or lifestyle, faces the same equation - inputs vs. outcomes: and learning to *trust the space between the two*.
 
-## what i'm trying to internalise now!
+## what i'm trying to internalize now!
 
-![What I'm Trying to Internalise Now!](/whats-really-in-my-control-lessons-from-building-a-brand-in-my-20s-5.jpg)*(this is obviously an ongoing goal of mine - will surely be reading... and re-reading this post hehe!)*
+![What I'm Trying to Internalize Now!](/whats-really-in-my-control-lessons-from-building-a-brand-in-my-20s-5.jpg)*(this is obviously an ongoing goal of mine - will surely be reading... and re-reading this post hehe!)*
 
-i can’t bend supply chains, timelines or algorithms.
+**i can’t bend supply chains, timelines or algorithms.**
 
 but i can *build something with integrity*.
 i can *keep showing up with intention*.
 i can *learn faster than i did yesterday*.
-i can *honour the version of me who first chose this path for myself* - terrified but determined.
+i can *honor the version of me who first chose this path for myself* - terrified but determined.
 
 i can: *build with habit*!
 
 … and i think *that’s enough to build something beautiful*.
+
+---
+
+*if you liked this post and want to read more about entrepreneurship and the bwh founder journey, then please check out these other blogs i've written!*
+
+[challenging limiting beliefs](/blog/challenging-limiting-beliefs-the-six-mental-reframes-that-changed-the-way-i-build)
+
+[disconnecting from intuition](/blog/disconnecting-from-intuition-the-cost-of-outsourcing-your-inner-compass)
+
+[is entrepreneurship the right path for you?](/blog/is-entrepreneurship-the-right-path-for-you-how-to-actually-work-with-your-skillset)

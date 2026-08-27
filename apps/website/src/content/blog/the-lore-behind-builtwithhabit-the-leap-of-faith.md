@@ -4,19 +4,14 @@ description: "An unfiltered look at the quiet pivots, unexpected detours, and ca
 pubDate: 2025-09-07
 tags:
   - activewear
-  - backstory
-  - buildingabusiness
-  - earlystage
   - founder
-  - highperformance
-  - journey
-  - lore
+  - strengthtraining
   - mindset
-  - nontoxic
+  - lowtox
   - sustainability
 thumbnail:
-  src: "/leap-of-faith-1.jpg"
-  alt: "An upcycled product prototype from Circle, a circular design startup"
+  src: "/leap-of-faith-10.jpg"
+  alt: "Bts of Building a Business 2"
 draft: false
 ---
 
@@ -38,7 +33,7 @@ at the time, i definitely didn’t think of it as entrepreneurship.
 
 i just liked **creating**.
 
-![Circle Product Prototype](/leap-of-faith-1.jpg)*(an upcycled product prototype from 'circle;' we partnered with a local theatre to incorporate the lamp into their stage set!)*
+![Circle Product Prototype](/leap-of-faith-1.jpg)*(an upcycled product prototype from 'circle;' we partnered with a local theater to incorporate the lamp into their stage set!)*
 
 ## the science track: and the first of many pivots *[2018-2023]*
 
@@ -50,7 +45,7 @@ i was *absolutely* fascinated by how biology drives behavior, how health is shap
 
 to this day, this lens - from cell to system - shapes how i think about building products. not just what looks good, but what *performs well*, *supports the body* on a biological level, and *scales viably* in the real world.
 
-![College Research Lab](/leap-of-faith-2.jpg)*(the research lab i worked in for a semester, where i learnt about reverse genetics, high throughput genomics sequencing technology, scRNAseq expression profiling, and supervised machine learning analysis!)*
+![College Research Lab](/leap-of-faith-2.jpg)*(the research lab i worked in for a semester, where i learned about reverse genetics, high throughput genomics sequencing technology, scRNAseq expression profiling, and supervised machine learning analysis!)*
 
 then, in my second year of college, covid hit. the world as we knew it, changed almost overnight.
 
@@ -61,13 +56,13 @@ that was my first glimpse into **the power of habit**: how discipline, stacked d
 **confidence isn’t something you’re born with.**  
 **it’s something you earn, by keeping the promises you make to yourself.**
 
-![Lifting During Covid](/leap-of-faith-3.jpg)*(when i first got serious about lifting; i was working up towards a pull up in the first picture, and coincidentally wearing the same outfit in the second - talk about sustainability!)*
+![Lifting During Covid](/leap-of-faith-3.jpg)*(when i first got serious about lifting; i was working up toward a pull up in the first picture, and coincidentally wearing the same outfit in the second - talk about sustainability!)*
 
 after graduation, i entered my bridge year at an orthopedic hospital. again, i *loved* the science. the intimacy of care. the privilege of hearing people’s stories.
 
 i was in awe of the clinicians i worked with: their commitment, their stamina, their compassion.
 
-![Working at an Orthopedic Hospital](/leap-of-faith-4.jpg)*(i learnt so much about the incredible anatomy of the hips and knees; i interacted with so many of the kindest elderly patients, whose stories i will forever remember!)*
+![Working at an Orthopedic Hospital](/leap-of-faith-4.jpg)*(i learned so much about the incredible anatomy of the hips and knees; i interacted with so many of the kindest elderly patients, whose stories i will forever remember!)*
 
 but i also began zooming out: i was drawn to systems. how is healthcare delivered? who gets left behind? what drives long-term change? where does innovation come into play?
 
@@ -79,11 +74,11 @@ at kpmg, i entered the world of healthcare and life sciences strategy consulting
 
 i learned how to:
 
-* **break down complexity**  
-* **pressure-test ideas**  
-* **balance long-term vision** with short-term constraints  
-* **systematically build capabilities** for businesses  
-* **build from first principles** - and then scale it responsibly
+- **break down complexity**  
+- **pressure-test ideas**  
+- **balance long-term vision** with short-term constraints  
+- **systematically build capabilities** for businesses  
+- **build from first principles** - and then scale it responsibly
 
 these skills were transferable: i just didn’t know where they’d take me *yet*.
 
@@ -109,7 +104,7 @@ one day, while getting ready for the gym, i was rummaging through my closet and 
 
 **polyester. nylon. elastane.**
 
-i recognised those. **petroleum-derived. microplastic-laced. hormone-disrupting.**
+i recognized those. **petroleum-derived. microplastic-laced. hormone-disrupting.**
 
 the kind of thing i’d stopped putting on my plate and in my personal care products…  
 but was still *apparently* putting on my skin - again, little to my knowledge.
@@ -129,17 +124,17 @@ get good grades. choose something stable. work my way up the corporate ladder. p
 
 even when that quiet itch for something more would show up, i brushed it off.
 
-* was i just running from structure?  
-* was i romanticizing the idea of building something of my own?  
-* if i were really cut out for this, wouldn’t i have done it already?  
-* was i just bored? naive? delusional???
+- was i just running from structure?  
+- was i romanticizing the idea of building something of my own?  
+- if i were really cut out for this, wouldn’t i have done it already?  
+- was i just bored? naive? delusional???
 
 eventually, i started reframing these questions:
 
-* what if i wasn’t running from structure: but building one that worked better for me?  
-* what if this dream wasn’t naive - just early-stage?  
-* what if I haven’t done it yet… because i was busy collecting the tools to do it well?  
-* what if I’m not delusional - just willing to believe in a future that hasn’t been built yet?
+- what if i wasn’t running from structure: but building one that worked better for me?  
+- what if this dream wasn’t naive - just early-stage?  
+- what if I haven’t done it yet… because i was busy collecting the tools to do it well?  
+- what if I’m not delusional - just willing to believe in a future that hasn’t been built yet?
 
 looking back, the timing aligned *perfectly*:  
 i’d just started doing long-distance. my lease at my old apartment was ending. i knew i wasn’t happy in consulting anymore. i felt something *deep* in my bones - almost like the universe was clearing the path and re-aligning. (i’m *very* woo-woo like that).
@@ -156,7 +151,7 @@ i’m *obsessed* with getting this right.
 
 ![Bts of Building a Business 1](/leap-of-faith-9.jpg)
 
-![Bts of Building a Business 2](/leap-of-faith-10.jpg)*(some exciting sneak peaks of the behind-the-scenes; leveraging my network, finalising tech packs, talking to vendors, and having the flexibility to work under the sun! super exciting stuff!)*
+![Bts of Building a Business 2](/leap-of-faith-10.jpg)*(some exciting sneak peaks of the behind-the-scenes; leveraging my network, finalizing tech packs, talking to vendors, and having the flexibility to work under the sun! super exciting stuff!)*
 
 if you’ve made it this far: *thank you.*
 
@@ -169,3 +164,15 @@ but for now, i’ll leave you with this:
 **build slow.**  
 **build brave.**  
 ***build with habit!***
+
+---
+
+*if you liked this post and want to read more about entrepreneurship and the bwh founder journey, then please check out these other blogs i've written!*
+
+[built with habit: the reality of trying to get it 'right'](/blog/built-with-habit-the-reality-of-trying-to-get-it-right)
+
+[what's really in my control](/blog/whats-really-in-my-control-lessons-from-building-a-brand-in-my-20s)
+
+[challenging limiting beliefs](/blog/challenging-limiting-beliefs-the-six-mental-reframes-that-changed-the-way-i-build)
+
+[is entrepreneurship the right path for you?](/blog/is-entrepreneurship-the-right-path-for-you-how-to-actually-work-with-your-skillset)

@@ -3,10 +3,12 @@ title: "the low tox living starter pack: where swaps matter the most"
 description: "In a world where it feels like everything is quietly toxic, a simple framework for making your home a little safer, one room at a time — the red flags to watch out for and the low-tox swaps you can start with today, without overhauling your entire life overnight."
 pubDate: 2025-09-21
 tags:
-  - tbd
+  - sustainability
+  - informedchoices
+  - lowtox
 thumbnail:
-  src: "/the-low-tox-living-starter-pack-where-swaps-matter-the-most-1.jpg"
-  alt: "Placeholder thumbnail — update before publishing"
+  src: "/the-low-tox-living-starter-pack-where-swaps-matter-the-most-5.jpg"
+  alt: "4. Bedroom"
 draft: true
 ---
 
@@ -20,9 +22,9 @@ in a world where it feels like everything is quietly toxic, i share a simple fra
 
 ![Introduction](/the-low-tox-living-starter-pack-where-swaps-matter-the-most-1.jpg)*(given how much time we spend in our homes, it's important to be mindful about the environments we create!)*
 
-in today’s world, it can feel like there’s always something new to worry about: another hidden toxin, another scary headline. i’ve definitely felt overwhelmed myself. the truth is, we can’t control everything: the air we breathe, the water that runs through our cities, or what restaurants and cafes use behind the scenes. but we do have some control over the choices we make at home.
+in today’s world, it can feel like there’s always something new to worry about: another hidden toxin, another scary headline. i’ve definitely felt overwhelmed myself. the truth is, we can’t control everything: the air we breathe, the water that runs through our cities, or what restaurants and cafes use behind the scenes. but **we do have some control over the choices we make at home.**
 
-for me, exploring low-tox living has been less about fear and more about awareness. once you peek behind the curtain of what’s truly in your home, it’s hard to unsee it. but here’s the good news: you don’t need to overhaul your life overnight. it’s about starting small, swapping where you can, and making changes that actually feel sustainable.
+for me, exploring low-tox living has been **less about fear and more about awareness**. once you peek behind the curtain of what’s truly in your home, it’s hard to unsee it. but here’s the good news: you don’t need to overhaul your life overnight. it’s about starting small, swapping where you can, and making changes that actually feel sustainable.
 
 that’s why in this blog, i’m zooming in on five everyday spaces we interact with the most: the kitchen, bathroom, laundry & cleaning room, bedroom, and closet. each of these spaces hides its own set of “red flags” - the products that quietly expose us to toxins every single day. my goal isn’t to scare you but to make it easier to spot them, and to share practical swaps that fit different levels of effort: starter changes you can make right away, and upgrade swaps if you’re ready to take things to the next level.
 
@@ -48,9 +50,9 @@ so without further ado:
 
 ### how to turn these red flags into green flags
 
-* problem: cooking + storage often introduce microplastics, pfas, and chemicals into food
-* starter swaps: switch plastic food containers for glass or stainless steel; use a wooden cutting board; replace sponges with compostable cloths
-* upgraded swaps: ditch non-stick pans (pfas) for stainless steel or cast iron; invest in a countertop water filter or reverse osmosis if local water is questionable
+- problem: cooking + storage often introduce microplastics, pfas, and chemicals into food
+- starter swaps: switch plastic food containers for glass or stainless steel; use a wooden cutting board; replace sponges with compostable cloths
+- upgraded swaps: ditch non-stick pans (pfas) for stainless steel or cast iron; invest in a countertop water filter or reverse osmosis if local water is questionable
 
 ## 2. bathroom!
 
@@ -70,9 +72,9 @@ so without further ado:
 
 ### how to turn these red flags into green flags
 
-* problem: many shampoos, deodorants, toothpastes, and creams contain fragrances, parabens, aluminum, and pfas coatings
-* starter swaps: choose a fragrance-free moisturizer + spf, mineral toothpaste (or fluoride-free if desired), and a bamboo/ steel toothbrush (pay attention to what the bristles are made out of!)
-* upgrade swaps: swap to low-tox deodorants (salt rocks, magnesium-based); move toward ewg-verified skincare or refillable clean brands; natural floss like silk
+- problem: many shampoos, deodorants, toothpastes, and creams contain fragrances, parabens, aluminum, and pfas coatings
+- starter swaps: choose a fragrance-free moisturizer + spf, mineral toothpaste (or fluoride-free if desired), and a bamboo/ steel toothbrush (pay attention to what the bristles are made out of!)
+- upgrade swaps: swap to low-tox deodorants (salt rocks, magnesium-based); move toward ewg-verified skincare or refillable clean brands; natural floss like silk
 
 ## 3. laundry & cleaning room!
 
@@ -89,9 +91,9 @@ so without further ado:
 
 ### how to turn these red flags into green flags
 
-* problem: scented detergents, pods (with pva plastic), softeners, and all-purpose sprays load the home with unnecessary chemicals
-* starter swaps: switch to fragrance-free detergent; air dry when possible; diy vinegar + baking soda cleaner
-* upgrade swaps: install a microfiber filter for your washer; swap to concentrated refills; choose glass or compostable packaging
+- problem: scented detergents, pods (with pva plastic), softeners, and all-purpose sprays load the home with unnecessary chemicals
+- starter swaps: switch to fragrance-free detergent; air dry when possible; diy vinegar + baking soda cleaner
+- upgrade swaps: install a microfiber filter for your washer; swap to concentrated refills; choose glass or compostable packaging
 
 ## 4. bedroom!
 
@@ -108,9 +110,9 @@ so without further ado:
 
 ### how to turn these red flags into green flags
 
-* problem: sleep environments often harbor vocs (from mattresses), polyester textiles, and emf/ blue light exposure
-* starter swaps: wash new sheets before use; unplug chargers overnight; cut down screen time before bed
-* upgrade swaps: invest in organic cotton/linen sheets; choose a low-voc mattress; turn off wi-fi at night
+- problem: sleep environments often harbor vocs (from mattresses), polyester textiles, and emf/ blue light exposure
+- starter swaps: wash new sheets before use; unplug chargers overnight; cut down screen time before bed
+- upgrade swaps: invest in organic cotton/linen sheets; choose a low-voc mattress; turn off wi-fi at night
 
 ## 5. closet!
 
@@ -126,14 +128,24 @@ so without further ado:
 
 ### how to turn these red flags into green flags
 
-* problem: fast fashion churns out low-quality garments at massive scale; often under exploitative labor conditions, using synthetic fabrics and harsh dyes that aren’t great for our skin or the planet
-* starter swaps: buy fewer, better staples; organic cotton basics
-* upgrade swaps: natural fiber activewear (👋 *builtwithhabit*), certified organic undergarments
+- problem: fast fashion churns out low-quality garments at massive scale; often under exploitative labor conditions, using synthetic fabrics and harsh dyes that aren’t great for our skin or the planet
+- starter swaps: buy fewer, better staples; organic cotton basics
+- upgrade swaps: natural fiber activewear (👋 *builtwithhabit*), certified organic undergarments
 
 ## conclusion: where to go from here!
 
 ![Final Thoughts](/the-low-tox-living-starter-pack-where-swaps-matter-the-most-7.jpg)*(i know this was a bit of an information overload but knowledge is power!)*
 
-going low-tox isn’t about perfection. it’s about building healthier habits one swap at a time. even small shifts - like changing your pan, your detergent, or your deodorant - can reduce daily exposure and add up in the long run.
+going low-tox isn’t about perfection. it’s about **building healthier habits one swap at a time**. even small shifts - like changing your pan, your detergent, or your deodorant - can reduce daily exposure and add up in the long run.
 
-i’m still in the middle of this journey myself, and i’ve learned that the process is less about restriction and more about freedom: the freedom of knowing what touches your skin, your food, your air. it’s about: the peace of mind that comes from realizing every mindful choice, repeated over time, makes a real difference!
+i’m still in the middle of this journey myself, and i’ve learned that the process is less about restriction and more about freedom: the freedom of knowing what touches your skin, your food, your air. it’s about: the peace of mind that comes from realizing **every mindful choice, repeated over time, makes a real difference!**
+
+---
+
+*if you liked this post and want to read more about low-tox living, then please check out these other blogs i've written!*
+
+[the truth about sustainable wellness](/blog/the-truth-about-sustainable-wellness-what-your-choices-really-mean-for-the-planet)
+
+[we need to talk about synthetic fragrances](/blog/we-need-to-talk-about-synthetic-fragrances-the-truth-behind-your-favorite-perfume)
+
+[when did everything become plastic](/blog/when-did-everything-become-plastic-a-short-history-of-how-material-innovation-reshaped-everything)

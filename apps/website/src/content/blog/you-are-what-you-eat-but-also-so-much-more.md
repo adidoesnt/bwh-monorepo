@@ -3,14 +3,16 @@ title: "you are what you eat: but also, so much more"
 description: "Wellness is shaped by far more than what you eat or how you move — it's influenced by your relationships, your self-talk, your habits, and the inner world you're quietly cultivating every day. A reflection on how what we consume emotionally, mentally, and spiritually compounds over time."
 pubDate: 2026-01-09
 tags:
-  - tbd
+  - habits
+  - mindset
+  - selfcare
 thumbnail:
-  src: "/you-are-what-you-eat-but-also-so-much-more-1.jpg"
-  alt: "Placeholder thumbnail — update before publishing"
+  src: "/you-are-what-you-eat-but-also-so-much-more-4.jpg"
+  alt: "Tending to Your Inner Environment"
 draft: true
 ---
 
-wellness is shaped by far more than what you eat or how you move: it’s influenced by your relationships, your self-talk, your habits, your purpose and the inner world you’re quietly cultivating every day!! the older i get, the more i realise that everything really is that deep: what we consume emotionally, mentally, and spiritually compounds 🤍
+wellness is shaped by far more than what you eat or how you move: it’s influenced by your relationships, your self-talk, your habits, your purpose and the inner world you’re quietly cultivating every day!! the older i get, the more i realize that everything really is that deep: **what we consume emotionally, mentally, and spiritually compounds** 🤍
 
 *By Ishita R Mahajan*
 
@@ -22,7 +24,7 @@ wellness is shaped by far more than what you eat or how you move: it’s influen
 
 when i first started thinking about wellness, i interpreted it a little more literally. *what am i eating? how often am i moving my body? am i getting enough protein, enough steps, enough sleep?*
 
-and to be clear: those things matter. food is information. movement is medicine. those were my *first real entry points* into caring for myself in a deliberate way! yet, over time, i've realised that wellness doesn’t stop at what’s on your plate or how often you train. it extends into much subtler places - the ones that shape your inner world.
+and to be clear: those things matter. **food is information. movement is medicine.** those were my *first real entry points* into caring for myself in a deliberate way! yet, over time, i've realized that wellness doesn’t stop at what’s on your plate or how often you train. it extends into much subtler places - the ones that shape your inner world.
 
 you are what you eat… but you’re also what you consume *emotionally*, *mentally*, *spiritually*, *relationally*!
 
@@ -34,13 +36,13 @@ i came across this quote a while ago, and it’s stayed with me ever since: *“
 
 when you zoom out, so much of how we feel day-to-day reflects:
 
-* the people you lean on
-* the conversations you keep circling back to
-* the media you scroll through when you want to switch off your brain
-* the music you play when you’re alone in the car
-* the way you speak to yourself when no one’s listening
+- the people you lean on
+- the conversations you keep circling back to
+- the media you scroll through when you want to switch off your brain
+- the music you play when you’re alone in the car
+- the way you speak to yourself when no one’s listening
 
-*none of these are neutral.* they leave a residue.
+*none of these are neutral.* **they leave a residue.**
 
 ## wellness isn’t just discipline - it’s also discernment
 
@@ -58,12 +60,12 @@ this concept can sound a bit cold or calculative at first. in practice: it’s t
 
 your inner world is a *vibrant*, *rich*, *luscious* ecosystem, shaped by so many different inputs:
 
-* the tone of your self-talk affects your stress response
-* your relationships influence your sense of safety
-* your physical space can either calm or clutter your mind
-* your sense of purpose can energise you - or drain you
+- the tone of your self-talk affects your stress response
+- your relationships influence your sense of safety
+- your physical space can either calm or clutter your mind
+- your sense of purpose can energize you - or drain you
 
-real wellness might be less about *endlessly adding more “good habits”*… and more about decisively and intentionally curating what we allow in. what do you want to feel more of? what consistently pulls you out of alignment? what nourishes you in ways that you can’t necessarily quantify?
+real wellness might be less about *endlessly adding more “good habits”*… and **more about decisively and intentionally curating what we allow in**. what do you want to feel more of? what consistently pulls you out of alignment? what nourishes you in ways that you can’t necessarily quantify?
 
 ## slowing down to notice
 
@@ -71,11 +73,11 @@ real wellness might be less about *endlessly adding more “good habits”*… a
 
 this kind of awareness requires *slowness*. *reflection*. *honesty*. it asks you to pause and notice things we’re often too busy to sit with:
 
-* how you start your mornings
-* how you wind down at night
-* whether you rest with guilt or permission
-* whether joy feels rushed or spacious and rich
-* whether your life feels aligned - or just busy but empty
+- how you start your mornings
+- how you wind down at night
+- whether you rest with guilt or permission
+- whether joy feels rushed or spacious and rich
+- whether your life feels aligned - or just busy but empty
 
 that noticing isn’t always comfortable but it’s deeply *clarifying*… and necessary!
 
@@ -85,13 +87,13 @@ that noticing isn’t always comfortable but it’s deeply *clarifying*… and n
 
 to me, wellness now looks like this:
 
-* a regulated *nervous system*
-* a *body* that feels capable and respected
-* *relationships* that feel safe and expansive
-* *habits* that support rather than deplete me
-* *faith*: in myself, in timing, in something bigger
+- a regulated *nervous system*
+- a *body* that feels capable and respected
+- *relationships* that feel safe and expansive
+- *habits* that support rather than deplete me
+- *faith*: in myself, in timing, in something bigger
 
-food matters. movement matters. absolutely! but so does *the joy you give yourself permission to feel*. the *gratitude you practice*. the *trust you build with yourself over time*. those things count too!
+**food matters. movement matters.** absolutely! but so does *the joy you give yourself permission to feel*. the *gratitude you practice*. the *trust you build with yourself over time*. those things count too!
 
 they’re not something you perfect: they’re something you *tend to*, slowly and intentionally. they’re something you... build with habit 🤍
 

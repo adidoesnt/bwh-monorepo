@@ -3,14 +3,16 @@ title: "things all women should be taught in school: lifting edition"
 description: "Ishita dives into the well-documented, evidence-backed benefits of weightlifting for women — from disease management and bone density to joint stability, functional strength, and mental health. A case for teaching every woman to lift, early."
 pubDate: 2026-01-02
 tags:
-  - tbd
+  - strengthtraining
+  - mindset
+  - habits
 thumbnail:
-  src: "/things-all-women-should-be-taught-in-school-lifting-edition-1.jpg"
-  alt: "Placeholder thumbnail — update before publishing"
+  src: "/things-all-women-should-be-taught-in-school-lifting-edition-6.jpg"
+  alt: "Lifting Supports Mental Health (in a Very Real Way)"
 draft: true
 ---
 
-"if exercise could be packed in a pill, it would be the single most widely prescribed and beneficial medicine in the nation." ~ dr. robert n. butler. in this blog post, i discuss the well-documented/ evidence-backed benefits of weightlifting for women! it is absolutely mind-blowing to think about the impact it has on: disease management, bone density, joint stabilisation, functional strength and mental health <3 go gymmm!
+"if exercise could be packed in a pill, it would be the single most widely prescribed and beneficial medicine in the nation." ~ dr. robert n. butler. in this blog post, i discuss the well-documented/ evidence-backed benefits of weightlifting for women! it is absolutely mind-blowing to think about the impact it has on: disease management, bone density, joint stabilization, functional strength and mental health <3 go gymmm!
 
 *By Ishita R Mahajan*
 
@@ -32,11 +34,11 @@ strength training is one of the most protective, future-proof investments a woma
 
 muscle isn’t just something athletes have or bodybuilders chase. it’s a metabolically-active tissue that plays a *central role in long-term health* for all!
 
-resistance training increases lean muscle mass, which improves *insulin sensitivity*, supports *metabolic health* and lowers the risk of *chronic conditions* like type 2 diabetes and cardiovascular disease. muscle helps regulate *blood sugar* and *systemic inflammation* across the lifespan: it’s referred to as a ‘metabolic organ’ for a reason!
+**resistance training increases lean muscle mass**, which improves *insulin sensitivity*, supports *metabolic health* and lowers the risk of *chronic conditions* like type 2 diabetes and cardiovascular disease. muscle helps regulate *blood sugar* and *systemic inflammation* across the lifespan: it’s referred to as a ‘metabolic organ’ for a reason!
 
-as we age, maintaining muscle becomes one of the strongest predictors of longevity and functional independence. muscle supports *joint integrity*, stabilises *posture*, protects *connective tissue* and reduces *injury risk*. in other words: muscle helps you retain your independence, agency and autonomy - rather than slowly drifting toward *fragility*.
+as we age, maintaining muscle becomes one of the strongest predictors of longevity and functional independence. muscle supports *joint integrity*, stabilizes *posture*, protects *connective tissue* and reduces *injury risk*. in other words: muscle helps you retain your independence, agency and autonomy - rather than slowly drifting toward *fragility*.
 
-when i started lifting consistently, one of the biggest shifts i noticed was how much more 'stable' my body felt. less joint discomfort (i have the world's crackliest knees!), better posture and fewer random aches. in my clients, i see this pattern play out time and time again: women who come in sharing that they feel “weak” or "not so robust" in their bodies, slowly realise that they're far more adaptable than they could've ever believed!
+when i started lifting consistently, one of the biggest shifts i noticed was how much more 'stable' my body felt. less joint discomfort (i have the world's crackliest knees!), better posture and fewer random aches. in my clients, i see this pattern play out time and time again: women who come in sharing that they feel “weak” or "not so robust" in their bodies, slowly realize that they're far more adaptable than they could've ever believed!
 
 ## bones respond to load
 
@@ -46,7 +48,7 @@ bone is living tissue - and like muscle, it *adapts to stress*.
 
 *weight-bearing and resistance exercises* stimulate osteoblast activity (the cells responsible for building bone), increasing bone mineral density over time. this is especially critical for women, who experience accelerated bone loss during perimenopause and menopause as *estrogen levels* decline.
 
-lifting is one of the most effective non-pharmacological tools we have to reduce osteoporosis and fracture risk later in life. bones get stronger from appropriate, progressive load. moreover, *the earlier you build that foundation, the more you have to draw from later.*
+**lifting is one of the most effective non-pharmacological tools we have to reduce osteoporosis and fracture risk later in life.** bones get stronger from appropriate, progressive load. moreover, *the earlier you build that foundation, the more you have to draw from later.*
 
 so many of the incredible women i work with are very *knowledgeable* about this relationship between weight-bearing or loading and bone mineral density but a lot of them share that they wished they could've built a stronger foundation *sooner* in their lives (although it's never too late)!
 
@@ -56,7 +58,7 @@ so many of the incredible women i work with are very *knowledgeable* about this 
 
 one of the most underrated benefits of strength training - especially early on - is its impact on the nervous system.
 
-resistance training improves *coordination*, *joint stability*, *balance*, and *proprioception* (your brain’s ability to sense where your body is in space). your nervous system learns how to *recruit the right muscles*, *stabilise joints* and *move efficiently*.
+resistance training improves *coordination*, *joint stability*, *balance*, and *proprioception* (your brain’s ability to sense where your body is in space). your nervous system learns how to *recruit the right muscles*, *stabilize joints* and *move efficiently*.
 
 this is why beginners often feel noticeably stronger within weeks, even before visible muscle changes occur. *the brain is learning first.* it is genuinely one of the most rewarding parts of coaching for me to see my client feel more *coordinated*, *balanced* and *"in control"* of their body (and it also explains why you should *never* rush progression at the beginning of your programming)!
 
@@ -74,11 +76,11 @@ again, i think this is a *very personal choice* for those with a menstrual cycle
 
 ![Lifting Supports Mental Health (in a Very Real Way)](/things-all-women-should-be-taught-in-school-lifting-edition-6.jpg)*(man do the endorphins HIT after a good lift!!!)*
 
-resistance training has been shown to reduce symptoms of anxiety and depression, even independent of aerobic exercise.
+**resistance training has been shown to reduce symptoms of anxiety and depression**, even independent of aerobic exercise.
 
 beyond neurochemical changes, lifting builds self-efficacy (my *fave* concept ever!!) - *the belief that you are capable of doing hard things*. that confidence doesn’t stay confined to the gym: it *spills into work, relationships and how you carry yourself through the world*.
 
-there’s something *uniquely grounding* about loading your body, working towards a goal and experiencing yourself adapt over time. strength training teaches *patience*, *emotional regulation* and *trust* - especially on days when progress feels slow. strength changes how you relate to challenge.
+there’s something *uniquely grounding* about loading your body, working toward a goal and experiencing yourself adapt over time. strength training teaches *patience*, *emotional regulation* and *trust* - especially on days when progress feels slow. strength changes how you relate to challenge.
 
 this one is deeply personal for me: lifting has been one of the most grounding tools i lean on. on days when my mind feels *scattered* or *heavy*, training gives me *structure*, *focus* and a *tangible sense of progression*. i’ve seen this same shift in clients - on days where they're feeling a little burnt out from work or high-strung with personal responsibility, strength training becomes a way to *regulate*, to *reconnect* with the body and to *rebuild* trust in oneself!
 
@@ -90,13 +92,13 @@ chasing heavier weights too early often reinforces compensations; the low back t
 
 *good technique distributes load across joints and muscles*, reduces injury risk and makes progress sustainable long-term. this matters even more for women training *across decades*.
 
-mastery of movement - creating a strong foundation - is what keeps you training *consistently*, *confidently* and *pain-free*. this has always been the topmost priority for me: in my own training and with my clients. *form over everything!* it is so important from an *injury prevention* standpoint but also, a *mind-muscle connection* one: taking time to *slow down and truly understand the movement* (muscles engaged, technique, breathing, pace, etc.) makes a world of a difference!
+**mastery of movement - creating a strong foundation** - is what keeps you training *consistently*, *confidently* and *pain-free*. this has always been the topmost priority for me: in my own training and with my clients. *form over everything!* it is so important from an *injury prevention* standpoint but also, a *mind-muscle connection* one: taking time to *slow down and truly understand the movement* (muscles engaged, technique, breathing, pace, etc.) makes a world of a difference!
 
 ## strength is deeply functional
 
 ![Strength Is Deeply Functional](/things-all-women-should-be-taught-in-school-lifting-edition-8.jpg)*(why do you lift? to pick up all my groceries in one trip)*
 
-lifting improves real-world capacity: carrying groceries, picking things up, maintaining posture, preventing falls and moving through daily life with ease.
+**lifting improves real-world capacity**: carrying groceries, picking things up, maintaining posture, preventing falls and moving through daily life with ease.
 
 training *balance*, *unilateral strength*, *core stability*, *mobility* and *coordination* alongside load builds true robustness. the goal isn’t merely to look fit but to *feel capable and supported in your body*.
 

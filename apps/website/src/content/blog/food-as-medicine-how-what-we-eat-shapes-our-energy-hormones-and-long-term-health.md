@@ -3,14 +3,16 @@ title: "food as medicine: how what we eat shapes our energy, hormones and long-t
 description: "Food as medicine is one of the coolest spaces in health sciences — our diets influence everything from inflammation and gut health to hormones and long-term disease risk. This isn't about perfection or restriction; it's about understanding food as a core pillar of our health and wellbeing."
 pubDate: 2025-12-19
 tags:
-  - tbd
+  - nutrition
+  - habits
+  - mindset
 thumbnail:
-  src: "/food-as-medicine-how-what-we-eat-shapes-our-energy-hormones-and-long-term-health-1.jpg"
-  alt: "Placeholder thumbnail — update before publishing"
+  src: "/food-as-medicine-how-what-we-eat-shapes-our-energy-hormones-and-long-term-health-8.jpg"
+  alt: "Closing Reflection"
 draft: true
 ---
 
-to me, this is one of THE coolest spaces in health sciences: food as medicine. our diets influence everything from: inflammation, gut health, neurotransmitter production, blood sugar regulation, immune resilience and even how our genes express themselves over time. again, this isn't about: perfection, restriction, moralising food choices or advocating for “superfoods” replacing medical care. more so, it's about raising awareness about: how diet is undeniably a core pillar, upholding our health and wellbeing!
+to me, this is one of THE coolest spaces in health sciences: food as medicine. our diets influence everything from: inflammation, gut health, neurotransmitter production, blood sugar regulation, immune resilience and even how our genes express themselves over time. again, this isn't about: perfection, restriction, moralizing food choices or advocating for “superfoods” replacing medical care. more so, it's about raising awareness about: how diet is undeniably a core pillar, upholding our health and wellbeing!
 
 *By Ishita R Mahajan*
 
@@ -24,21 +26,21 @@ to me, this is one of THE coolest spaces in health sciences: food as medicine. o
 
 ![Introduction: Why Food Is Medicine](/food-as-medicine-how-what-we-eat-shapes-our-energy-hormones-and-long-term-health-1.jpg)*(food is SUCH a powerful aspect of our health and wellbeing)*
 
-the idea that “food is medicine” isn’t new: it’s one of the oldest principles in human health. what is relatively new is *how clearly modern science is now mapping the connection between what we eat and how our bodies function at a cellular, hormonal and neurological level*.
+**the idea that “food is medicine” isn’t new: it’s one of the oldest principles in human health.** what is relatively new is *how clearly modern science is now mapping the connection between what we eat and how our bodies function at a cellular, hormonal and neurological level*.
 
-food is information. it influences *inflammation*, *gut health*, *neurotransmitter production*, *blood sugar regulation*, *immune resilienc*e and even *how our genes express themselves* over time.
+food is information. it influences *inflammation*, *gut health*, *neurotransmitter production*, *blood sugar regulation*, *immune resilience* and even *how our genes express themselves* over time.
 
 ## the science behind 'food as medicine'
 
-![The Science Behind 'food as Medicine'](/food-as-medicine-how-what-we-eat-shapes-our-energy-hormones-and-long-term-health-2.jpg)*(food is linked with everything from: inflammation, metabolic health, hormone balance, immune function, gut-brain signalling!!!)*
+![The Science Behind 'food as Medicine'](/food-as-medicine-how-what-we-eat-shapes-our-energy-hormones-and-long-term-health-2.jpg)*(food is linked with everything from: inflammation, metabolic health, hormone balance, immune function, gut-brain signaling!!!)*
 
 decades of research in *nutritional biochemistry*, *epidemiology* and *microbiome science* show that whole, minimally processed foods can:
 
-* reduce chronic *low-grade inflammation* (a root driver of many modern diseases)
-* support *metabolic health* and *insulin sensitivity*
-* influence *hormone balance* and *stress response*
-* strengthen *immune function*
-* improve *gut-brain signaling* and *mental health* outcomes
+- reduce chronic *low-grade inflammation* (a root driver of many modern diseases)
+- support *metabolic health* and *insulin sensitivity*
+- influence *hormone balance* and *stress response*
+- strengthen *immune function*
+- improve *gut-brain signaling* and *mental health* outcomes
 
 this is why dietary patterns like the mediterranean diet, traditional whole-food diets and fiber-rich plant-forward diets are consistently associated with lower rates of *cardiovascular disease*, *type 2 diabetes*, *neurodegenerative disease* and *certain cancers* in large population studies.
 
@@ -50,16 +52,16 @@ if there’s one place nutrition science has *exploded* in the last decade, it�
 
 your gut microbiome - the *trillions of bacteria* living in your *digestive tract* - plays a role in:
 
-* *digestion* and *nutrient absorption*
-* *immune regulation*
-* *inflammation control*
-* *neurotransmitter production (yes, including serotonin!)*
+- *digestion* and *nutrient absorption*
+- *immune regulation*
+- *inflammation control*
+- *neurotransmitter production (yes, including serotonin!)*
 
 ### foods that support gut health
 
-* fermented foods: yogurt, kefir, kimchi, sauerkraut, miso
-* prebiotic fibers: garlic, onions, leeks, asparagus, oats, legumes
-* polyphenol-rich foods: berries, olive oil, green tea
+- fermented foods: yogurt, kefir, kimchi, sauerkraut, miso
+- prebiotic fibers: garlic, onions, leeks, asparagus, oats, legumes
+- polyphenol-rich foods: berries, olive oil, green tea
 
 research consistently shows that *higher dietary fiber intake and fermented foods* are associated with increased microbial diversity: a key marker of *gut resilience* and *overall health*.
 
@@ -67,20 +69,20 @@ research consistently shows that *higher dietary fiber intake and fermented food
 
 ![Blood Sugar Balance, Energy, Mood and Focus](/food-as-medicine-how-what-we-eat-shapes-our-energy-hormones-and-long-term-health-4.jpg)*(so many different sources of protein, healthy fats and low-glycemic carbs - this is why breakfast is ELITE!)*
 
-blood sugar regulation affects far more than just “energy crashes.”
+**blood sugar regulation affects far more than just “energy crashes.”**
 
 chronically-unstable blood sugar can contribute to:
 
-* *fatigue* and *brain fog*
-* *mood swings* and *anxiety*
-* *hormonal dysregulation*
-* *increased inflammation* over time
+- *fatigue* and *brain fog*
+- *mood swings* and *anxiety*
+- *hormonal dysregulation*
+- *increased inflammation* over time
 
-### foods that stabilise blood sugar
+### foods that stabilize blood sugar
 
-* protein: eggs, fish, legumes, tofu, yogurt
-* healthy fats: olive oil, nuts, seeds, avocado
-* low-glycemic carbohydrates: vegetables, whole grains, berries
+- protein: eggs, fish, legumes, tofu, yogurt
+- healthy fats: olive oil, nuts, seeds, avocado
+- low-glycemic carbohydrates: vegetables, whole grains, berries
 
 meals that combine protein, fat and fiber slow *glucose absorption* and reduce *insulin spikes*: a principle well established in metabolic research.
 
@@ -94,10 +96,10 @@ certain foods have consistently demonstrated anti-inflammatory properties throug
 
 ### anti-inflammatory food patterns
 
-* omega-3-rich foods: fatty fish, flaxseed, walnuts
-* colorful fruits and vegetables (rich in antioxidants)
-* extra-virgin olive oil
-* spices like turmeric and ginger
+- omega-3-rich foods: fatty fish, flaxseed, walnuts
+- colorful fruits and vegetables (rich in antioxidants)
+- extra-virgin olive oil
+- spices like turmeric and ginger
 
 large-scale studies show that diets rich in these foods correlate with *lower inflammatory markers* like crp (c-reactive protein).
 
@@ -109,9 +111,9 @@ one of the most fascinating areas of modern research is the gut-brain axis - the
 
 nutrition influences:
 
-* *neurotransmitter production*
-* *stress hormone regulation*
-* *cognitive function* and *mood*
+- *neurotransmitter production*
+- *stress hormone regulation*
+- *cognitive function* and *mood*
 
 emerging research links dietary quality to lower rates of *depression* and *anxiety*, particularly diets rich in *whole foods*, *omega-3s* and *fermented products*.
 
@@ -121,30 +123,30 @@ this doesn’t mean food “cures” mental health conditions… but it does mea
 
 ![Food as Daily Preventative Medicine (the Long Game)](/food-as-medicine-how-what-we-eat-shapes-our-energy-hormones-and-long-term-health-7.jpg)*(compounding protection = built. with. habit.!!!!)*
 
-the most powerful aspect of food as medicine isn’t dramatic short-term change - it’s compounding protection over time.
+**the most powerful aspect of food as medicine isn’t dramatic short-term change - it’s compounding protection over time.**
 
 consistently choosing nutrient-dense foods can:
 
-* reduce *disease risk* decades down the line
-* support *healthy aging* and *bone density*
-* preserve *cognitive* and *metabolic function*
+- reduce *disease risk* decades down the line
+- support *healthy aging* and *bone density*
+- preserve *cognitive* and *metabolic function*
 
-this is preventative care you practice every single day, often without realising it.
+this is preventative care you practice every single day, often without realizing it.
 
 ## what this isn’t about
 
 food as medicine *isn’t* about:
 
-* *perfection*
-* *restriction*
-* *moralising food choices*
-* *“superfoods”* replacing medical care
+- *perfection*
+- *restriction*
+- *moralizing food choices*
+- *“superfoods”* replacing medical care
 
 ## closing reflection
 
 ![Closing Reflection](/food-as-medicine-how-what-we-eat-shapes-our-energy-hormones-and-long-term-health-8.jpg)*("what we eat shapes how we move, think, recover and age.")*
 
-the more i learn about nutrition, the more i realise how deeply interconnected everything is. what we eat shapes how we *move*, *think*, *recover* and *age*. food is powerful.
+the more i learn about nutrition, the more i realize how deeply interconnected everything is. what we eat shapes how we *move*, *think*, *recover* and *age*. **food is powerful.**
 
 *small, intentional choices compound.* not overnight but over years. and *that’s where the real medicine lives*: in habit!
 

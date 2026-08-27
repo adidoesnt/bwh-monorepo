@@ -3,7 +3,9 @@ title: "a love letter to london: why stepping away from my desk for 3 months ren
 description: "I spent six weeks in London — my longest stretch away from my desk since starting builtwithhabit. I thought stepping away would slow me down, but it did the opposite; this is a love letter to the city that reminded me why creativity, connection, and curiosity are just as essential to building a business as discipline and focus."
 pubDate: 2025-10-12
 tags:
-  - tbd
+  - founder
+  - habits
+  - mindset
 thumbnail:
   src: "/a-love-letter-to-london-why-stepping-away-from-my-desk-for-3-months-renewed-my-creativity-for-bwh-1.jpg"
   alt: "Placeholder thumbnail — update before publishing"
@@ -28,19 +30,19 @@ so, when i planned to be away for this long, i was worried that i’d lose momen
 
 but, stepping out of my usual environment didn’t just help me *rest*; it helped me *rethink*. it reconnected me with curiosity, creativity, and a sense of presence i hadn’t felt in months.
 
-don’t get me wrong, i needed *a lot* of reprogramming to overcome the guilt that would creep in. for example, when i was stepping out with a friend to visit borough market on a wednesday afternoon or taking a longer ‘lunch break’ because i was caught up in a good conversation! but, i also realised: this business means *everything* to me and *i know* that i’m locked in. caring so much about bwh made it *easier* for me to carve out pockets of time to work or set clear boundaries when i needed day(s) of solitude to grind it out!
+don’t get me wrong, i needed *a lot* of reprogramming to overcome the guilt that would creep in. for example, when i was stepping out with a friend to visit borough market on a wednesday afternoon or taking a longer ‘lunch break’ because i was caught up in a good conversation! but, i also realized: this business means *everything* to me and *i know* that i’m locked in. caring so much about bwh made it *easier* for me to carve out pockets of time to work or set clear boundaries when i needed day(s) of solitude to grind it out!
 
-all in all, this trip was one of the most *expansive, perspective-shifting seasons* of my life. i have realised that: you can do the deep work *and live a life that fills you up*. stepping away didn’t compromise bwh; it actually *renewed* it. i came home feeling clearer, bolder, and oddly more patient with the whole process of building.
+all in all, this trip was one of the most *expansive, perspective-shifting seasons* of my life. i have realized that: you can do the deep work *and live a life that fills you up*. stepping away didn’t compromise bwh; it actually *renewed* it. i came home feeling clearer, bolder, and oddly more patient with the whole process of building.
 
-### before we get into it, these are some simple, actionable takeaways (if you want to travel & keep building):
+## before we get into it, these are some simple, actionable takeaways (if you want to travel & keep building):
 
-![Before We Get Into It](/a-love-letter-to-london-why-stepping-away-from-my-desk-for-3-months-renewed-my-creativity-for-bwh-2.jpg)*(immersing yourself in a new environment can be such a strategic move - it can teach you so much about market trends, signals, marketing strategies, monetisation models, etc.)*
+![Before We Get Into It](/a-love-letter-to-london-why-stepping-away-from-my-desk-for-3-months-renewed-my-creativity-for-bwh-2.jpg)*(immersing yourself in a new environment can be such a strategic move - it can teach you so much about market trends, signals, marketing strategies, monetization models, etc.)*
 
-* give yourself permission to be less *clocked in*: high-quality work isn’t always about hours logged
-* keep weekly anchors: for me it was one big meal prep and two focused work blocks daily on weekdays + 1 daily on weekends (generally!)
-* schedule for presence: book a walk, even if emails pile up... the work will be there
-* prioritise third spaces: find a cafe or bench that becomes your portable office - spice things up!
-* treat travel as research: people you meet, shops you visit, and menus you read all inform product and storytelling *(this is my favorite tip!)*
+- give yourself permission to be less *clocked in*: high-quality work isn’t always about hours logged
+- keep weekly anchors: for me it was one big meal prep and two focused work blocks daily on weekdays + 1 daily on weekends (generally!)
+- schedule for presence: book a walk, even if emails pile up... the work will be there
+- prioritize third spaces: find a cafe or bench that becomes your portable office - spice things up!
+- treat travel as research: people you meet, shops you visit, and menus you read all inform product and storytelling *(this is my favorite tip!)*
 
 ## intellectually: what i consumed (books, museums, conversations)
 
@@ -54,7 +56,7 @@ i met *so* many cool founders and curious minds. two guys building a cbd gummy s
 
 ![Professionally](/a-love-letter-to-london-why-stepping-away-from-my-desk-for-3-months-renewed-my-creativity-for-bwh-4.jpg)*(this picture just really does it for me ~ i LOVE this for him!)*
 
-i’m *hyper-aware* of the privilege of being able to do this. a year ago i was in corporate with 15 days of annual leave and no remote flexibility: this stint simply wouldn’t have been possible.
+i’m *hyper-aware* of the privilege of being able to do this. a year ago i was in corporate with **15 days of annual leave** and no remote flexibility: this stint simply wouldn’t have been possible.
 
 related to this, there’s one scene i keep thinking about: a young man in formal wear, sitting on the floor at a pier with his laptop, legs stretched out - working in the middle of the day. *i live for that!* it felt like the embodiment of autonomy to me: the freedom to move, think, and be outdoors. in that moment, i decided that i wanted that for myself. forever. *london made me vow to protect the privilege of mobility and self-determination*: do whatever it takes to always have the option to work from wherever feels nourishing (i can’t wait to be post-revenue with bwh!).
 
@@ -66,7 +68,7 @@ travel gives you the power to dream *big* and *bold*: it gives you the courage t
 
 time and time again, i observed the uk’s loud focus on esg, traceability, and small-batch makers. from ‘regenerative sliced seeded loaves’ to ‘plastic-free, unbleached tea bags’ and ‘fully traceable, climate neutral, and carbon-negative water ganache truffle domes’ (you *can’t* make this up!), the level of care was obvious. walking around a *biohacking innovations* store, i remember exclaiming to my boyfriend: *“this is like christmas to me!”*
 
-it made me feel like i was on the right track, as a founder pushing for these things. there *is* a market that values the smaller details: sourcing, materials, construction, labor conditions, all of it. seeing that was very validating and it confirmed that if i could market things well + get my message out there: there *was* market fit.
+it made me feel like i was on the right track, as a founder pushing for these things. there *is* a market that values the smaller details: sourcing, materials, construction, labor conditions, all of it. seeing that was very validating and it confirmed that if i could market things well + get my message out there: there *was* **market fit**.
 
 london was also so politically-active: protests, rallies, young and old people showing up for the violent occupation and ongoing genocide in palestine. it felt alive and civic - *it was gripping to see this beam of hope and optimism.*
 
@@ -76,7 +78,7 @@ london was also so politically-active: protests, rallies, young and old people s
 
 i’m someone who *thrives* on routine: but travel inevitably introduces fluidity and spontaneity. we meal-prepped every week… but i also had more refined sugar than i usually eat (gasp!) **honorable mention: humble crumble.** i drank piping hot beverages out of those takeout cups, lined with plastic. i spent three weeks out of the gym: and felt guilty passing my beloved powerlifting gym on the way to the tube station. my boyfriend gently reminded me: *there will always be work to do, so don't forget to make space for life* (istg him and his zoomies!!!).
 
-structure matters, but sometimes grace matters *more*. maybe that’s not the most *girl boss, grind mindset* ever, but that’s ok! routine is like a safety net: you always have it to fall back onto.
+structure matters, but sometimes grace matters *more*. maybe that’s not the most *girl boss, grind mindset* ever, but that’s ok! **routine is like a safety net**: you always have it to fall back onto.
 
 i think this is also one of the most powerful aspects of travel: it disconnects you from the identities you're used to clinging onto and it *liberates the space for you to step into new ones*. as people, who are forever in flux, it’s so important to constantly rediscover and reinvent yourself.
 
@@ -84,7 +86,7 @@ i think this is also one of the most powerful aspects of travel: it disconnects 
 
 ![Creatively](/a-love-letter-to-london-why-stepping-away-from-my-desk-for-3-months-renewed-my-creativity-for-bwh-7.jpg)*(art was everywhere and in everything - as someone who really values aesthetics and design, i could not have been happier!)*
 
-london’s artistic energy: theatre, film, little galleries, culinary preparations, graffiti: *just tons of creative expression*! i started noticing the color palettes on storefronts, typography on café menus, textures in old architecture. i found myself wanting to read *more*, write *more*, explore *more*, consume *more* emotive media! i strongly believe that there’s art in everything, especially in business - and that too, *a values-forward one*! it renewed my sense of creativity for the brand storytelling and the visuals i wanted to curate: *the look and feel of bwh*.
+london’s artistic energy: theater, film, little galleries, culinary preparations, graffiti: *just tons of creative expression*! i started noticing the color palettes on storefronts, typography on café menus, textures in old architecture. i found myself wanting to read *more*, write *more*, explore *more*, consume *more* emotive media! i strongly believe that **there’s art in everything, especially in business** - and that too, *a values-forward one*! it renewed my sense of creativity for the brand storytelling and the visuals i wanted to curate: *the look and feel of bwh*.
 
 ## spiritually: third spaces and long walks
 
@@ -92,15 +94,15 @@ london’s artistic energy: theatre, film, little galleries, culinary preparatio
 
 london is *so* walkable, and we really took advantage of that. one weekend, we planned to walk to a shop that was an hour and a half away: we spent *six and a half hours* getting there, stopping in cozy bookstores, sipping warm matcha, discovering a new bustling food market, and chatting with strangers. i loved that day: the little interactions, the benches by the river, the cafes full of people doing their own thing.
 
-the city felt full of “third spaces” - public places that aren’t commodified or privatised, and where people actually linger. i’ve seen creators mourning the death of these spaces. london felt like a little antidote… loads of open parks full of university students, people journaling, digital nomads, and business owners *click-clacking away* on their computers.
+the city felt full of **“third spaces”** - public places that aren’t commodified or privatized, and where people actually linger. i’ve seen creators mourning the death of these spaces. london felt like a little antidote… loads of open parks full of university students, people journaling, digital nomads, and business owners *click-clacking away* on their computers.
 
 ## emotionally: reunions and inner-child moments
 
 ![Emotionally](/a-love-letter-to-london-why-stepping-away-from-my-desk-for-3-months-renewed-my-creativity-for-bwh-9.jpg)*(HAPPY GIRL HEHE!!)*
 
-this trip was also the city of reunions. my closest friend from uni stayed with us for a week - *the highlight:* we went to the seven sisters in eastbourne! for most of my life, i’ve struggled to get out of my own head - always thinking about the next thing to tick off (anyone who knows me knows i’m constantly messaging myself to-do lists). but on that day, i realised how far i’ve come. i’ve learned not only how to drop into deep focus - that '*flow*' state - but also how to step back and compartmentalise. *i felt so at peace that day, and so present!*
+this trip was also the city of reunions. my closest friend from uni stayed with us for a week - *the highlight:* we went to the seven sisters in eastbourne! for most of my life, i’ve struggled to get out of my own head - always thinking about the next thing to tick off (anyone who knows me knows i’m constantly messaging myself to-do lists). but on that day, i realized how far i’ve come. i’ve learned not only how to drop into deep focus - that '*flow*' state - but also how to step back and compartmentalize. *i felt so at peace that day, and so present!*
 
-my best high-school friend, who i’d lost touch with for 6 or 7 years, took the train to london and we yapped like we were sixteen again! *i missed having her in my life so much!* another friend invited me to a costa rican lantern celebration and i was suddenly in a room full of warm strangers, who welcomed me right in. apart from reconnecting with old friends, i made some *brilliantly serendipitous* new ones - including my "twin,” a pilates instructor balancing a corporate job, a mental health startup, *and* launching a women-focused coworking-social club. we just clicked instantly!
+my best high-school friend, who i’d lost touch with for 6 or 7 years, took the train to london and we yapped like we were sixteen again! *i missed having her in my life so much!* another friend invited me to a costa rican lantern celebration and i was suddenly in a room full of warm strangers, who welcomed me right in. apart from reconnecting with old friends, i made some *brilliantly serendipitous* new ones - including my “twin,” a pilates instructor balancing a corporate job, a mental health startup, *and* launching a women-focused coworking-social club. we just clicked instantly!
 
 on a more personal note, i feel like the relationship i’m in makes me feel *safe* and *seen*. it’s brought out this raw, childlike, playful version of myself. i vividly remember us running through the science and natural history museums, laughing and exploring like two kids: just delighted by *everything*. that pure joy is something i want to try to reclaim *deliberately*; it reminds me why we build anything at all: *for the feeling of being alive*.
 
@@ -110,7 +112,7 @@ on a more personal note, i feel like the relationship i’m in makes me feel *sa
 
 *practically*: i returned with clearer ideas about brand visuals, user experience, and what our community might want. *emotionally*: i came home more patient with the pace of product development. *philosophically*: london reminded me there’s a market for thoughtful design + transparent supply chains.
 
-i also left with a vow: to protect the ability to step away. to design my life and business so i can keep having experiences that refill me. yes, the production timelines, supplier emails, and lab tests are still happening: and they will take time. but that’s okay. *the long game needs room for life!*
+i also left with a vow: **to protect the ability to step away**. to design my life and business so i can keep having experiences that refill me. yes, the production timelines, supplier emails, and lab tests are still happening: and they will take time. but that’s okay. *the long game needs room for life!*
 
 ## final note
 
@@ -127,3 +129,13 @@ there will always be work to do. the question is: what kind of life do we want w
 — ishita (ashi)!
 
 🧿🧿🧿
+
+---
+
+*if you liked this post and want to read more about the bwh founder journey, then please check out these other blogs i've written!*
+
+[what's really in my control](/blog/whats-really-in-my-control-lessons-from-building-a-brand-in-my-20s)
+
+[disconnecting from intuition](/blog/disconnecting-from-intuition-the-cost-of-outsourcing-your-inner-compass)
+
+[challenging limiting beliefs](/blog/challenging-limiting-beliefs-the-six-mental-reframes-that-changed-the-way-i-build)

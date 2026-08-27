@@ -3,14 +3,16 @@ title: "disconnecting from intuition: the cost of outsourcing your inner compass
 description: "As the year wraps up, Ishita reflects on a pattern she's noticed in herself: outsourcing her inner compass by silencing her own intuition, crowdsourcing opinions, and leaning on external validation as a crutch. A vulnerable look at re-building trust in her own discernment."
 pubDate: 2025-12-26
 tags:
-  - tbd
+  - founder
+  - habits
+  - mindset
 thumbnail:
   src: "/disconnecting-from-intuition-the-cost-of-outsourcing-your-inner-compass-1.jpg"
   alt: "Placeholder thumbnail — update before publishing"
 draft: true
 ---
 
-another vulnerable blog post for this week! as the year wraps up, i've been reflecting a lot on how i've grown. in many ways, i'm incredibly proud of the ways in which: i've asserted myself more boldly, bet on my aspirations and connected meaningfully with the people in my life who matter most! however, i also realised that i've been struggling with outsourcing my inner compass. i.e. silencing my own intuition, crowdsourcing opinions and leaning on external validation as a crutch. that was a super profound realisation for me! here's to 2026 and re-building or re-fortifying that belief i have in my own discernment (my favorite word right now!!).
+another vulnerable blog post for this week! as the year wraps up, i've been reflecting a lot on how i've grown. in many ways, i'm incredibly proud of the ways in which: i've asserted myself more boldly, bet on my aspirations and connected meaningfully with the people in my life who matter most! however, i also realized that i've been struggling with **outsourcing my inner compass**. i.e. silencing my own intuition, crowdsourcing opinions and leaning on external validation as a crutch. that was a super profound realization for me! here's to 2026 and re-building or re-fortifying that belief i have in my own discernment (my favorite word right now!!).
 
 *By Ishita R Mahajan*
 
@@ -22,19 +24,19 @@ another vulnerable blog post for this week! as the year wraps up, i've been refl
 
 there’s a distinctive habit i’ve noticed in myself, recently. before making a decision, i poll. i ask. i sense-check. i wait for consensus. sometimes it’s about big things. sometimes it’s *incredibly* small. on the surface, it looks harmless: *collaborative*, *cautious*, even *wise*...
 
-over time, i’ve realised it comes with a cost: a slow *erosion* of trust in my own judgment.
+over time, i’ve realized it comes with a cost: a slow *erosion* of trust in my own judgment.
 
 ## what does it mean to outsource your inner compass?
 
 ![What Does It Mean to Outsource Your Inner Compass](/disconnecting-from-intuition-the-cost-of-outsourcing-your-inner-compass-2.jpg)*(i think i experience the 'momentary relief' especially a lot - then i find myself surveying for input all over again)*
 
-outsourcing your inner compass isn’t about simply *being open to feedback* or *valuing collective wisdom*. it’s about deferring your sense of “knowing” to external voices, *especially before you’ve even consulted yourself*.
+outsourcing your inner compass isn’t about simply *being open to feedback* or *valuing collective wisdom*. it’s about **deferring your sense of “knowing” to external voices**, *especially before you’ve even consulted yourself*.
 
 it looks like:
 
-* asking *multiple people* what you should do - before you’ve sat with what you want
-* treating advice as a *prerequisite for action*
-* feeling *momentarily relieved* after getting reassurance… then immediately unsure again
+- asking *multiple people* what you should do - before you’ve sat with what you want
+- treating advice as a *prerequisite for action*
+- feeling *momentarily relieved* after getting reassurance… then immediately unsure again
 
 over time, decisions stop feeling embodied. they start feeling borrowed.
 
@@ -44,9 +46,9 @@ over time, decisions stop feeling embodied. they start feeling borrowed.
 
 i think this shows up *disproportionately* in women who:
 
-* *care deeply* about doing things right
-* are *empathetic*, *perceptive* and *emotionally-attuned*
-* have been praised for being *agreeable*, *thoughtful* or *“easy to work with”*
+- *care deeply* about doing things right
+- are *empathetic*, *perceptive* and *emotionally-attuned*
+- have been praised for being *agreeable*, *thoughtful* or *“easy to work with”*
 
 when you feel a lot - and think a lot - it’s easy to mistake *uncertainty* or *hesitation* for incompetence. instead of trusting your discernment, you look *outward* because you’re so afraid of being *wrong*, *misaligned* or *misunderstood*. add ambition to the mix and the *stakes feel even higher*. one “wrong” move can feel like it defines you.
 
@@ -60,22 +62,22 @@ however, the paradox is this: *the more advice you seek, the noisier and more mu
 
 i’ve noticed that when i ask too many people for input, i don’t feel wiser - i feel more *torn*, more *fragmented*. pulled in ten directions. less connected to myself than when i started.
 
-so: this isn’t about rejecting advice; it’s about *knowing how much weight to give it*.
+so: **this isn’t about rejecting advice**; it’s about *knowing how much weight to give it*.
 
 ## how this shows up in my work
 
-![How This Shows up in My Work](/disconnecting-from-intuition-the-cost-of-outsourcing-your-inner-compass-5.jpg)*(as a first-time founder, it is invaluable to seek advice and feedback - but i've realised how debilitating it can also be... some things are just meant to be a bit of trial and error!)*
+![How This Shows up in My Work](/disconnecting-from-intuition-the-cost-of-outsourcing-your-inner-compass-5.jpg)*(as a first-time founder, it is invaluable to seek advice and feedback - but i've realized how debilitating it can also be... some things are just meant to be a bit of trial and error!)*
 
 in building bwh, this pattern has been confronting.
 
 i’ve caught myself:
 
-* wanting *reassurance* before backing my own instincts
-* *diluting ideas* to make them more “palatable”
+- wanting *reassurance* before backing my own instincts
+- *diluting ideas* to make them more “palatable”
 
-again, when you outsource your inner compass in work, you don’t just *slow* your decision-making process - you dilute conviction.
+again, when you outsource your inner compass in work, you don’t just *slow* your decision-making process - **you dilute conviction**.
 
-in my reflections i’ve realised that the most aligned, embodied decisions i’ve made weren’t unanimously endorsed... but they had an undeniable certainty to them (to *me*)!
+in my reflections i’ve realized that the most aligned, embodied decisions i’ve made weren’t unanimously endorsed... but they had an undeniable certainty to them (to *me*)!
 
 ## reclaiming your inner compass (without rejecting collective wisdom)
 
@@ -85,13 +87,13 @@ for me, this has looked like *practicing a pause* and *centering* myself... ishi
 
 before asking anyone else:
 
-* what do *i* think? (to reconnect with my inner compass)
-* what feels *true* and *right* in my body - on a somatic level?
-* if no one weighed in, what would *i* do?
+- what do *i* think? (to reconnect with my inner compass)
+- what feels *true* and *right* in my body - on a somatic level?
+- if no one weighed in, what would *i* do?
 
 only then do i try to seek out external input: *selectively*, *intentionally* and from people whose *values i respect*. rather than relying on my loved ones to *‘make decisions for me,’* i’m really trying to lean on them to pressure-test what i already feel *intuitively*.
 
-this isn’t about becoming *rigid* or *insular*. it’s about strengthening the muscle of self-trust so that you can be in a real position to receive input!
+this isn’t about becoming *rigid* or *insular*. it’s about **strengthening the muscle of self-trust** so that you can be in a real position to receive input!
 
 ## a truth i’m still learning
 

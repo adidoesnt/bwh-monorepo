@@ -3,10 +3,14 @@ title: "beyond fad diets: my sustainable & joyful eating philosophy for lasting 
 description: "Food shouldn't feel as complicated as it does right now. A look at how I approach eating in a way that fuels strength, supports gut health, and still celebrates flavor, culture, and creativity."
 pubDate: 2025-10-19
 tags:
-  - tbd
+  - nutrition
+  - habits
+  - mindset
+  - informedchoices
+  - selfcare
 thumbnail:
-  src: "/beyond-fad-diets-my-sustainable-joyful-eating-philosophy-for-lasting-energy-1.jpg"
-  alt: "Placeholder thumbnail — update before publishing"
+  src: "/beyond-fad-diets-my-sustainable-joyful-eating-philosophy-for-lasting-energy-6.jpg"
+  alt: "Culture, Comfort, Etc"
 draft: true
 ---
 
@@ -30,7 +34,7 @@ this post is about how i approach food as *fuel, art, and connection*: in a way 
 
 if i had to sum up my food philosophy in one line:
 
-all foods fit: but not all foods serve you the same way.
+**all foods fit: but not all foods serve you the same way.**
 
 i don’t “earn” my food, and i don’t label meals as good or bad. food is neutral and the meaning we attach to it is *learned*.
 
@@ -44,7 +48,7 @@ no surprise here, but my eating philosophy is built around whole, real foods. i 
 
 personally, i’ve never gotten into tracking calories (myfitnesspal is just *not* for me). i’m not a pro-athlete or bodybuilder right now so why strip the joy out of food! my goal is to eat enough to feel *strong*, *fueled*, and *focused*. restricting too much doesn’t just mess with your mood; it also confuses your metabolism (@ *metabolic adaptation*).
 
-instead, i pay attention to macros *without* tracking. i make sure each meal has a solid protein source and plenty of fiber, and then let the rest fall into place naturally.
+instead, i pay attention to macros *without* tracking. i make sure each meal has a solid **protein source and plenty of fiber**, and then let the rest fall into place naturally.
 
 ## the luxury of time: the art of mindful eating 🕰️
 
@@ -62,7 +66,7 @@ so, i try to be present while i eat. even if i’ve got a comfort show playing i
 
 for me, cooking isn’t just about nutrition: it’s also about creativity. i don't eat personally out much, because (a) i love cooking fresh, warm meals and (b) i’d rather spend on high-quality ingredients (i try to have a virtually *“unlimited”* - within reason - budget for groceries) and know what i'm putting in my body!
 
-when you buy good produce, quality protein, and fresh herbs, you realise how *elevated* home cooking can be… the most elaborate dish i’ve made recently? *homemade gnocchi with sage and thyme brown butter, pesto, and crispy bacon bits!*
+when you buy good produce, quality protein, and fresh herbs, you realize how *elevated* home cooking can be… the most elaborate dish i’ve made recently? *homemade gnocchi with sage and thyme brown butter, pesto, and crispy bacon bits!*
 
 ## culture, comfort, and connection 🍛
 
@@ -72,7 +76,7 @@ food isn’t just fuel: it’s emotional, cultural, and *communal*. it’s the w
 
 i love homemade indian food: mutton curry, palak chicken (spinach chicken), baingan bharta sabji (mushed eggplant), and warm ghee rotis are literally *top tier*.
 
-that’s why i believe in finding healthy ways to keep cultural foods in your life, rather than cutting them out entirely. for example, my family makes the yummiest shahi paneer but swaps heavy cream for a lighter yoghurt-based blend and uses purified ghee instead of random oils. those kinds of tweaks let you enjoy tradition *and* feel good.
+that’s why i believe in **finding healthy ways to keep cultural foods in your life**, rather than cutting them out entirely. for example, my family makes the yummiest shahi paneer but swaps heavy cream for a lighter yoghurt-based blend and uses purified ghee instead of random oils. those kinds of tweaks let you enjoy tradition *and* feel good.
 
 i’m also obsessed with japanese, italian, and mexican food.. i just think it’s all such an amazing window into culture!
 
@@ -80,7 +84,7 @@ i’m also obsessed with japanese, italian, and mexican food.. i just think it�
 
 ![Gut](/beyond-fad-diets-my-sustainable-joyful-eating-philosophy-for-lasting-energy-7.jpg)*("the best probiotic foods include fermented dairy products like yogurt [pictured] and kefir, and fermented vegetables like sauerkraut, kimchi [pictured], and pickles/ other excellent sources are kombucha [pictured], a fermented tea, and fermented soy products like miso and tempeh/ for certain cheeses, look for varieties like aged cheddar, gouda, and Swiss, which can contain live cultures!" ~ ai overview)*
 
-as a big-time science and wellness nerd, one of my biggest health obsessions right now is the gut microbiome. it’s fascinating how much it influences energy, mood, skin health, and even immunity… so, i try to eat in ways that support it: diverse plants, fermented foods, and plenty of fiber (and sometimes, the trendy probiotic shots!).
+as a big-time science and wellness nerd, one of my biggest health obsessions right now is **the gut microbiome**. it’s fascinating how much it influences energy, mood, skin health, and even immunity… so, i try to eat in ways that support it: diverse plants, fermented foods, and plenty of fiber (and sometimes, the trendy probiotic shots!).
 
 health really does start from *within*. literally!
 
@@ -94,7 +98,7 @@ even though i was actually vegetarian for three and a half years back in high sc
 
 my best tip here is: to try to *plan ahead*. if i know i have certain commitments in the week ahead, i try to schedule the other days of the week for plant-based meals. it keeps it *realistic* and *consistent*.
 
-some of my current plant-based favourites: simple tofu or tempeh stir-fries with loads of leafy greens (and a ton of homemade sesame chili oil): i *love* sichuan chinese cooking.
+some of my current plant-based favorites: simple tofu or tempeh stir-fries with loads of leafy greens (and a ton of homemade sesame chili oil): i *love* sichuan chinese cooking.
 
 ## outro: the bigger picture!
 
@@ -104,10 +108,20 @@ my approach to food is the same as to fitness and business: it’s about *habits
 
 here are some of the gentle ‘guidelines’ i stick to:
 
-* i try to get protein and fiber with every meal - it keeps my energy stable and actually helps me feel full. i don’t track calories, but i do try notice patterns: what meals make me feel sluggish, what foods make me feel strong
-* i don’t believe in “earning” my meals or punishing myself for eating something indulgent
-* most days, i choose home-cooked meals over takeout: partly because i love the process, and partly because it’s cheaper, cleaner, and just more satisfying (minus the dishes, obviously 😭); when i can, i’ll invest in good ingredients over trendy diets
-* lately, i’ve been more focused on gut health - diverse plants, fermented foods, fiber - because it truly affects everything from energy to skin
-* maybe the biggest thing: i try to keep food *joyful;* to slow down, to make it look pretty, to actually enjoy the experience (presentation counts - and yes, the camera still eats first 📸)
+- i try to get protein and fiber with every meal - it keeps my energy stable and actually helps me feel full. i don’t track calories, but i do try notice patterns: what meals make me feel sluggish, what foods make me feel strong
+- i don’t believe in “earning” my meals or punishing myself for eating something indulgent
+- most days, i choose home-cooked meals over takeout: partly because i love the process, and partly because it’s cheaper, cleaner, and just more satisfying (minus the dishes, obviously 😭); when i can, i’ll invest in good ingredients over trendy diets
+- lately, i’ve been more focused on **gut health** - diverse plants, fermented foods, fiber - because it truly affects everything from energy to skin
+- maybe the biggest thing: i try to keep food *joyful;* to slow down, to make it look pretty, to actually enjoy the experience (presentation counts - and yes, the camera still eats first 📸)
 
 i hope this post inspires you to connect with that *joy* of eating! being literate about nutrition is key but also, so is: finding peace in how you nourish your body!
+
+---
+
+*if you liked this post and want to read more about nutrition and sustainable eating, then please check out these other blogs i've written!*
+
+[food as medicine](/blog/food-as-medicine-how-what-we-eat-shapes-our-energy-hormones-and-long-term-health)
+
+[food across borders](/blog/food-across-borders-how-your-zip-code-shapes-your-eating-habits)
+
+[a gut-healthy grocery list](/blog/a-gut-healthy-grocery-list-an-evidence-based-guide-to-shopping-for-your-microbiome)
