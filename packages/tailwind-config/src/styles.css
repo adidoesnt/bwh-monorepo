@@ -41,8 +41,8 @@
   --color-error: #b97078;
   --color-error-content: #2b0f14;
 
-  --radius-selector: 1rem;
-  --radius-field: 2rem;
+  --radius-selector: 0.5rem;
+  --radius-field: 0.5rem;
   --radius-box: 0rem;
 
   --size-selector: 0.25rem;

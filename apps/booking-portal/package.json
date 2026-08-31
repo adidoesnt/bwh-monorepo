@@ -11,6 +11,9 @@
 		"check": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json",
 		"check:watch": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json --watch"
 	},
+	"dependencies": {
+		"@repo/ui": "workspace:*"
+	},
 	"devDependencies": {
 		"@repo/tailwind-config": "workspace:*",
 		"@sveltejs/adapter-auto": "^7.0.1",

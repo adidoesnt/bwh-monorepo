@@ -13,6 +13,9 @@
     "apps/booking-portal": {
       "name": "booking-portal",
       "version": "0.0.1",
+      "dependencies": {
+        "@repo/ui": "workspace:*",
+      },
       "devDependencies": {
         "@repo/tailwind-config": "workspace:*",
         "@sveltejs/adapter-auto": "^7.0.1",
