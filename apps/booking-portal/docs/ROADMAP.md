@@ -94,6 +94,10 @@ the schema the rest of the roadmap fills in.
   `pending_approval` status — *3h*
 - Real availability computation reading `availability_slot` / `booking` tables (slot generation,
   conflict blocking) — this is the crux of the whole app, budget contingency here — *3h*
+- **Timezone:** `booking.starts_at` is a naive `timestamp` and the Phase 1 seed wrote wall-clock
+  times as UTC, so Phase 2's dashboard renders them shifted by the server/browser offset. Decide
+  the model here (store UTC + fix the seed, or a `timestamptz` + fixed SGT display) before slot
+  computation depends on it — `availability_slot` is minutes-from-midnight and implicitly SGT.
 
 ## Phase 4 — Checkout & payments (client) ⬜
 **Estimate: ~6h** (PayNow only) **+ ~2h** (Stripe, deferred)
