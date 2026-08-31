@@ -70,14 +70,14 @@ the schema the rest of the roadmap fills in.
   All seed users log in with password `password`. Idempotent (upserts users, wipes+reinserts
   domain tables).
 
-## Phase 2 — Client dashboard shell & navigation ⬜
+## Phase 2 — Client dashboard shell & navigation ✅ done
 **Estimate: ~5h**
 
 *Design screens: global sidebar, "Client dashboard"*
 
-- Replace the placeholder `/dashboard` with the real app shell: role-aware sidebar nav
+- ✅ Replace the placeholder `/dashboard` with the real app shell: role-aware sidebar nav
   (dashboard / bookings / packages / payments / progress / help), logout — *2h*
-- Dashboard content: today label, "hey {name}", stat cards, "what's next" (upcoming bookings
+- ✅ Dashboard content: today label, "hey {name}", stat cards, "what's next" (upcoming bookings
   preview), credits summary card, weekly focus — can start with data read from Phase 1 tables
   even before booking creation exists (empty states are fine) — *3h*
 
