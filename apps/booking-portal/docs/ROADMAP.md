@@ -1,7 +1,6 @@
 # Booking Portal — Iterative Roadmap
 
-Source of truth for the target product: the Claude Design prototype **"Booking Portal"**
-(`https://claude.ai/design/p/785a988f-9a45-490a-9793-bb450e098596`). That file is a static,
+Source of truth for the target product: the Claude Design prototype [**"Booking Portal"**](`https://claude.ai/design/p/785a988f-9a45-490a-9793-bb450e098596`). That file is a static,
 click-through mock covering all three roles (client / trainer / admin) with placeholder data —
 nothing in it is wired to a database or auth. This doc breaks it down into buildable phases for
 the real app in `apps/booking-portal`, ordered so each phase ships something usable before the
