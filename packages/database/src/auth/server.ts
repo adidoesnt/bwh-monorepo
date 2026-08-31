@@ -19,6 +19,24 @@ export function createAuth({
     database: drizzleAdapter(db, { provider: "pg", schema }),
     baseURL,
     emailAndPassword: { enabled: true },
+    user: {
+      additionalFields: {
+        // client | trainer | admin — drives role-based route guards.
+        role: {
+          type: "string",
+          required: false,
+          defaultValue: "client",
+          input: false,
+        },
+        // active | invited
+        status: {
+          type: "string",
+          required: false,
+          defaultValue: "active",
+          input: false,
+        },
+      },
+    },
     plugins: [sveltekitCookies(getRequestEvent)],
   });
 }

@@ -14,6 +14,7 @@
     "db:migrate": "bun run --filter=@repo/database db:migrate",
     "db:push": "bun run --filter=@repo/database db:push",
     "db:studio": "bun run --filter=@repo/database db:studio",
+    "db:seed": "bun run --filter=@repo/database db:seed",
     "blog:package": "bash plugins/bwh-blog/scripts/package.sh",
     "blog:write-post": "claude --plugin-dir ./plugins/bwh-blog \"/bwh-blog:write-post\"",
     "blog:toggle-draft": "claude --plugin-dir ./plugins/bwh-blog \"/bwh-blog:toggle-draft\"",

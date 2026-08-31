@@ -8,12 +8,19 @@ import {
   uniqueIndex,
 } from "drizzle-orm/pg-core";
 
+/** Portal a user can sign into. Drives role-based route guards in `hooks.server.ts`. */
+export type UserRole = "client" | "trainer" | "admin";
+/** Account lifecycle — `invited` users have been created by an admin but haven't set a password yet. */
+export type UserStatus = "active" | "invited";
+
 export const user = pgTable("user", {
   id: text("id").primaryKey(),
   name: text("name").notNull(),
   email: text("email").notNull().unique(),
   emailVerified: boolean("email_verified").default(false).notNull(),
   image: text("image"),
+  role: text("role").$type<UserRole>().default("client").notNull(),
+  status: text("status").$type<UserStatus>().default("active").notNull(),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at")
     .defaultNow()

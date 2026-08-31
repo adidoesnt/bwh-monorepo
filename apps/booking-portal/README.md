@@ -32,7 +32,15 @@ Client-facing portal for builtwithhabit — log in or sign up, then (eventually)
    bun run db:migrate
    ```
 
-4. Start the dev server:
+4. (optional) Seed local dev data mirroring the design prototype — coaches
+   (Ishita, Nadia, Jolene), Tessa as the worked-example client, packages,
+   bookings, progress. Every seeded user logs in with password `password`.
+
+   ```sh
+   bun run db:seed
+   ```
+
+5. Start the dev server:
 
    ```sh
    bun run dev
@@ -44,7 +52,12 @@ Client-facing portal for builtwithhabit — log in or sign up, then (eventually)
 ## Auth
 
 - `/` renders a combined login/signup form (mode toggled client-side) that posts to named SvelteKit form actions (`?/login`, `?/signup`) in `src/routes/+page.server.ts`. Input is validated with `zod`; auth is performed via `auth.api.signInEmail` / `auth.api.signUpEmail`.
-- `src/hooks.server.ts` resolves the session on every request (`auth.api.getSession`), populates `event.locals.user`/`event.locals.session`, and redirects: unauthenticated users hitting `/dashboard` go to `/`, and already-logged-in users hitting `/` go to `/dashboard`.
+- `src/hooks.server.ts` resolves the session on every request (`auth.api.getSession`), populates `event.locals.user`/`event.locals.session`, and enforces route access:
+  - unauthenticated hits on any protected prefix (`/dashboard`, `/bookings`, `/packages`, `/payments`, `/progress`, `/intake`, `/help`, `/trainer`, `/admin`) → `/`
+  - authenticated hits on `/` → the user's role home
+  - `/trainer/*` is trainer + admin only, `/admin/*` is admin only; wrong-role access → role home
+  - `HOME_BY_ROLE` currently points every role at `/dashboard`; repoint to `/trainer` / `/admin` once those route trees exist (Phase 2/9/10)
+- `user.role` (`client` | `trainer` | `admin`) and `user.status` (`active` | `invited`) come from better-auth `additionalFields` (declared in `@repo/database`'s `createAuth`), so they're on `locals.user` automatically.
 - `src/lib/server/auth.ts` is the one place this app reads its own env (`DATABASE_URL`, `AUTH_BASE_URL`) and constructs the shared `createAuth(...)` instance from `@repo/database`.
 - `/dashboard` is a minimal placeholder behind the auth gate, with a `logout` action.
 
@@ -57,4 +70,4 @@ Client-facing portal for builtwithhabit — log in or sign up, then (eventually)
 | `bun run preview` | Preview the production build |
 | `bun run check` | Sync SvelteKit types and run `svelte-check` |
 
-Database migrations (`db:generate` / `db:migrate` / `db:push` / `db:studio`) live in `packages/database` and are exposed at the repo root as `bun run db:*`.
+Database scripts (`db:generate` / `db:migrate` / `db:push` / `db:studio` / `db:seed`) live in `packages/database` and are exposed at the repo root as `bun run db:*`. The schema is split by concern under `packages/database/src/schema/` (`auth`, `coaching`, `booking`, `billing`, `health`, `messaging`).

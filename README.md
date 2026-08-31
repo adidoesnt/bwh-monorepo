@@ -53,6 +53,7 @@ Run from the repo root:
 | `bun run db:migrate` | Apply pending drizzle migrations |
 | `bun run db:push` | Push schema changes straight to the DB, no migration file (local iteration only) |
 | `bun run db:studio` | Open drizzle studio against the local DB |
+| `bun run db:seed` | Seed local dev data for the booking portal (`packages/database/src/seed.ts`) |
 | `bun run blog:write-post` | Write/import a blog post via the `bwh-blog` Claude Code plugin |
 | `bun run blog:toggle-draft` | Publish/unpublish a blog post via the plugin |
 | `bun run blog:publish` | Commit and push blog content changes via the plugin |

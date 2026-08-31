@@ -37,8 +37,8 @@ CRUD-and-render.
   validation)
 - ✅ Route protection in `src/hooks.server.ts` — unauthenticated → redirected off `/dashboard`,
   authenticated → redirected off `/`
-- ✅ DB schema so far is **auth-only**: `user`, `session`, `account`, `verification`
-  (`packages/database/src/schema/auth.ts`) — no `role` column, no domain tables yet
+- ✅ DB schema was **auth-only** at end of Phase 0: `user`, `session`, `account`, `verification`
+  (`packages/database/src/schema/auth.ts`) — no `role` column, no domain tables (all added in Phase 1)
 - ✅ `/dashboard` exists but is a literal placeholder (`<!-- TODO: Update. This is a placeholder
   dashboard page -->`) — just a welcome message and a logout button
 
@@ -46,19 +46,29 @@ Everything below is ⬜ not started unless marked otherwise.
 
 ---
 
-## Phase 1 — Data model & roles ⬜
+## Phase 1 — Data model & roles ✅ done
 **Estimate: ~6h**
 
 Prerequisite for everything else — the prototype has no real backing data, so this phase defines
 the schema the rest of the roadmap fills in.
 
-- Add `role` (`client` | `trainer` | `admin`) to `user`, or a linked `profile` table — *0.5h*
-- Domain tables: `coach_profile`, `availability_slot`, `booking`, `package`,
-  `package_purchase`, `credit_ledger_entry`, `invoice`, `intake_response`, `progress_entry`,
-  `measurement`, `chat_message` — *3h*
-- Extend `hooks.server.ts` for role-based route guards (client vs trainer vs admin areas) — *1h*
-- Seed script with a few coaches / clients for local dev, mirroring the prototype's mock data
-  (Ishita as coach, Tessa as client, etc.) — *1.5h*
+- ✅ `role` (`client` | `trainer` | `admin`, default `client`) + `status` (`active` | `invited`)
+  on `user`, wired through better-auth `additionalFields` so they land in the session /
+  `App.Locals` (`packages/database/src/schema/auth.ts`, `auth/server.ts`)
+- ✅ Domain tables in `packages/database/src/schema/` split by concern:
+  `coaching.ts` (`coach_profile`, `availability_slot` — recurring weekly open windows),
+  `booking.ts` (`booking`), `billing.ts` (`package`, `package_purchase`, `credit_ledger_entry`
+  with a signed `numeric` delta, `invoice`), `health.ts` (`intake_response`, `progress_entry`,
+  `measurement`), `messaging.ts` (`chat_message`). Migration `0001_windy_bromley`.
+  `coach_profile` is decoupled from `role` on purpose — Ishita is an admin who also coaches.
+- ✅ Role-based route guards in `hooks.server.ts`: shared surfaces need any session;
+  `/trainer/*` is trainer+admin, `/admin/*` is admin-only; wrong-role access → role's home.
+  (`HOME_BY_ROLE` all point at `/dashboard` until the trainer/admin route trees exist.)
+- ✅ Seed script (`bun run db:seed`, `packages/database/src/seed.ts`) — mirrors the prototype:
+  Ishita/Nadia/Jolene coaches, Tessa as the worked-example client (transform package, 6 credits,
+  bookings, progress, measurements, completed PAR-Q), plus Renee/Farah/Declan/Hana/Yasmin.
+  All seed users log in with password `password`. Idempotent (upserts users, wipes+reinserts
+  domain tables).
 
 ## Phase 2 — Client dashboard shell & navigation ⬜
 **Estimate: ~5h**
