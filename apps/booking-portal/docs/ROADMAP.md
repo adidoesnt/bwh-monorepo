@@ -94,10 +94,11 @@ the schema the rest of the roadmap fills in.
   `pending_approval` status — *3h*
 - Real availability computation reading `availability_slot` / `booking` tables (slot generation,
   conflict blocking) — this is the crux of the whole app, budget contingency here — *3h*
-- **Timezone:** `booking.starts_at` is a naive `timestamp` and the Phase 1 seed wrote wall-clock
-  times as UTC, so Phase 2's dashboard renders them shifted by the server/browser offset. Decide
-  the model here (store UTC + fix the seed, or a `timestamptz` + fixed SGT display) before slot
-  computation depends on it — `availability_slot` is minutes-from-midnight and implicitly SGT.
+- ✅ **Timezone:** every `timestamp` column is now `timestamptz` (migration
+  `0002_high_impossible_man`), the seed writes real instants from SGT wall-clock times
+  (`day()` / literals carry a `+08:00` offset), and the client dashboard renders client-side
+  (`+page.ts` `ssr = false`) so times show in the **viewer's** local timezone. Slot computation
+  still needs to treat `availability_slot` (minutes-from-midnight) as SGT and convert to instants.
 
 ## Phase 4 — Checkout & payments (client) ⬜
 **Estimate: ~6h** (PayNow only) **+ ~2h** (Stripe, deferred)

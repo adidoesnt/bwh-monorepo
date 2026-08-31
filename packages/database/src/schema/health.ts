@@ -39,10 +39,10 @@ export const intakeResponse = pgTable(
     injuriesText: text("injuries_text"),
     weeklyTarget: text("weekly_target"),
     signature: text("signature"),
-    consentAt: timestamp("consent_at"),
-    submittedAt: timestamp("submitted_at"),
-    createdAt: timestamp("created_at").defaultNow().notNull(),
-    updatedAt: timestamp("updated_at")
+    consentAt: timestamp("consent_at", { withTimezone: true }),
+    submittedAt: timestamp("submitted_at", { withTimezone: true }),
+    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
       .defaultNow()
       .$onUpdate(() => /* @__PURE__ */ new Date())
       .notNull(),
@@ -63,7 +63,7 @@ export const progressEntry = pgTable(
     recordedOn: date("recorded_on").notNull(),
     value: numeric("value", { precision: 8, scale: 2 }).notNull(),
     unit: text("unit"),
-    createdAt: timestamp("created_at").defaultNow().notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
   },
   (table) => [
     index("progress_entry_clientId_metric_idx").on(table.clientId, table.metric),
@@ -83,7 +83,7 @@ export const measurement = pgTable(
     takenOn: date("taken_on").notNull(),
     value: numeric("value", { precision: 8, scale: 2 }).notNull(),
     unit: text("unit"),
-    createdAt: timestamp("created_at").defaultNow().notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
   },
   (table) => [
     index("measurement_clientId_kind_idx").on(table.clientId, table.kind),

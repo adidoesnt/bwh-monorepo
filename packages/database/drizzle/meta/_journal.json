@@ -15,6 +15,13 @@
       "when": 1788183578004,
       "tag": "0001_windy_bromley",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1788194135755,
+      "tag": "0002_high_impossible_man",
+      "breakpoints": true
     }
   ]
 }

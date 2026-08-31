@@ -16,8 +16,8 @@ export const chatMessage = pgTable(
     sender: text("sender").$type<ChatSender>().notNull(),
     body: text("body").notNull(),
     /** Set when a message was escalated to the client's coach. */
-    escalatedAt: timestamp("escalated_at"),
-    createdAt: timestamp("created_at").defaultNow().notNull(),
+    escalatedAt: timestamp("escalated_at", { withTimezone: true }),
+    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
   },
   (table) => [
     index("chat_message_clientId_createdAt_idx").on(

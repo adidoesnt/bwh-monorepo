@@ -36,8 +36,8 @@ export const coachProfile = pgTable(
     locations: text("locations").array().notNull().default([]),
     coachingSince: integer("coaching_since"),
     active: boolean("active").default(true).notNull(),
-    createdAt: timestamp("created_at").defaultNow().notNull(),
-    updatedAt: timestamp("updated_at")
+    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
       .defaultNow()
       .$onUpdate(() => /* @__PURE__ */ new Date())
       .notNull(),
@@ -65,7 +65,7 @@ export const availabilitySlot = pgTable(
     /** Minutes from midnight. 06:30 → 390. */
     startMin: integer("start_min").notNull(),
     endMin: integer("end_min").notNull(),
-    createdAt: timestamp("created_at").defaultNow().notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
   },
   (table) => [index("availability_slot_coachId_idx").on(table.coachId)],
 );

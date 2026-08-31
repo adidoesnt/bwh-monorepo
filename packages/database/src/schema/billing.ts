@@ -22,8 +22,8 @@ export const packageOffering = pgTable("package", {
   /** Credits expire this many months after purchase. */
   creditExpiryMonths: integer("credit_expiry_months").default(3).notNull(),
   active: boolean("active").default(true).notNull(),
-  createdAt: timestamp("created_at").defaultNow().notNull(),
-  updatedAt: timestamp("updated_at")
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+  updatedAt: timestamp("updated_at", { withTimezone: true })
     .defaultNow()
     .$onUpdate(() => /* @__PURE__ */ new Date())
     .notNull(),
@@ -40,11 +40,11 @@ export const packagePurchase = pgTable(
     packageId: text("package_id")
       .notNull()
       .references(() => packageOffering.id, { onDelete: "restrict" }),
-    purchasedAt: timestamp("purchased_at").defaultNow().notNull(),
+    purchasedAt: timestamp("purchased_at", { withTimezone: true }).defaultNow().notNull(),
     pricePaidCents: integer("price_paid_cents").notNull(),
     creditsGranted: integer("credits_granted").notNull(),
-    expiresAt: timestamp("expires_at").notNull(),
-    createdAt: timestamp("created_at").defaultNow().notNull(),
+    expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
   },
   (table) => [index("package_purchase_clientId_idx").on(table.clientId)],
 );
@@ -78,7 +78,7 @@ export const creditLedgerEntry = pgTable(
     reason: text("reason").$type<CreditReason>().notNull(),
     /** Human-readable line for the credit activity log. */
     description: text("description").notNull(),
-    createdAt: timestamp("created_at").defaultNow().notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
   },
   (table) => [index("credit_ledger_entry_clientId_idx").on(table.clientId)],
 );
@@ -100,14 +100,14 @@ export const invoice = pgTable(
     /** e.g. "visa ···· 4242", "paynow · awaiting verification", "credit used". */
     method: text("method").notNull(),
     status: text("status").$type<InvoiceStatus>().notNull(),
-    issuedAt: timestamp("issued_at").defaultNow().notNull(),
+    issuedAt: timestamp("issued_at", { withTimezone: true }).defaultNow().notNull(),
     purchaseId: text("purchase_id").references(() => packagePurchase.id, {
       onDelete: "set null",
     }),
     bookingId: text("booking_id").references(() => booking.id, {
       onDelete: "set null",
     }),
-    createdAt: timestamp("created_at").defaultNow().notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
   },
   (table) => [
     uniqueIndex("invoice_number_uidx").on(table.number),

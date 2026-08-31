@@ -37,7 +37,7 @@ export const booking = pgTable(
       .references(() => coachProfile.id, { onDelete: "restrict" }),
     type: text("type").$type<SessionType>().notNull(),
     location: text("location").notNull(),
-    startsAt: timestamp("starts_at").notNull(),
+    startsAt: timestamp("starts_at", { withTimezone: true }).notNull(),
     durationMin: integer("duration_min").notNull(),
     /** Credits this session costs: 45min → 0.75, 60min → 1, 90min → 1.5. */
     creditCost: numeric("credit_cost", { precision: 4, scale: 2 }).notNull(),
@@ -46,9 +46,9 @@ export const booking = pgTable(
     clientNote: text("client_note"),
     /** Coach's notes, written after the session (past bookings only). */
     sessionNotes: text("session_notes"),
-    cancelledAt: timestamp("cancelled_at"),
-    createdAt: timestamp("created_at").defaultNow().notNull(),
-    updatedAt: timestamp("updated_at")
+    cancelledAt: timestamp("cancelled_at", { withTimezone: true }),
+    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
       .defaultNow()
       .$onUpdate(() => /* @__PURE__ */ new Date())
       .notNull(),

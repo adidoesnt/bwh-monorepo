@@ -60,14 +60,12 @@ const pick = (rec: Record<string, string>, key: string): string => {
   return v;
 };
 
-/** 2026-08-31 — the prototype's "today". Offsets and week dates hang off this. */
-const TODAY = new Date("2026-08-31T00:00:00Z");
+/** Singapore is a fixed UTC+8 (no DST) — seed wall-clock times are SGT. */
+const SGT = "+08:00";
+/** `offset` days from 2026-08-31 (the prototype's "today"), at SGT wall-clock `hhmm`. */
 const day = (offset: number, hhmm = "00:00") => {
-  const [h = 0, m = 0] = hhmm.split(":").map(Number);
-  const d = new Date(TODAY);
-  d.setUTCDate(d.getUTCDate() + offset);
-  d.setUTCHours(h, m, 0, 0);
-  return d;
+  const d = new Date(Date.UTC(2026, 7, 31 + offset));
+  return new Date(`${d.toISOString().slice(0, 10)}T${hhmm}:00${SGT}`);
 };
 /** Date string N days after 15 Jun 2026 (Tessa's week-1 baseline). */
 const weekDate = (daysAfterJun15: number) => {
@@ -266,10 +264,10 @@ async function seed() {
       .values({
         clientId: pick(uid, "tessa"),
         packageId: pick(pkgIds, "transform"),
-        purchasedAt: new Date("2026-08-12T10:00:00Z"),
+        purchasedAt: new Date("2026-08-12T10:00:00+08:00"),
         pricePaidCents: 80000,
         creditsGranted: 10,
-        expiresAt: new Date("2026-11-30T23:59:59Z"),
+        expiresAt: new Date("2026-11-30T23:59:59+08:00"),
       })
       .returning({ id: packagePurchase.id }),
     "transform purchase",
@@ -304,10 +302,10 @@ async function seed() {
   console.log("seeding invoices…");
   await db.insert(invoice).values([
     { number: "bwh-0182", clientId: pick(uid, "tessa"), description: "1:1 online · 6 sep", amountCents: 9500, method: "paynow · awaiting verification", status: "pending", issuedAt: day(0) },
-    { number: "bwh-0171", clientId: pick(uid, "tessa"), description: "transform · 10 sessions", amountCents: 80000, method: "visa ···· 4242", status: "paid", issuedAt: new Date("2026-08-12T10:00:00Z"), purchaseId: transformPurchase.id },
-    { number: "bwh-0146", clientId: pick(uid, "tessa"), description: "build · 5 sessions", amountCents: 45000, method: "paynow · verified", status: "paid", issuedAt: new Date("2026-07-04T10:00:00Z") },
-    { number: "bwh-0121", clientId: pick(uid, "tessa"), description: "discover · 1 session", amountCents: 9500, method: "visa ···· 4242", status: "paid", issuedAt: new Date("2026-06-12T10:00:00Z") },
-    { number: "bwh-0118", clientId: pick(uid, "tessa"), description: "late cancellation", amountCents: 0, method: "credit used", status: "no_charge", issuedAt: new Date("2026-06-09T10:00:00Z") },
+    { number: "bwh-0171", clientId: pick(uid, "tessa"), description: "transform · 10 sessions", amountCents: 80000, method: "visa ···· 4242", status: "paid", issuedAt: new Date("2026-08-12T10:00:00+08:00"), purchaseId: transformPurchase.id },
+    { number: "bwh-0146", clientId: pick(uid, "tessa"), description: "build · 5 sessions", amountCents: 45000, method: "paynow · verified", status: "paid", issuedAt: new Date("2026-07-04T10:00:00+08:00") },
+    { number: "bwh-0121", clientId: pick(uid, "tessa"), description: "discover · 1 session", amountCents: 9500, method: "visa ···· 4242", status: "paid", issuedAt: new Date("2026-06-12T10:00:00+08:00") },
+    { number: "bwh-0118", clientId: pick(uid, "tessa"), description: "late cancellation", amountCents: 0, method: "credit used", status: "no_charge", issuedAt: new Date("2026-06-09T10:00:00+08:00") },
   ]);
 
   console.log("seeding bookings…");
@@ -360,8 +358,8 @@ async function seed() {
       "left knee acl repair in 2021, still cautious with deep lunges",
     weeklyTarget: "2 sessions",
     signature: "tessa lim",
-    consentAt: new Date("2026-06-11T09:00:00Z"),
-    submittedAt: new Date("2026-06-11T09:00:00Z"),
+    consentAt: new Date("2026-06-11T09:00:00+08:00"),
+    submittedAt: new Date("2026-06-11T09:00:00+08:00"),
   });
 
   console.log("seeding tessa's progress + measurements…");
