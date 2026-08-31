@@ -1,4 +1,4 @@
-import { fail } from "@sveltejs/kit";
+import { fail, redirect } from "@sveltejs/kit";
 import { z } from "zod";
 import { APIError } from "better-auth/api";
 import { auth } from "$lib/server/auth";
@@ -77,7 +77,7 @@ export const actions: Actions = {
       throw error;
     }
 
-    return { mode: "login" as const, success: true };
+    redirect(303, "/dashboard");
   },
 
   signup: async ({ request }) => {
@@ -121,6 +121,6 @@ export const actions: Actions = {
       throw error;
     }
 
-    return { mode: "signup" as const, success: true };
+    redirect(303, "/dashboard");
   },
 };
