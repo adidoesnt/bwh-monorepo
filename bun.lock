@@ -15,6 +15,7 @@
       "version": "0.0.1",
       "dependencies": {
         "@repo/ui": "workspace:*",
+        "zod": "^4.3.6",
       },
       "devDependencies": {
         "@repo/tailwind-config": "workspace:*",

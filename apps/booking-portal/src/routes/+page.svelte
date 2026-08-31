@@ -1,19 +1,24 @@
 <script lang="ts">
 	import { Button } from '@repo/ui';
+	import { enhance } from '$app/forms';
+	import type { PageProps } from './$types';
+    import type { SignupErrorValues } from './+page.server';
 
-	let mode = $state<'login' | 'signup'>('login');
+	let { form }: PageProps = $props();
 
-	let email = $state('');
+	let mode = $state<'login' | 'signup'>(form?.mode === 'signup' ? 'signup' : 'login');
+
+	let email = $state(form?.values?.email ?? '');
 	let password = $state('');
 	let keepLoggedIn = $state(true);
 
-	let firstName = $state('');
-	let lastName = $state('');
-	let mobile = $state('');
+	let firstName = $state(form?.mode === 'signup' ? (form.values?.firstName ?? '') : '');
+	let lastName = $state(form?.mode === 'signup' ? (form.values?.lastName ?? '') : '');
+	let mobile = $state(form?.mode === 'signup' ? (form.values?.mobile ?? '') : '');
 	let agreedToTerms = $state(false);
 
 	const copy = $derived(
-		mode === "login"
+		mode === 'login'
 			? {
 					heading: 'welcome back.',
 					subheading: 'log in to manage your sessions.',
@@ -28,18 +33,10 @@
 				}
 	);
 
-	function switchMode() {
-		mode = mode === "login" ? "signup" : "login";
-	}
+	const errors = $derived(mode === form?.mode ? (form?.errors ?? {}) : {});
 
-	function handleSubmit(event: SubmitEvent) {
-		event.preventDefault();
-		// placeholder: no auth wired up yet
-		if (mode === "login") {
-			console.log('login placeholder', { email, password, keepLoggedIn });
-		} else {
-			console.log('signup placeholder', { firstName, lastName, email, mobile, password, agreedToTerms });
-		}
+	function switchMode() {
+		mode = mode === 'login' ? 'signup' : 'login';
 	}
 </script>
 
@@ -70,37 +67,53 @@
 	</div>
 
 	<div class="bg-base-100 flex items-center justify-center p-8 md:p-12">
-		<form class="flex w-full max-w-sm flex-col gap-6" onsubmit={handleSubmit}>
+		<form
+			class="flex w-full max-w-sm flex-col gap-6"
+			method="POST"
+			action={mode === 'login' ? '?/login' : '?/signup'}
+			use:enhance
+		>
 			<div class="flex flex-col gap-1">
 				<h2 class="font-headings text-base-content text-4xl">{copy.heading}</h2>
 				<p class="font-body text-base-content/60">{copy.subheading}</p>
 			</div>
 
 			<div class="flex flex-col gap-4">
-				{#if mode === "signup"}
+				{#if mode === 'signup'}
+				    {@const signupErrors = errors as SignupErrorValues}
 					<div class="grid grid-cols-2 gap-4">
 						<label class="flex flex-col gap-1" for="firstName">
 							<span class="font-body text-base-content/70 text-sm">first name</span>
 							<input
 								id="firstName"
+								name="firstName"
 								type="text"
 								placeholder="ishita"
 								class="input w-full"
+								class:input-error={signupErrors.firstName}
 								bind:value={firstName}
 								required
 							/>
+							{#if signupErrors.firstName}
+								<span class="text-error text-xs">{signupErrors.firstName[0]}</span>
+							{/if}
 						</label>
 
 						<label class="flex flex-col gap-1" for="lastName">
 							<span class="font-body text-base-content/70 text-sm">last name</span>
 							<input
 								id="lastName"
+								name="lastName"
 								type="text"
-								placeholder="tan"
+								placeholder="mahajan"
 								class="input w-full"
+								class:input-error={signupErrors.lastName}
 								bind:value={lastName}
 								required
 							/>
+							{#if signupErrors.lastName}
+								<span class="text-error text-xs">{signupErrors.lastName[0]}</span>
+							{/if}
 						</label>
 					</div>
 				{/if}
@@ -109,25 +122,36 @@
 					<span class="font-body text-base-content/70 text-sm">email</span>
 					<input
 						id="email"
+						name="email"
 						type="email"
 						placeholder="you@example.com"
 						class="input w-full"
+						class:input-error={errors.email}
 						bind:value={email}
 						required
 					/>
+					{#if errors.email}
+						<span class="text-error text-xs">{errors.email[0]}</span>
+					{/if}
 				</label>
 
-				{#if mode === "signup"}
+				{#if mode === 'signup'}
+				    {@const signupErrors = errors as SignupErrorValues}
 					<label class="flex flex-col gap-1" for="mobile">
 						<span class="font-body text-base-content/70 text-sm">mobile (for session reminders)</span>
 						<input
 							id="mobile"
+							name="mobile"
 							type="tel"
 							placeholder="+65 8000 0000"
 							class="input w-full"
+							class:input-error={signupErrors.mobile}
 							bind:value={mobile}
 							required
 						/>
+						{#if signupErrors.mobile}
+							<span class="text-error text-xs">{signupErrors.mobile[0]}</span>
+						{/if}
 					</label>
 				{/if}
 
@@ -135,20 +159,30 @@
 					<span class="font-body text-base-content/70 text-sm">password</span>
 					<input
 						id="password"
+						name="password"
 						type="password"
-						placeholder={mode === "signup" ? 'at least 8 characters' : '••••••••'}
+						placeholder={mode === 'signup' ? 'at least 8 characters' : '••••••••'}
 						class="input w-full"
+						class:input-error={errors.password}
 						bind:value={password}
-						minlength={mode === "signup" ? 8 : undefined}
+						minlength={mode === 'signup' ? 8 : undefined}
 						required
 					/>
+					{#if errors.password}
+						<span class="text-error text-xs">{errors.password[0]}</span>
+					{/if}
 				</label>
 			</div>
 
 			{#if mode === 'login'}
 				<div class="flex items-center justify-between">
 					<label class="flex items-center gap-2">
-						<input type="checkbox" class="checkbox checkbox-primary" bind:checked={keepLoggedIn} />
+						<input
+							type="checkbox"
+							name="keepLoggedIn"
+							class="checkbox checkbox-primary"
+							bind:checked={keepLoggedIn}
+						/>
 						<span class="font-body text-base-content/80 text-sm">keep me logged in</span>
 					</label>
 
@@ -157,9 +191,11 @@
 					</a>
 				</div>
 			{:else}
+				{@const signupErrors = errors as SignupErrorValues}
 				<label class="flex items-start gap-2">
 					<input
 						type="checkbox"
+						name="agreedToTerms"
 						class="checkbox checkbox-primary mt-0.5"
 						bind:checked={agreedToTerms}
 						required
@@ -168,6 +204,9 @@
 						i agree to the terms, privacy notice and the 24-hour cancellation policy.
 					</span>
 				</label>
+				{#if signupErrors.agreedToTerms}
+					<span class="text-error text-xs">{signupErrors.agreedToTerms[0]}</span>
+				{/if}
 			{/if}
 
 			<div class="flex flex-col gap-3">
