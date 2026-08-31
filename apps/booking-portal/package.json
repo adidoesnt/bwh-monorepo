@@ -12,10 +12,9 @@
 		"check:watch": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json --watch"
 	},
 	"dependencies": {
+		"@repo/database": "workspace:*",
 		"@repo/ui": "workspace:*",
 		"better-auth": "^1.7.2",
-		"drizzle-orm": "^0.45.2",
-		"pg": "^8.23.0",
 		"zod": "^4.3.6"
 	},
 	"devDependencies": {
@@ -24,7 +23,6 @@
 		"@sveltejs/kit": "^2.57.0",
 		"@sveltejs/vite-plugin-svelte": "^7.0.0",
 		"@tailwindcss/postcss": "^4.2.2",
-		"@types/pg": "^8.23.1",
 		"daisyui": "^5.4.4",
 		"postcss": "^8.5.6",
 		"svelte": "^5.55.2",

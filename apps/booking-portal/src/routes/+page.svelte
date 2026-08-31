@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { untrack } from 'svelte';
 	import { Button } from '@repo/ui';
 	import { enhance } from '$app/forms';
 	import type { PageProps } from './$types';
@@ -6,15 +7,15 @@
 
 	let { form }: PageProps = $props();
 
-	let mode = $state<'login' | 'signup'>(form?.mode === 'signup' ? 'signup' : 'login');
+	// seeded once from the server-rendered `form` (only relevant on a no-JS full-page reload)
+	let mode = $state<'login' | 'signup'>(untrack(() => (form?.mode === 'signup' ? 'signup' : 'login')));
 
-	let email = $state(form?.values?.email ?? '');
+	let email = $state(untrack(() => form?.values?.email ?? ''));
 	let password = $state('');
 	let keepLoggedIn = $state(true);
 
-	let firstName = $state(form?.mode === 'signup' ? (form.values?.firstName ?? '') : '');
-	let lastName = $state(form?.mode === 'signup' ? (form.values?.lastName ?? '') : '');
-	let mobile = $state(form?.mode === 'signup' ? (form.values?.mobile ?? '') : '');
+	let firstName = $state(untrack(() => (form?.mode === 'signup' ? (form.values?.firstName ?? '') : '')));
+	let lastName = $state(untrack(() => (form?.mode === 'signup' ? (form.values?.lastName ?? '') : '')));
 	let agreedToTerms = $state(false);
 
 	const copy = $derived(
@@ -134,26 +135,6 @@
 						<span class="text-error text-xs">{errors.email[0]}</span>
 					{/if}
 				</label>
-
-				{#if mode === 'signup'}
-				    {@const signupErrors = errors as SignupErrorValues}
-					<label class="flex flex-col gap-1" for="mobile">
-						<span class="font-body text-base-content/70 text-sm">mobile (for session reminders)</span>
-						<input
-							id="mobile"
-							name="mobile"
-							type="tel"
-							placeholder="+65 8000 0000"
-							class="input w-full"
-							class:input-error={signupErrors.mobile}
-							bind:value={mobile}
-							required
-						/>
-						{#if signupErrors.mobile}
-							<span class="text-error text-xs">{signupErrors.mobile[0]}</span>
-						{/if}
-					</label>
-				{/if}
 
 				<label class="flex flex-col gap-1" for="password">
 					<span class="font-body text-base-content/70 text-sm">password</span>
