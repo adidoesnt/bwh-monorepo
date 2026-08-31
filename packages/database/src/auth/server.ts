@@ -35,6 +35,12 @@ export function createAuth({
           defaultValue: "active",
           input: false,
         },
+        // IANA zone, or null until the user sets it.
+        timezone: {
+          type: "string",
+          required: false,
+          input: false,
+        },
       },
     },
     plugins: [sveltekitCookies(getRequestEvent)],

@@ -26,7 +26,7 @@ type NavDef = Omit<NavItem, "badge"> & { badgeKey?: keyof NavBadges };
 const NAV: Record<Role, NavDef[]> = {
   client: [
     { id: "dashboard", label: "dashboard", href: "/dashboard", enabled: true },
-    { id: "bookings", label: "bookings", href: "/bookings", enabled: false, badgeKey: "bookings" },
+    { id: "bookings", label: "bookings", href: "/bookings", enabled: true, badgeKey: "bookings" },
     { id: "packages", label: "packages & credits", href: "/packages", enabled: false, badgeKey: "packages" },
     { id: "payments", label: "payments", href: "/payments", enabled: false },
     { id: "progress", label: "progress", href: "/progress", enabled: false },

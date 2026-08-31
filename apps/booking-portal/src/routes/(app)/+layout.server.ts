@@ -34,6 +34,7 @@ export const load: LayoutServerLoad = async ({ locals }) => {
       name: locals.user.name,
       email: locals.user.email,
       role,
+      timezone: locals.user.timezone ?? null,
     },
     nav: buildNav(role, badges),
     roleLabel: roleLabel(role),

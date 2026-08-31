@@ -7,7 +7,8 @@
 	let drawerOpen = $state(false);
 </script>
 
-<div class="drawer lg:drawer-open h-dvh">
+<!-- The whole product uses lowercase; `uppercase` on leaf elements still wins. -->
+<div class="drawer lg:drawer-open h-dvh lowercase">
 	<input id="app-drawer" type="checkbox" class="drawer-toggle" bind:checked={drawerOpen} />
 
 	<div class="drawer-content flex h-dvh flex-col">

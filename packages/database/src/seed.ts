@@ -116,6 +116,7 @@ async function upsertUsers(): Promise<Record<string, string>> {
           name: u.name,
           role: u.role,
           status: u.status,
+          timezone: "Asia/Singapore",
           emailVerified: true,
         })
         .where(eq(user.email, u.email))
@@ -153,6 +154,7 @@ const COACHES = [
     tags: ["strength", "hypertrophy", "beginners", "nutrition"],
     rateFromCents: 8000,
     locations: ["meyer road", "cbd", "online"],
+    timezone: "Asia/Singapore",
     coachingSince: 2023,
     windows: [
       [360, 630],
@@ -168,6 +170,7 @@ const COACHES = [
     tags: ["mobility", "pre/postnatal", "rehab-adjacent", "core"],
     rateFromCents: 8500,
     locations: ["meyer road", "raffles place"],
+    timezone: "Asia/Singapore",
     coachingSince: 2021,
     windows: [
       [360, 540],
@@ -184,6 +187,8 @@ const COACHES = [
     tags: ["conditioning", "online", "fat loss", "travel-friendly"],
     rateFromCents: 7500,
     locations: ["online", "east coast"],
+    // A deliberately different zone so the cross-timezone (online-only) path is seeded.
+    timezone: "Asia/Dubai",
     coachingSince: 2022,
     windows: [
       [420, 540],
@@ -236,6 +241,7 @@ async function seed() {
           tags: c.tags,
           rateFromCents: c.rateFromCents,
           locations: c.locations,
+          timezone: c.timezone,
           coachingSince: c.coachingSince,
           active: true,
         })
@@ -291,6 +297,36 @@ async function seed() {
   for (const e of ledger) {
     await db.insert(creditLedgerEntry).values({
       clientId: pick(uid, "tessa"),
+      purchaseId: e.purchaseId,
+      delta: e.delta,
+      reason: e.reason,
+      description: e.description,
+      createdAt: e.at,
+    });
+  }
+
+  console.log("seeding farah's near-expiry package…");
+  const farahBuild = one(
+    await db
+      .insert(packagePurchase)
+      .values({
+        clientId: pick(uid, "farah"),
+        packageId: pick(pkgIds, "build"),
+        purchasedAt: day(-18, "10:00"),
+        pricePaidCents: 45000,
+        creditsGranted: 5,
+        expiresAt: day(12, "23:59"),
+      })
+      .returning({ id: packagePurchase.id }),
+    "farah build purchase",
+  );
+  const farahLedger: { delta: string; reason: CreditReason; description: string; at: Date; purchaseId: string | null }[] = [
+    { delta: "5", reason: "purchase", description: "build purchased · sg$450.00 · paynow", at: day(-18), purchaseId: farahBuild.id },
+    { delta: "-1", reason: "session_confirmed", description: "session confirmed · jolene · 19:30", at: day(-2), purchaseId: null },
+  ];
+  for (const e of farahLedger) {
+    await db.insert(creditLedgerEntry).values({
+      clientId: pick(uid, "farah"),
       purchaseId: e.purchaseId,
       delta: e.delta,
       reason: e.reason,

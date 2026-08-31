@@ -21,6 +21,8 @@ export const user = pgTable("user", {
   image: text("image"),
   role: text("role").$type<UserRole>().default("client").notNull(),
   status: text("status").$type<UserStatus>().default("active").notNull(),
+  /** IANA zone, used to render times and to gate cross-timezone in-person bookings. Null until the user sets it. */
+  timezone: text("timezone"),
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
   updatedAt: timestamp("updated_at", { withTimezone: true })
     .defaultNow()

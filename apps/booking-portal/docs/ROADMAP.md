@@ -34,7 +34,7 @@ CRUD-and-render.
   port 4322
 - ✅ Email/password auth via better-auth: combined login/signup page at `/`
   (`src/routes/+page.svelte` + `+page.server.ts`, `?/login` / `?/signup` form actions, zod
-  validation)
+  validation). Signup takes first / **optional middle** / last name → stored as one `name`.
 - ✅ Route protection in `src/hooks.server.ts` — unauthenticated → redirected off `/dashboard`,
   authenticated → redirected off `/`
 - ✅ DB schema was **auth-only** at end of Phase 0: `user`, `session`, `account`, `verification`
@@ -67,8 +67,9 @@ the schema the rest of the roadmap fills in.
 - ✅ Seed script (`bun run db:seed`, `packages/database/src/seed.ts`) — mirrors the prototype:
   Ishita/Nadia/Jolene coaches, Tessa as the worked-example client (transform package, 6 credits,
   bookings, progress, measurements, completed PAR-Q), plus Renee/Farah/Declan/Hana/Yasmin.
-  All seed users log in with password `password`. Idempotent (upserts users, wipes+reinserts
-  domain tables).
+  Farah has a `build` package expiring soon and **no** PAR-Q, to exercise Phase 3's date-cap
+  and screening gates. All seed users log in with password `password`. Idempotent (upserts
+  users, wipes+reinserts domain tables).
 
 ## Phase 2 — Client dashboard shell & navigation ✅ done
 **Estimate: ~5h**
@@ -78,27 +79,59 @@ the schema the rest of the roadmap fills in.
 - ✅ Replace the placeholder `/dashboard` with the real app shell: role-aware sidebar nav
   (dashboard / bookings / packages / payments / progress / help), logout — *2h*
 - ✅ Dashboard content: today label, "hey {name}", stat cards, "what's next" (upcoming bookings
-  preview), credits summary card, weekly focus — can start with data read from Phase 1 tables
-  even before booking creation exists (empty states are fine) — *3h*
+  preview), credits summary card, weekly focus — data read from Phase 1 tables — *3h*
+- ✅ The whole authenticated app renders lowercase (`lowercase` on the `(app)` layout;
+  explicit `uppercase` on leaf labels still wins) — the prototype's house style. Names show
+  full in identity spots, first-name-only in prose; currency (`SG$…`) stays uppercased.
+- ✅ "request a session" on the dashboard is a live link to `/bookings` (was disabled).
 
-## Phase 3 — Coach directory & booking request (client) ⬜
+## Phase 2.5 — Timezone foundation ✅ done
+
+Cross-cutting change done between Phase 2 and Phase 3 because Phase 3's slot maths depends on it.
+
+- ✅ Every `timestamp` column → `timestamptz` (migration `0002_high_impossible_man`); the seed
+  writes real instants (SGT wall-clock times carry a `+08:00` offset).
+- ✅ `/dashboard` and `/bookings*` render client-side (`+page.ts` `ssr = false`); `format.ts`
+  helpers take an explicit zone so times show in the **viewer's** zone (their stored
+  `user.timezone` — added in Phase 3 — else the browser's).
+
+## Phase 3 — Coach directory & booking request (client) ✅ done
 **Estimate: ~10h** (highest-risk phase to underestimate)
 
 *Design screens: "Bookings" → choose coach, coach profile / book panel*
 
-- Coach list: search, speciality/location filter chips, sort (soonest / most open slots /
-  price / name) — *2.5h*
-- Coach profile panel: bio, rate, hours, tags, shareable link — *1.5h*
-- Booking form: session type, duration, date (next N days from real availability), time slot
-  (blocked out where already booked) → creates a `booking` row with `pending_payment` or
-  `pending_approval` status — *3h*
-- Real availability computation reading `availability_slot` / `booking` tables (slot generation,
-  conflict blocking) — this is the crux of the whole app, budget contingency here — *3h*
-- ✅ **Timezone:** every `timestamp` column is now `timestamptz` (migration
-  `0002_high_impossible_man`), the seed writes real instants from SGT wall-clock times
-  (`day()` / literals carry a `+08:00` offset), and the client dashboard renders client-side
-  (`+page.ts` `ssr = false`) so times show in the **viewer's** local timezone. Slot computation
-  still needs to treat `availability_slot` (minutes-from-midnight) as SGT and convert to instants.
+- ✅ Coach list (`/bookings`, `+page.svelte`): search, **multi-select** tag filter chips
+  (`all` clears; picking >1 tag matches any of them), sort (soonest / most open slots / price /
+  name), **+ a `show` limit dropdown (5 / 10 / 25, default 10)** applied after filter+sort.
+  Coaches carry multiple tags (`coach_profile.tags` array). Filter/sort/limit are client-side;
+  the server load precomputes each coach's open-slot count and soonest-free for the two
+  availability sorts.
+- ✅ Coach profile panel (`/bookings/[slug]`): bio, rate, trains-at, open-hours chips, tags,
+  shareable `builtwithhabit.com/book/<slug>` link + copy button.
+- ✅ Booking form: session type / duration (45·60·90 → 0.75·1·1.5 credits) / date / live slot
+  grid; submit → `booking` row, `pending_approval` when the client has the credits else
+  `pending_payment`. Server action re-validates the slot (`?/request` in
+  `[slug]/+page.server.ts`) — never trusts the posted time.
+- ✅ Date range: today **through the day the active package's credits expire** (`getActivePackage`;
+  8 weeks out if no package). Picker is month chips → day chips (`datesInRange` in `tz.ts`);
+  month row hides when the range is a single month. Form notes the expiry date; the action
+  rejects a start after `packagePurchase.expiresAt`. Seed: Farah has a `build` package expiring
+  ~12 sep to exercise the near-expiry case.
+- ✅ Real availability (`src/lib/availability.ts` `daySlots` / `openness`): generates 30-min
+  starts from `availability_slot` windows on the coach-local weekday, blocks starts that overlap
+  a `pending_approval | pending_payment | confirmed` booking or are in the past.
+- ✅ **Coach timezone.** `coach_profile.timezone` + `user.timezone` added (migration
+  `0003_common_marvel_apes`, wired through better-auth `additionalFields`). Availability windows
+  are wall-clock in the coach's zone; `src/lib/tz.ts` converts via `Intl` (DST-safe,
+  isomorphic). If client and coach zones differ, only online session types are offered (form +
+  server both enforce). Seed: ishita/nadia `Asia/Singapore`, jolene `Asia/Dubai` to exercise it.
+- ✅ **Session-type gates** compose in `allowedTypes` (form) and the `?/request` action:
+  cross-timezone → online types only; **PAR-Q not submitted → free consult only**
+  (`PRE_SCREENING_TYPES`, `getIntakeComplete`); both → free consult. Phase 7 builds the PAR-Q
+  form itself; this is the booking-side gate the roadmap's Phase 7 line refers to.
+- ✅ **Read-only bookings list** with `upcoming / awaiting action / past` tabs landed here on
+  `/bookings` (left column). Row actions (pay / reschedule / cancel / notes) + the 24h
+  cancellation policy are still **Phase 5**.
 
 ## Phase 4 — Checkout & payments (client) ⬜
 **Estimate: ~6h** (PayNow only) **+ ~2h** (Stripe, deferred)
@@ -116,7 +149,9 @@ the schema the rest of the roadmap fills in.
 
 *Design screen: "Bookings" list, upcoming/past/all tabs*
 
-- List view with tabs — *1.5h*
+- 🚧 List view with tabs — the read-only version (upcoming / awaiting action / past) shipped in
+  Phase 3 on `/bookings`; this phase adds the per-row actions below and may split it to a
+  dedicated route — *0.5h*
 - Per-row actions: pay to confirm, reschedule, cancel, session notes (past only) — *2.5h*
 - Cancellation policy: >24h before session → credit refunded to ledger; <24h → credit consumed
   (hardcode 24h until Phase 10's admin settings exist) — *1.5h*
@@ -136,8 +171,10 @@ the schema the rest of the roadmap fills in.
 *Design screen: "Intake PAR-Q"*
 
 - Multi-step form (progress bar, PAR-Q questions) — *2.5h*
-- Gate a client's first confirmed session on completion; scope visibility to client + assigned
-  coach only (PDPA — don't surface to admin by default) — *2h*
+- 🚧 Gate booking on completion — **done in Phase 3**: without a submitted PAR-Q only a free
+  consult can be booked (form + `?/request`). This phase just adds the form that flips
+  `intake_response.submitted_at`. Still to do: scope visibility to client + assigned coach only
+  (PDPA — don't surface to admin by default) — *1.5h*
 
 ## Phase 8 — Progress tracking (client) ⬜
 **Estimate: ~7.5h**
@@ -195,13 +232,20 @@ the schema the rest of the roadmap fills in.
 
 ---
 
+## Progress
+
+**Done:** Phases 0, 1, 2, 2.5, 3. The booking loop is live up to *request* — browse coaches →
+open a coach → pick a real slot → `booking` row created (`pending_approval` / `pending_payment`).
+
+**Next on the critical path:** Phase 4 (checkout) then Phase 5 (bookings management) close the
+loop — pay to confirm, then reschedule/cancel.
+
 ## Suggested near-term order
 
 Phase 1 → 2 → 3 → 4 → 5 is the critical path: it turns the placeholder dashboard into a working
 booking loop (browse coach → request → pay → see it in bookings) before touching packages,
-progress, trainer tools, or admin — roughly **~33h** of AI-assisted effort. Phases 6–11 can then
-proceed in roughly the listed order, or be reprioritized based on which role (client vs. coach
-vs. admin) needs to go live first.
+progress, trainer tools, or admin. Phases 6–11 can then proceed in roughly the listed order, or
+be reprioritized based on which role (client vs. coach vs. admin) needs to go live first.
 
 ## Total estimated effort
 

@@ -6,6 +6,7 @@ import type { Actions } from "./$types";
 
 export type SignupErrorValues = {
   firstName?: string;
+  middleName?: string;
   lastName?: string;
   email?: string;
   password?: string;
@@ -29,6 +30,7 @@ const loginSchema = z.object({
 
 const signupSchema = z.object({
   firstName: z.string().trim().min(1, "first name is required"),
+  middleName: z.string().trim().optional(),
   lastName: z.string().trim().min(1, "last name is required"),
   email: z.email().trim().min(1, "email is required"),
   password: z.string().min(8, "password must be at least 8 characters"),
@@ -90,22 +92,18 @@ export const actions: Actions = {
         errors: z.flattenError(result.error).fieldErrors,
         values: {
           firstName: formData.get("firstName")?.toString() ?? "",
+          middleName: formData.get("middleName")?.toString() ?? "",
           lastName: formData.get("lastName")?.toString() ?? "",
           email: formData.get("email")?.toString() ?? "",
         } satisfies SignupErrorValues,
       });
     }
 
-    const { firstName, lastName, email, password } = result.data;
+    const { firstName, middleName, lastName, email, password } = result.data;
+    const name = [firstName, middleName, lastName].filter(Boolean).join(" ");
 
     try {
-      await auth.api.signUpEmail({
-        body: {
-          name: `${firstName} ${lastName}`.trim(),
-          email,
-          password,
-        },
-      });
+      await auth.api.signUpEmail({ body: { name, email, password } });
     } catch (error) {
       if (error instanceof APIError) {
         const errors: FieldErrors<SignupErrorValues> = {
@@ -115,7 +113,12 @@ export const actions: Actions = {
         return fail(400, {
           mode: "signup" as const,
           errors,
-          values: { firstName, lastName, email } satisfies SignupErrorValues,
+          values: {
+            firstName,
+            middleName,
+            lastName,
+            email,
+          } satisfies SignupErrorValues,
         });
       }
       throw error;

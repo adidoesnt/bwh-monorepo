@@ -34,6 +34,12 @@ export const coachProfile = pgTable(
     rateFromCents: integer("rate_from_cents").notNull(),
     /** Where this coach trains clients, e.g. ["meyer road", "cbd", "online"]. */
     locations: text("locations").array().notNull().default([]),
+    /**
+     * IANA zone the coach lives/works in. `availability_slot` minutes are
+     * wall-clock in this zone. A client in a different zone can only book
+     * online session types. Coach-facing editor is Phase 9.
+     */
+    timezone: text("timezone").notNull().default("Asia/Singapore"),
     coachingSince: integer("coaching_since"),
     active: boolean("active").default(true).notNull(),
     createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),

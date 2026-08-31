@@ -1,24 +1,16 @@
 <script lang="ts">
-	import { longDate, relativeDay, timeOf, dateChip } from '$lib/format';
+	import { dateChip, longDate, longDateNoYear, relativeDay, timeOf } from '$lib/format';
+	import { statusLabel, statusPill } from '$lib/status';
+	import { browserZone } from '$lib/tz';
+	import { untrack } from 'svelte';
 	import type { PageProps } from './$types';
 
 	let { data }: PageProps = $props();
 
-	const firstName = $derived((data.user.name.split(' ')[0] ?? data.user.name).toLowerCase());
+	const firstName = $derived(data.user.name.split(' ')[0] ?? data.user.name);
 	const today = new Date();
-
-	const statusPill: Record<string, string> = {
-		confirmed: 'badge-success',
-		completed: 'badge-ghost',
-		pending_approval: 'badge-ghost',
-		pending_payment: 'badge-warning'
-	};
-	const statusLabel: Record<string, string> = {
-		confirmed: 'confirmed',
-		completed: 'completed',
-		pending_approval: 'awaiting approval',
-		pending_payment: 'payment due'
-	};
+	// Everything on this screen shows in the viewer's zone (their set zone, else the browser's).
+	const tz = untrack(() => data.user.timezone) ?? browserZone();
 
 	const dash = $derived(data.dashboard);
 
@@ -27,16 +19,18 @@
 			? [
 					{
 						label: 'next session',
-						value: dash.stats.nextSessionAt ? relativeDay(dash.stats.nextSessionAt, today) : '—',
+						value: dash.stats.nextSessionAt
+							? relativeDay(dash.stats.nextSessionAt, tz, today)
+							: '—',
 						sub: dash.stats.nextSessionAt
-							? `${timeOf(dash.stats.nextSessionAt)} · ${dash.upcoming[0]?.coachName ?? ''}`
+							? `${timeOf(dash.stats.nextSessionAt, tz)} · ${dash.upcoming[0]?.coachName ?? ''}`
 							: 'nothing booked'
 					},
 					{
 						label: 'credits left',
 						value: String(dash.creditBalance),
 						sub: dash.activePackage
-							? `${dash.activePackage.name} · expires ${longDate(new Date(dash.activePackage.expiresAt)).replace(` ${new Date(dash.activePackage.expiresAt).getFullYear()}`, '')}`
+							? `${dash.activePackage.name} · expires ${longDateNoYear(new Date(dash.activePackage.expiresAt), tz)}`
 							: 'no active package'
 					},
 					{ label: 'sessions done', value: String(dash.stats.sessionsDone), sub: 'completed with us' },
@@ -69,13 +63,11 @@
 		<div class="mb-7 flex flex-wrap items-end justify-between gap-4">
 			<div>
 				<div class="text-base-content/45 font-body mb-1.5 text-xs tracking-widest uppercase">
-					{longDate(today)}
+					{longDate(today, tz)}
 				</div>
 				<h1 class="font-headings text-4xl">hey {firstName}!</h1>
 			</div>
-			<button class="btn btn-primary btn-sm" disabled title="coming in a later phase">
-				request a session
-			</button>
+			<a href="/bookings" class="btn btn-primary btn-sm">request a session</a>
 		</div>
 
 		<!-- stat cards -->
@@ -102,7 +94,7 @@
 				{:else}
 					<ul class="flex flex-col gap-2.5">
 						{#each dash.upcoming as b (b.id)}
-							{@const chip = dateChip(new Date(b.startsAt))}
+							{@const chip = dateChip(new Date(b.startsAt), tz)}
 							<li class="border-base-200 bg-base-200/40 flex items-center gap-3.5 rounded-field border p-3.5">
 								<div class="bg-base-200 rounded-field w-13 shrink-0 py-1.5 text-center">
 									<div class="text-base-content/60 font-body text-[10px] uppercase">{chip.mon}</div>
@@ -111,11 +103,11 @@
 								<div class="min-w-0 flex-1">
 									<div class="text-sm font-medium">{b.type}</div>
 									<div class="text-base-content/60 mt-0.5 text-xs">
-										{timeOf(new Date(b.startsAt))} · {b.coachName} · {b.location}
+										{timeOf(new Date(b.startsAt), tz)} · {b.coachName} · {b.location}
 									</div>
 								</div>
-								<span class="badge badge-sm {statusPill[b.status] ?? 'badge-ghost'} font-body shrink-0">
-									{statusLabel[b.status] ?? b.status}
+								<span class="badge badge-sm {statusPill[b.status]} font-body shrink-0">
+									{statusLabel[b.status]}
 								</span>
 							</li>
 						{/each}
@@ -140,10 +132,7 @@
 							<div class="{pkgBarClass} h-full rounded-full transition-all" style:width="{pkgPct}%"></div>
 						</div>
 						<div class="text-neutral-content/60 text-xs">
-							expires {longDate(new Date(dash.activePackage.expiresAt)).replace(
-								` ${new Date(dash.activePackage.expiresAt).getFullYear()}`,
-								''
-							)}
+							expires {longDateNoYear(new Date(dash.activePackage.expiresAt), tz)}
 						</div>
 					{:else}
 						<div class="text-neutral-content/70 text-sm">

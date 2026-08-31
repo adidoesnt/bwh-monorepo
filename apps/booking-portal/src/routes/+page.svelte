@@ -15,6 +15,7 @@
 	let keepLoggedIn = $state(true);
 
 	let firstName = $state(untrack(() => (form?.mode === 'signup' ? (form.values?.firstName ?? '') : '')));
+	let middleName = $state(untrack(() => (form?.mode === 'signup' ? (form.values?.middleName ?? '') : '')));
 	let lastName = $state(untrack(() => (form?.mode === 'signup' ? (form.values?.lastName ?? '') : '')));
 	let agreedToTerms = $state(false);
 
@@ -117,6 +118,20 @@
 							{/if}
 						</label>
 					</div>
+
+					<label class="flex flex-col gap-1" for="middleName">
+						<span class="font-body text-base-content/70 text-sm">
+							middle name <span class="text-base-content/40">(optional)</span>
+						</span>
+						<input
+							id="middleName"
+							name="middleName"
+							type="text"
+							placeholder="priya"
+							class="input w-full"
+							bind:value={middleName}
+						/>
+					</label>
 				{/if}
 
 				<label class="flex flex-col gap-1" for="email">

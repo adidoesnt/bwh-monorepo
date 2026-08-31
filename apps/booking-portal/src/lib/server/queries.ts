@@ -1,5 +1,6 @@
 import { and, desc, eq, gte, inArray, lt, ne, sql } from "drizzle-orm";
 import {
+  availabilitySlot,
   booking,
   coachProfile,
   creditLedgerEntry,
@@ -7,8 +8,17 @@ import {
   packageOffering,
   packagePurchase,
   user,
+  type BookingStatus,
+  type SessionType,
 } from "@repo/database/schema";
 import { db } from "./db";
+
+/** Booking statuses that occupy a slot on the coach's calendar. */
+const ACTIVE_BOOKING_STATUSES: BookingStatus[] = [
+  "pending_approval",
+  "pending_payment",
+  "confirmed",
+];
 
 /** Monday 00:00 through the following Monday 00:00 for the week containing `ref`. */
 function weekBounds(ref: Date) {
@@ -24,10 +34,10 @@ function weekBounds(ref: Date) {
 
 export type UpcomingBooking = {
   id: string;
-  type: string;
+  type: SessionType;
   startsAt: Date;
   location: string;
-  status: string;
+  status: BookingStatus;
   coachName: string;
 };
 
@@ -51,7 +61,7 @@ export type ClientDashboard = {
   actionNeeded: number;
 };
 
-async function creditBalance(clientId: string): Promise<number> {
+export async function getCreditBalance(clientId: string): Promise<number> {
   const [row] = await db
     .select({ total: sql<string>`coalesce(sum(${creditLedgerEntry.delta}), 0)` })
     .from(creditLedgerEntry)
@@ -59,7 +69,8 @@ async function creditBalance(clientId: string): Promise<number> {
   return Number(row?.total ?? 0);
 }
 
-async function activePackage(clientId: string, balance: number) {
+/** The client's most recent still-valid package purchase, or null. */
+export async function getActivePackage(clientId: string) {
   const [row] = await db
     .select({
       name: packageOffering.name,
@@ -79,7 +90,11 @@ async function activePackage(clientId: string, balance: number) {
     )
     .orderBy(desc(packagePurchase.purchasedAt))
     .limit(1);
+  return row ?? null;
+}
 
+async function activePackage(clientId: string, balance: number) {
+  const row = await getActivePackage(clientId);
   if (!row) return null;
   const creditsLeft = Math.max(0, Math.min(balance, row.creditsGranted));
   return {
@@ -119,10 +134,20 @@ async function upcomingBookings(
   return rows;
 }
 
+/** Whether the client has submitted their PAR-Q screening. */
+export async function getIntakeComplete(clientId: string): Promise<boolean> {
+  const [row] = await db
+    .select({ submittedAt: intakeResponse.submittedAt })
+    .from(intakeResponse)
+    .where(eq(intakeResponse.clientId, clientId))
+    .limit(1);
+  return Boolean(row?.submittedAt);
+}
+
 /** Just the figures the sidebar badges need — cheaper than the full dashboard. */
 export async function getClientNavBadges(clientId: string) {
   const [balance, actionRow, intakeRow] = await Promise.all([
-    creditBalance(clientId),
+    getCreditBalance(clientId),
     db
       .select({ n: sql<number>`count(*)::int` })
       .from(booking)
@@ -149,7 +174,7 @@ export async function getClientNavBadges(clientId: string) {
 export async function getClientDashboard(
   clientId: string,
 ): Promise<ClientDashboard> {
-  const balance = await creditBalance(clientId);
+  const balance = await getCreditBalance(clientId);
   const { start, end } = weekBounds(new Date());
 
   const [pkg, upcoming, doneRow, weekRow, intakeRow, actionRow] =
@@ -204,4 +229,127 @@ export async function getClientDashboard(
     intakeComplete: Boolean(intakeRow[0]?.submittedAt),
     actionNeeded: actionRow[0]?.n ?? 0,
   };
+}
+
+// ─── Coach directory & booking ──────────────────────────────────────────────
+
+const coachColumns = {
+  id: coachProfile.id,
+  slug: coachProfile.slug,
+  name: user.name,
+  speciality: coachProfile.speciality,
+  tagline: coachProfile.tagline,
+  bio: coachProfile.bio,
+  tags: coachProfile.tags,
+  rateFromCents: coachProfile.rateFromCents,
+  locations: coachProfile.locations,
+  timezone: coachProfile.timezone,
+  coachingSince: coachProfile.coachingSince,
+};
+
+export type CoachRow = {
+  id: string;
+  slug: string;
+  name: string;
+  speciality: string;
+  tagline: string;
+  bio: string;
+  tags: string[];
+  rateFromCents: number;
+  locations: string[];
+  timezone: string;
+  coachingSince: number | null;
+};
+
+export async function listActiveCoaches(): Promise<CoachRow[]> {
+  return db
+    .select(coachColumns)
+    .from(coachProfile)
+    .innerJoin(user, eq(user.id, coachProfile.userId))
+    .where(eq(coachProfile.active, true))
+    .orderBy(user.name);
+}
+
+export async function getCoachBySlug(slug: string): Promise<CoachRow | null> {
+  const [row] = await db
+    .select(coachColumns)
+    .from(coachProfile)
+    .innerJoin(user, eq(user.id, coachProfile.userId))
+    .where(and(eq(coachProfile.slug, slug), eq(coachProfile.active, true)))
+    .limit(1);
+  return row ?? null;
+}
+
+export type AvailabilityInputs = {
+  windows: {
+    coachId: string;
+    weekday: number;
+    startMin: number;
+    endMin: number;
+  }[];
+  busy: { coachId: string; startsAt: Date; durationMin: number }[];
+};
+
+/** Weekly windows + slot-occupying bookings for one or more coaches. */
+export async function coachAvailabilityInputs(
+  coachIds: string[],
+): Promise<AvailabilityInputs> {
+  if (coachIds.length === 0) return { windows: [], busy: [] };
+  const [windows, busy] = await Promise.all([
+    db
+      .select({
+        coachId: availabilitySlot.coachId,
+        weekday: availabilitySlot.weekday,
+        startMin: availabilitySlot.startMin,
+        endMin: availabilitySlot.endMin,
+      })
+      .from(availabilitySlot)
+      .where(inArray(availabilitySlot.coachId, coachIds)),
+    db
+      .select({
+        coachId: booking.coachId,
+        startsAt: booking.startsAt,
+        durationMin: booking.durationMin,
+      })
+      .from(booking)
+      .where(
+        and(
+          inArray(booking.coachId, coachIds),
+          inArray(booking.status, ACTIVE_BOOKING_STATUSES),
+          gte(booking.startsAt, new Date()),
+        ),
+      ),
+  ]);
+  return { windows, busy };
+}
+
+export type ClientBooking = {
+  id: string;
+  type: SessionType;
+  startsAt: Date;
+  durationMin: number;
+  location: string;
+  status: BookingStatus;
+  coachName: string;
+};
+
+/** Every non-cancelled booking for a client, for the bookings-screen list. */
+export async function getClientBookings(
+  clientId: string,
+): Promise<ClientBooking[]> {
+  return db
+    .select({
+      id: booking.id,
+      type: booking.type,
+      startsAt: booking.startsAt,
+      durationMin: booking.durationMin,
+      location: booking.location,
+      status: booking.status,
+      coachName: user.name,
+    })
+    .from(booking)
+    .innerJoin(coachProfile, eq(coachProfile.id, booking.coachId))
+    .innerJoin(user, eq(user.id, coachProfile.userId))
+    .where(and(eq(booking.clientId, clientId), ne(booking.status, "cancelled")))
+    .orderBy(booking.startsAt);
 }
