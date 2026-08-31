@@ -13,20 +13,24 @@
 	},
 	"dependencies": {
 		"@repo/ui": "workspace:*",
+		"better-auth": "^1.7.2",
+		"drizzle-orm": "^0.45.2",
+		"pg": "^8.23.0",
 		"zod": "^4.3.6"
 	},
 	"devDependencies": {
 		"@repo/tailwind-config": "workspace:*",
 		"@sveltejs/adapter-auto": "^7.0.1",
-		"@tailwindcss/postcss": "^4.2.2",
 		"@sveltejs/kit": "^2.57.0",
 		"@sveltejs/vite-plugin-svelte": "^7.0.0",
+		"@tailwindcss/postcss": "^4.2.2",
+		"@types/pg": "^8.23.1",
 		"daisyui": "^5.4.4",
+		"postcss": "^8.5.6",
 		"svelte": "^5.55.2",
 		"svelte-check": "^4.4.6",
 		"tailwindcss": "^4.2.2",
 		"typescript": "^6.0.2",
-		"vite": "^8.0.7",
-		"postcss": "^8.5.6"
+		"vite": "^8.0.7"
 	}
 }
