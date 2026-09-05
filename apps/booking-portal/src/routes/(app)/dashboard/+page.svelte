@@ -179,16 +179,12 @@
 							nothing yet — your session history shows up here.
 						</p>
 					{:else}
-						<ul class="flex flex-col gap-2.5">
+						<ul class="flex flex-col">
 							{#each dash.activity as a, i (`${a.createdAt}-${a.reason}-${i}`)}
-								<li class="flex items-baseline gap-2.5 text-sm">
-									<span
-										class="font-body shrink-0 text-xs {a.delta > 0
-											? 'text-success'
-											: 'text-base-content/40'}"
-									>
-										{a.delta > 0 ? `+${a.delta}` : a.delta}
-									</span>
+								{@const zebra = i % 2 === 1 ? 'bg-base-200/60' : ''}
+								<li
+									class="rounded-field flex items-baseline justify-between gap-3 px-2.5 py-2 text-sm {zebra}"
+								>
 									<span class="min-w-0 flex-1 truncate">{activityLabel(a)}</span>
 									<span class="text-base-content/40 shrink-0 text-xs">
 										{relativeDay(new Date(a.createdAt), tz, today)}
@@ -196,6 +192,12 @@
 								</li>
 							{/each}
 						</ul>
+						<span
+							class="text-base-content/35 mt-3 block cursor-not-allowed text-xs"
+							title="full activity log — coming in a later phase"
+						>
+							view all →
+						</span>
 					{/if}
 				</section>
 			</div>

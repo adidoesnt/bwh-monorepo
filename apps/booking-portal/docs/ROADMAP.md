@@ -301,7 +301,7 @@ Reschedule < 24h: blocked. The `< 24h` cancel no longer writes a `no_charge` inv
 | **Total** | **~14.5h** |
 
 ## Phase 6 — Packages & sessions, payments (client) ⬜
-**Estimate: ~5.5h**
+**Estimate: ~6.5h**
 
 *Design screens: "Packages & credits" (re-scoped by Phase 5.5), "Payments"*
 
@@ -310,6 +310,9 @@ Reschedule < 24h: blocked. The `< 24h` cancel no longer writes a `no_charge` inv
 - "Buy a package" — browse a coach's packages and purchase via the Phase 4 checkout modal
   **standalone** (not tied to a booking; the 5.5 checkout only handles the booking-linked path) — *1h*
 - Payments page: stats, invoice table, saved payment methods, cancellation-policy blurb — *2.5h*
+- **`/activity`** — full session-ledger log across all packages (the dashboard's "recent
+  activity" card links here via its disabled "view all"; sidebar item `activity` exists as
+  `enabled: false`). Chronological list, filter by coach/package, running balance — *1h*
 
 ## Phase 7 — Intake / PAR-Q health screening ⬜
 **Estimate: ~4.5h**
@@ -411,10 +414,10 @@ reprioritized based on which role (client vs. coach vs. admin) needs to go live 
 | :-- | :-- |
 | Critical path (Phases 1–5) | ~33h |
 | Phase 5.5 (coach packages — replaces credits) | ~14.5h |
-| Full client + trainer + admin core (Phases 1–11, excluding deferred items) | ~87h |
+| Full client + trainer + admin core (Phases 1–11, excluding deferred items) | ~88h |
 | Deferred items (Stripe, real AI assistant, "preview as") | ~8-10h |
 | Polish & hardening (Phase 12) | ~16h |
-| **End-to-end** | **~112-122h**, i.e. roughly 3-3.5 weeks of focused solo AI-assisted work |
+| **End-to-end** | **~113-123h**, i.e. roughly 3-3.5 weeks of focused solo AI-assisted work |
 
 Treat these as planning inputs, not commitments — re-estimate each phase once Phase 1's schema is
 locked in, since it's the foundation everything else measures against. (Phase 5.5 re-opens the

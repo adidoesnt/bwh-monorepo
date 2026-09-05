@@ -344,7 +344,7 @@ export async function getClientDashboard(
   ] = await Promise.all([
     getActivePurchases(clientId),
     upcomingBookings(clientId, 3),
-    getRecentActivity(clientId, 6),
+    getRecentActivity(clientId, 5),
     db
       .select({ n: sql<number>`count(*)::int` })
       .from(booking)
