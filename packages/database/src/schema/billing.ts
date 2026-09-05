@@ -122,6 +122,10 @@ export const invoice = pgTable(
     /** S3 object key of the uploaded paynow screenshot, when method is paynow. */
     proofImageKey: text("proof_image_key"),
     issuedAt: timestamp("issued_at", { withTimezone: true }).defaultNow().notNull(),
+    /** The package a pending PayNow purchase-invoice is for (Phase 9 turns it into a `purchase`). */
+    packageId: text("package_id").references(() => packageOffering.id, {
+      onDelete: "set null",
+    }),
     purchaseId: text("purchase_id").references(() => packagePurchase.id, {
       onDelete: "set null",
     }),

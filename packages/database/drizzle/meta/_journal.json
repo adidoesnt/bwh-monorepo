@@ -50,6 +50,13 @@
       "when": 1788631815212,
       "tag": "0006_coach_packages",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1788635083971,
+      "tag": "0007_decouple_purchases",
+      "breakpoints": true
     }
   ]
 }

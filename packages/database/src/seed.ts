@@ -247,8 +247,6 @@ type BookingSeed = {
   status: BookingStatus;
   /** Purchase the session draws from (pending_approval / confirmed / completed). */
   purchaseKey?: string;
-  /** Package the client will buy at checkout (pending_payment). */
-  intendedPkgKey?: string;
   clientNote?: string;
   clientReflection?: string;
 };
@@ -258,14 +256,12 @@ const BOOKINGS: BookingSeed[] = [
   // day(1) is in the past now (completed-ish, exercises the past tab).
   { clientKey: "tessa", coachKey: "ishita", type: "1:1 in-person", location: "anytime fitness, meyer rd", startsAt: day(9, "07:30"), status: "confirmed", purchaseKey: "tessa-transform" },
   { clientKey: "tessa", coachKey: "ishita", type: "assessment", location: "anytime fitness, meyer rd", startsAt: day(11, "09:00"), status: "confirmed", purchaseKey: "tessa-transform" },
-  { clientKey: "tessa", coachKey: "jolene", type: "1:1 online", location: "video call", startsAt: day(6, "19:30"), status: "pending_payment", intendedPkgKey: "jolene-momentum" },
   { clientKey: "tessa", coachKey: "nadia", type: "1:1 in-person", location: "virgin active, raffles pl", startsAt: day(8, "12:00"), status: "pending_approval", purchaseKey: "tessa-starter", clientNote: "niggling left knee this week — happy to swap lunges" },
   { clientKey: "tessa", coachKey: "ishita", type: "1:1 in-person", location: "anytime fitness, meyer rd", startsAt: day(-3, "07:30"), status: "completed", purchaseKey: "tessa-transform", clientReflection: "felt strong — added 5kg on the trap bar deadlift and knee held up fine." },
   { clientKey: "tessa", coachKey: "ishita", type: "1:1 in-person", location: "anytime fitness, meyer rd", startsAt: day(-7, "07:30"), status: "completed", purchaseKey: "tessa-transform" },
   { clientKey: "tessa", coachKey: "jolene", type: "1:1 online", location: "video call", startsAt: day(-11, "19:30"), status: "completed", purchaseKey: "tessa-kickstart" },
   // Other clients — populate the trainer/admin tables.
   { clientKey: "renee", coachKey: "ishita", type: "1:1 in-person", location: "anytime fitness, meyer rd", startsAt: day(2, "07:30"), status: "pending_approval", purchaseKey: "renee-build", clientNote: "first session after the consult call!" },
-  { clientKey: "declan", coachKey: "nadia", type: "1:1 in-person", location: "virgin active, raffles pl", startsAt: day(3, "12:00"), status: "pending_payment", intendedPkgKey: "nadia-starter" },
   { clientKey: "hana", coachKey: "ishita", type: "assessment", location: "anytime fitness, meyer rd", startsAt: day(5, "09:00"), status: "confirmed", purchaseKey: "hana-build" },
   { clientKey: "farah", coachKey: "jolene", type: "1:1 online", location: "video call", startsAt: day(5, "19:30"), status: "confirmed", purchaseKey: "farah-kickstart" },
   { clientKey: "yasmin", coachKey: "nadia", type: "1:1 in-person", location: "anytime fitness, meyer rd", startsAt: day(-1, "10:30"), status: "completed", purchaseKey: "yasmin-rebuild" },
@@ -400,11 +396,16 @@ async function seed() {
 
   console.log("seeding invoices…");
   const kick = pkgByKey("jolene-kickstart");
+  const momentum = pkgByKey("jolene-momentum");
+  const nadStarter = pkgByKey("nadia-starter");
   await db.insert(invoice).values([
     { number: "bwh-0140", clientId: pick(uid, "tessa"), description: "kickstart · 4 sessions", amountCents: kick.sessionCount * kick.pricePerSessionCents, method: "paynow · verified", status: "paid", issuedAt: day(-75, "10:00"), purchaseId: pick(purchaseIds, "tessa-kickstart") },
     { number: "bwh-0171", clientId: pick(uid, "tessa"), description: "transform · 10 sessions", amountCents: 80000, method: "paynow · verified", status: "paid", issuedAt: day(-24, "10:00"), purchaseId: pick(purchaseIds, "tessa-transform") },
     { number: "bwh-0178", clientId: pick(uid, "farah"), description: "kickstart · 4 sessions", amountCents: kick.sessionCount * kick.pricePerSessionCents, method: "paynow · verified", status: "paid", issuedAt: day(-48, "10:00"), purchaseId: pick(purchaseIds, "farah-kickstart") },
     { number: "bwh-0182", clientId: pick(uid, "tessa"), description: "starter · 3 sessions", amountCents: 27000, method: "visa ···· 4242", status: "paid", issuedAt: day(-6, "10:00"), purchaseId: pick(purchaseIds, "tessa-starter") },
+    // Pending package purchases — awaiting Phase 9 verification (no sessions granted yet).
+    { number: "bwh-0186", clientId: pick(uid, "tessa"), description: `${momentum.name} · ${momentum.sessionCount} sessions`, amountCents: momentum.sessionCount * momentum.pricePerSessionCents, method: "paynow · awaiting verification", status: "pending", issuedAt: day(-1, "18:00"), packageId: pick(pkgIds, "jolene-momentum") },
+    { number: "bwh-0187", clientId: pick(uid, "declan"), description: `${nadStarter.name} · ${nadStarter.sessionCount} sessions`, amountCents: nadStarter.sessionCount * nadStarter.pricePerSessionCents, method: "paynow · awaiting verification", status: "pending", issuedAt: day(-1, "20:00"), packageId: pick(pkgIds, "nadia-starter") },
   ]);
 
   console.log("seeding bookings…");
@@ -417,9 +418,7 @@ async function seed() {
         ? 30
         : purchasePkgKey
           ? pkgByKey(purchasePkgKey).sessionLengthMin
-          : b.intendedPkgKey
-            ? pkgByKey(b.intendedPkgKey).sessionLengthMin
-            : 60;
+          : 60;
 
     const row = one(
       await db
@@ -432,7 +431,6 @@ async function seed() {
           startsAt: b.startsAt,
           durationMin,
           packagePurchaseId: b.purchaseKey ? pick(purchaseIds, b.purchaseKey) : null,
-          intendedPackageId: b.intendedPkgKey ? pick(pkgIds, b.intendedPkgKey) : null,
           status: b.status,
           clientNote: b.clientNote ?? null,
           clientReflection: b.clientReflection ?? null,

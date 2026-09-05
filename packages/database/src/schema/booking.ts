@@ -3,7 +3,7 @@ import { pgTable, text, integer, timestamp, index } from "drizzle-orm/pg-core";
 import { createId } from "./id";
 import { user } from "./auth";
 import { coachProfile } from "./coaching";
-import { packageOffering, packagePurchase } from "./billing";
+import { packagePurchase } from "./billing";
 
 export type SessionType =
   | "1:1 in-person"
@@ -11,10 +11,15 @@ export type SessionType =
   | "free consult"
   | "assessment";
 
+/**
+ * `pending_payment` / `pending_verification` existed in Phases 4–5.5 when
+ * payment was part of the booking flow. Phase 6 moved money to the
+ * package-purchase side, so a booking is only ever approval → confirmed. Those
+ * values may still sit on pre-6 rows; they are never written now.
+ */
 export type BookingStatus =
   | "pending_approval"
   | "pending_payment"
-  /** Paynow screenshot submitted, awaiting a coach/admin to verify it (Phase 9). */
   | "pending_verification"
   | "confirmed"
   | "completed"
@@ -35,17 +40,9 @@ export const booking = pgTable(
     location: text("location").notNull(),
     startsAt: timestamp("starts_at", { withTimezone: true }).notNull(),
     durationMin: integer("duration_min").notNull(),
-    /**
-     * The purchase this session draws from. Null for a free consult, and while
-     * `pending_payment` (see `intendedPackageId`); set once a package is in hand.
-     */
+    /** The purchase this session draws from. Null for a free consult. */
     packagePurchaseId: text("package_purchase_id").references(
       () => packagePurchase.id,
-      { onDelete: "set null" },
-    ),
-    /** While `pending_payment`: the package the client will buy at checkout. */
-    intendedPackageId: text("intended_package_id").references(
-      () => packageOffering.id,
       { onDelete: "set null" },
     ),
     status: text("status").$type<BookingStatus>().notNull(),
