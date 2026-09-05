@@ -83,6 +83,9 @@ the schema the rest of the roadmap fills in.
   (dashboard / bookings / packages / payments / progress / help), logout — *2h*
 - ✅ Dashboard content: today label, "hey {name}", stat cards, "what's next" (upcoming bookings
   preview), credits summary card, weekly focus — data read from Phase 1 tables — *3h*
+  *(Phase 5.5: credits card → per-purchase package cards; "weekly focus" (assumed one coach owns
+  programming) → "recent activity" feed from `session_ledger_entry`; "what's next" rows deep-link
+  to `/bookings?manage=<id>`.)*
 - ✅ The whole authenticated app renders lowercase (`lowercase` on the `(app)` layout;
   explicit `uppercase` on leaf labels still wins) — the prototype's house style. Names show
   full in identity spots, first-name-only in prose; currency (`SG$…`) stays uppercased.
