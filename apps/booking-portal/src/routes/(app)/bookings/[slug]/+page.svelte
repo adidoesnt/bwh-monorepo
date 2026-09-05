@@ -81,13 +81,14 @@
 		m.days.push({ iso, dow: DOW[new Date(Date.UTC(y, mo - 1, d)).getUTCDay()], dom: d });
 	}
 
-	let type = $state(allowedTypes[0]);
-	let durationMin = $state(60);
+	const rb = d0.reschedule;
+	let type = $state(rb && allowedTypes.includes(rb.type) ? rb.type : allowedTypes[0]);
+	let durationMin = $state<number>(rb?.durationMin ?? 60);
 	let selectedMonth = $state(months[0]?.key ?? '');
 	let dateISO = $state(todayISO);
 	let startMin = $state<number | null>(null);
-	let location = $state(locations[0]);
-	let note = $state('');
+	let location = $state(rb && locations.includes(rb.location) ? rb.location : locations[0]);
+	let note = $state(rb?.note ?? '');
 	let submitting = $state(false);
 
 	const monthDays = $derived(
@@ -196,10 +197,20 @@
 			</div>
 		{:else}
 			<div class="border-base-200 -mx-4 mt-5 border-t px-4 pt-5 md:-mx-6 md:px-6">
-				<h2 class="font-headings mb-1 text-xl">book {firstName}</h2>
-				<p class="text-base-content/60 mb-4 text-sm">
-					you're asking for a slot, not taking it — {firstName} approves it, usually within a few hours.
-				</p>
+				{#if rb}
+					<h2 class="font-headings mb-1 text-xl">reschedule with {firstName}</h2>
+					<p class="text-base-content/60 mb-4 text-sm">
+						moving your {longDate(new Date(rb.startsAt), clientZone)} · {timeOf(
+							new Date(rb.startsAt),
+							clientZone
+						)} session — pick a new time and {firstName} confirms it again.
+					</p>
+				{:else}
+					<h2 class="font-headings mb-1 text-xl">book {firstName}</h2>
+					<p class="text-base-content/60 mb-4 text-sm">
+						you're asking for a slot, not taking it — {firstName} approves it, usually within a few hours.
+					</p>
+				{/if}
 
 				{#if crossZone}
 					<div class="border-warning bg-warning/15 mb-4 rounded-md border p-3 text-xs leading-relaxed">
@@ -225,7 +236,7 @@
 
 				<form
 					method="POST"
-					action="?/request"
+					action={rb ? '?/reschedule' : '?/request'}
 					use:enhance={() => {
 						submitting = true;
 						return async ({ update }) => {
@@ -234,6 +245,9 @@
 						};
 					}}
 				>
+					{#if rb}
+						<input type="hidden" name="bookingId" value={rb.id} />
+					{/if}
 					<input type="hidden" name="dateISO" value={dateISO} />
 					<input type="hidden" name="startMin" value={startMin ?? ''} />
 					<input type="hidden" name="durationMin" value={durationMin} />
@@ -384,7 +398,11 @@
 						class="btn btn-primary w-full"
 						disabled={startMin === null || submitting}
 					>
-						{submitting ? 'sending…' : 'send request'}
+						{#if submitting}
+							{rb ? 'moving…' : 'sending…'}
+						{:else}
+							{rb ? 'confirm new time' : 'send request'}
+						{/if}
 					</button>
 				</form>
 			</div>

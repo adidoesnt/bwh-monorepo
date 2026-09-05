@@ -1,5 +1,5 @@
 <script lang="ts">
-	import CheckoutModal from '$lib/components/CheckoutModal.svelte';
+	import ManageBookingModal from '$lib/components/ManageBookingModal.svelte';
 	import { dateChip, relativeDay, timeOf } from '$lib/format';
 	import { statusLabel, statusPill } from '$lib/status';
 	import { browserZone } from '$lib/tz';
@@ -20,9 +20,16 @@
 	let sort = $state<Sort>('soonest');
 	let limit = $state(10);
 	let bkTab = $state<'upcoming' | 'awaiting' | 'past'>('upcoming');
-	let bannerOpen = $state(untrack(() => data.requested));
-	let payTarget = $state<ClientBooking | null>(null);
-	let modalOpen = $state(false);
+	let banner = $state<'requested' | 'rescheduled' | null>(
+		untrack(() => (data.requested ? 'requested' : data.rescheduled ? 'rescheduled' : null))
+	);
+	let manageTarget = $state<ClientBooking | null>(null);
+	let manageOpen = $state(false);
+
+	function manage(b: ClientBooking) {
+		manageTarget = b;
+		manageOpen = true;
+	}
 
 	const coaches = $derived(data.coaches ?? []);
 
@@ -79,10 +86,14 @@
 		<div class="text-base-content/60 mt-0.5 truncate text-xs">
 			{timeOf(new Date(b.startsAt), clientZone)} · {b.coachName} · {b.location}
 		</div>
+		{#if b.clientReflection}
+			<div class="text-base-content/45 mt-0.5 truncate text-[11px]">note · {b.clientReflection}</div>
+		{/if}
 	</div>
 	<span class="badge badge-sm {statusPill[b.status]} font-body shrink-0">
 		{statusLabel[b.status]}
 	</span>
+	<span class="text-base-content/30 shrink-0 text-xs">›</span>
 {/snippet}
 
 <div class="mx-auto max-w-5xl p-6 md:p-10">
@@ -99,11 +110,17 @@
 			pick a coach to see her page, her hours and her rates.
 		</p>
 
-		{#if bannerOpen}
+		{#if banner}
 			<div class="border-success bg-success/25 mb-5 flex items-start justify-between gap-3 rounded-sm border p-4 text-sm">
-				<span>request sent — your coach confirms it, usually within a few hours. it's under
+				<span>
+					{#if banner === 'rescheduled'}
+						new time sent — your coach confirms it again, usually within a few hours.
+					{:else}
+						request sent — your coach confirms it, usually within a few hours.
+					{/if}
+					it's under
 					<button class="link" onclick={() => (bkTab = 'awaiting')}>awaiting action</button> until then.</span>
-				<button class="text-base-content/50 hover:text-base-content shrink-0" onclick={() => (bannerOpen = false)} aria-label="dismiss">✕</button>
+				<button class="text-base-content/50 hover:text-base-content shrink-0" onclick={() => (banner = null)} aria-label="dismiss">✕</button>
 			</div>
 		{/if}
 
@@ -139,22 +156,13 @@
 						{#each tabbed[bkTab] as b (b.id)}
 							{@const chip = dateChip(new Date(b.startsAt), clientZone)}
 							<li>
-								{#if b.status === 'pending_payment'}
-									<button
-										type="button"
-										class="border-base-200 bg-base-200/40 hover:border-primary flex w-full cursor-pointer items-center gap-3 rounded-field border p-3 text-left transition-colors"
-										onclick={() => {
-											payTarget = b;
-											modalOpen = true;
-										}}
-									>
-										{@render bookingRow(b, chip)}
-									</button>
-								{:else}
-									<div class="border-base-200 bg-base-200/40 flex items-center gap-3 rounded-field border p-3">
-										{@render bookingRow(b, chip)}
-									</div>
-								{/if}
+								<button
+									type="button"
+									class="border-base-200 bg-base-200/40 hover:border-primary flex w-full cursor-pointer items-center gap-3 rounded-field border p-3 text-left transition-colors"
+									onclick={() => manage(b)}
+								>
+									{@render bookingRow(b, chip)}
+								</button>
 							</li>
 						{/each}
 					</ul>
@@ -280,12 +288,12 @@
 		</div>
 	{/if}
 
-	{#if payTarget}
-		<CheckoutModal
-			booking={payTarget}
+	{#if manageTarget}
+		<ManageBookingModal
+			booking={manageTarget}
 			{clientZone}
 			stripeEnabled={data.stripeEnabled}
-			bind:open={modalOpen}
+			bind:open={manageOpen}
 		/>
 	{/if}
 </div>

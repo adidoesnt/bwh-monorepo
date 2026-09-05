@@ -354,6 +354,7 @@ async function seed() {
     status: BookingStatus,
     durationMin = 60,
     clientNote: string | null = null,
+    clientReflection: string | null = null,
   ) => ({
     clientId: pick(uid, clientKey),
     coachId: pick(coachIds, coachKey),
@@ -364,14 +365,17 @@ async function seed() {
     creditCost: creditCostFor(durationMin),
     status,
     clientNote,
+    clientReflection,
   });
 
   await db.insert(booking).values([
-    bk("tessa", "ishita", "1:1 in-person", "anytime fitness, meyer rd", day(1, "07:30"), "confirmed"),
-    bk("tessa", "ishita", "assessment", "anytime fitness, meyer rd", day(4, "09:00"), "confirmed"),
+    // day(9) is comfortably >24h out (reschedule / cancel-with-refund);
+    // day(1) is soon (cancel inside the 24h window → credit forfeited).
+    bk("tessa", "ishita", "1:1 in-person", "anytime fitness, meyer rd", day(9, "07:30"), "confirmed"),
+    bk("tessa", "ishita", "assessment", "anytime fitness, meyer rd", day(1, "09:00"), "confirmed"),
     bk("tessa", "jolene", "1:1 online", "video call", day(6, "19:30"), "pending_payment"),
     bk("tessa", "nadia", "1:1 in-person", "virgin active, raffles pl", day(8, "12:00"), "pending_approval", 60, "niggling left knee this week — happy to swap lunges"),
-    bk("tessa", "ishita", "1:1 in-person", "anytime fitness, meyer rd", day(-3, "07:30"), "completed"),
+    bk("tessa", "ishita", "1:1 in-person", "anytime fitness, meyer rd", day(-3, "07:30"), "completed", 60, null, "felt strong — added 5kg on the trap bar deadlift and knee held up fine."),
     bk("tessa", "ishita", "1:1 in-person", "anytime fitness, meyer rd", day(-7, "07:30"), "completed"),
     bk("tessa", "jolene", "1:1 online", "video call", day(-11, "19:30"), "completed"),
     // Other clients — populate the trainer/admin tables.

@@ -341,6 +341,12 @@ export type ClientBooking = {
   location: string;
   status: BookingStatus;
   coachName: string;
+  coachSlug: string;
+  coachActive: boolean;
+  /** Credits this session costs, as a number (0 for a free consult). */
+  creditCost: number;
+  clientNote: string | null;
+  clientReflection: string | null;
   /** Cost of this booking if paid in cash rather than credits — checkout's amount. */
   amountCents: number;
 };
@@ -357,7 +363,12 @@ export async function getClientBookings(
       durationMin: booking.durationMin,
       location: booking.location,
       status: booking.status,
+      creditCost: booking.creditCost,
+      clientNote: booking.clientNote,
+      clientReflection: booking.clientReflection,
       coachName: user.name,
+      coachSlug: coachProfile.slug,
+      coachActive: coachProfile.active,
       rateFromCents: coachProfile.rateFromCents,
     })
     .from(booking)
@@ -365,8 +376,9 @@ export async function getClientBookings(
     .innerJoin(user, eq(user.id, coachProfile.userId))
     .where(and(eq(booking.clientId, clientId), ne(booking.status, "cancelled")))
     .orderBy(booking.startsAt);
-  return rows.map(({ rateFromCents, ...b }) => ({
+  return rows.map(({ rateFromCents, creditCost, ...b }) => ({
     ...b,
+    creditCost: Number(creditCost),
     amountCents: sessionAmountCents(rateFromCents, b.durationMin),
   }));
 }
@@ -412,6 +424,48 @@ export async function getPayableBooking(
   if (!row) return null;
   const { rateFromCents, ...b } = row;
   return { ...b, amountCents: sessionAmountCents(rateFromCents, b.durationMin) };
+}
+
+export type ManagedBooking = {
+  id: string;
+  coachId: string;
+  coachSlug: string;
+  coachName: string;
+  type: SessionType;
+  location: string;
+  startsAt: Date;
+  durationMin: number;
+  creditCost: number;
+  status: BookingStatus;
+  clientNote: string | null;
+};
+
+/** A client's own booking by id, with what the cancel / reschedule actions need. */
+export async function getManagedBooking(
+  bookingId: string,
+  clientId: string,
+): Promise<ManagedBooking | null> {
+  const [row] = await db
+    .select({
+      id: booking.id,
+      coachId: booking.coachId,
+      coachSlug: coachProfile.slug,
+      coachName: user.name,
+      type: booking.type,
+      location: booking.location,
+      startsAt: booking.startsAt,
+      durationMin: booking.durationMin,
+      creditCost: booking.creditCost,
+      status: booking.status,
+      clientNote: booking.clientNote,
+    })
+    .from(booking)
+    .innerJoin(coachProfile, eq(coachProfile.id, booking.coachId))
+    .innerJoin(user, eq(user.id, coachProfile.userId))
+    .where(and(eq(booking.id, bookingId), eq(booking.clientId, clientId)))
+    .limit(1);
+  if (!row) return null;
+  return { ...row, creditCost: Number(row.creditCost) };
 }
 
 /** Next `bwh-NNNN` invoice number, continuing from the highest one issued so far. */

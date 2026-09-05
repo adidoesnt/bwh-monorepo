@@ -48,6 +48,8 @@ export const booking = pgTable(
     clientNote: text("client_note"),
     /** Coach's notes, written after the session (past bookings only). */
     sessionNotes: text("session_notes"),
+    /** Client's own post-session reflection (past bookings only). */
+    clientReflection: text("client_reflection"),
     cancelledAt: timestamp("cancelled_at", { withTimezone: true }),
     createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
     updatedAt: timestamp("updated_at", { withTimezone: true })

@@ -1,8 +1,10 @@
 import { fail } from "@sveltejs/kit";
-import { eq } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
+import { z } from "zod";
 import { invoice, booking as bookingTable } from "@repo/database/schema";
 import { openness } from "$lib/availability";
 import { STRIPE_NOT_IMPLEMENTED } from "$lib/payments";
+import { cancelBooking } from "$lib/server/cancellation";
 import { db } from "$lib/server/db";
 import { stripeEnabled } from "$lib/server/payments";
 import {
@@ -25,11 +27,13 @@ const DIRECTORY_DURATION = 60;
 export const load: PageServerLoad = async ({ parent, url }) => {
   const { user } = await parent();
   const requested = url.searchParams.has("requested");
+  const rescheduled = url.searchParams.has("rescheduled");
   const empty = {
     coaches: null,
     bookings: [] as ClientBooking[],
     creditBalance: 0,
     requested,
+    rescheduled,
     stripeEnabled: stripeEnabled(),
   };
   if (user.role !== "client") return empty;
@@ -60,6 +64,7 @@ export const load: PageServerLoad = async ({ parent, url }) => {
     bookings,
     creditBalance,
     requested,
+    rescheduled,
     stripeEnabled: stripeEnabled(),
   };
 };
@@ -124,5 +129,54 @@ export const actions: Actions = {
       .where(eq(bookingTable.id, payable.id));
 
     return { success: true };
+  },
+
+  cancel: async ({ request, locals }) => {
+    if (!locals.user || locals.user.role !== "client") {
+      return fail(403, { error: "clients only" });
+    }
+    const bookingId = (await request.formData()).get("bookingId");
+    if (typeof bookingId !== "string" || !bookingId) {
+      return fail(400, { error: "missing booking" });
+    }
+    const res = await cancelBooking(bookingId, locals.user.id);
+    if ("error" in res) return fail(400, { error: res.error });
+    return { success: true, cancelled: res.outcome };
+  },
+
+  reflect: async ({ request, locals }) => {
+    if (!locals.user || locals.user.role !== "client") {
+      return fail(403, { error: "clients only" });
+    }
+    const parsed = z
+      .object({
+        bookingId: z.string().min(1),
+        reflection: z.string().trim().max(2000),
+      })
+      .safeParse(Object.fromEntries(await request.formData()));
+    if (!parsed.success)
+      return fail(400, { error: "check the note and try again" });
+
+    const { bookingId, reflection } = parsed.data;
+    const [target] = await db
+      .select({ startsAt: bookingTable.startsAt, status: bookingTable.status })
+      .from(bookingTable)
+      .where(
+        and(
+          eq(bookingTable.id, bookingId),
+          eq(bookingTable.clientId, locals.user.id),
+        ),
+      )
+      .limit(1);
+    if (!target) return fail(404, { error: "booking not found" });
+    if (target.status !== "completed" && target.startsAt > new Date()) {
+      return fail(400, { error: "you can only add notes after a session" });
+    }
+
+    await db
+      .update(bookingTable)
+      .set({ clientReflection: reflection || null })
+      .where(eq(bookingTable.id, bookingId));
+    return { success: true, reflected: true };
   },
 };

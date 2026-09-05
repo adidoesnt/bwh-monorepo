@@ -170,17 +170,38 @@ Cross-cutting change done between Phase 2 and Phase 3 because Phase 3's slot mat
 - ⬜ Stripe card flow — deferred; the flag above is the only Stripe-shaped code that
   exists today.
 
-## Phase 5 — Bookings management (client) ⬜
+## Phase 5 — Bookings management (client) ✅ done
 **Estimate: ~5.5h**
 
 *Design screen: "Bookings" list, upcoming/past/all tabs*
 
-- 🚧 List view with tabs — the read-only version (upcoming / awaiting action / past) shipped in
-  Phase 3 on `/bookings`; this phase adds the per-row actions below and may split it to a
-  dedicated route — *0.5h*
-- Per-row actions: pay to confirm, reschedule, cancel, session notes (past only) — *2.5h*
-- Cancellation policy: >24h before session → credit refunded to ledger; <24h → credit consumed
-  (hardcode 24h until Phase 10's admin settings exist) — *1.5h*
+State machine (all of Phases 3–5, plus the Phase 9 gaps): [`BOOKING-LIFECYCLE.md`](BOOKING-LIFECYCLE.md).
+
+- ✅ List stays on `/bookings` (combined with the coach directory, not split). Every booking row
+  now opens one **manage-session modal** (`ManageBookingModal.svelte`, refactored from the old
+  `CheckoutModal`) that shows the actions valid for that booking's state and branches into the
+  matching flow.
+- ✅ Per-row actions:
+  - **pay to confirm** — the Phase 4 PayNow review → upload → waiting steps, now a branch of the
+    manage modal
+  - **reschedule** — reuses the coach page's live slot grid via
+    `/bookings/[slug]?reschedule=<id>` (same coach only). `?/reschedule` re-validates the slot
+    (excluding the booking's own slot), re-applies the cross-zone / PAR-Q / package-expiry gates,
+    then sets the booking back to `pending_approval` for the coach to re-confirm. A `confirmed`
+    booking also gets a `refund_in_time` credit return so Phase 9's re-approval re-charges
+    cleanly; rescheduling a `confirmed` booking is blocked inside the 24h window.
+  - **cancel** — `?/cancel` → `cancelBooking()` in `src/lib/server/cancellation.ts`
+  - **your notes** — client-authored post-session reflection (`booking.client_reflection`,
+    migration `0005_naive_tyger_tiger`), `?/reflect` action, past / `completed` bookings only,
+    shown inline on the row
+- ✅ Cancellation policy (`cancelOutcome` / `canReschedule` in `src/lib/booking.ts`,
+  `CANCELLATION_WINDOW_HOURS = 24` hardcoded until Phase 10):
+  - `pending_approval` / `pending_payment` → plain cancel, no ledger movement (no credit was taken)
+  - `pending_verification` → the in-flight PayNow invoice is voided to `no_charge`; the modal tells
+    the client to contact the coach about the transfer
+  - `confirmed`, ≥24h out → `refund_in_time` credit returned to the ledger
+  - `confirmed`, <24h out → credit forfeited, recorded as a `no_charge` "late cancellation" invoice
+    (mirrors the seed's `bwh-0118`)
 
 ## Phase 6 — Packages, credits & invoices (client) ⬜
 **Estimate: ~5.5h**
@@ -260,15 +281,15 @@ Cross-cutting change done between Phase 2 and Phase 3 because Phase 3's slot mat
 
 ## Progress
 
-**Done:** Phases 0, 1, 2, 2.5, 3. **Phase 4 partial:** a `pending_payment` booking can be paid
-via the checkout modal's PayNow flow, landing at `pending_verification` — the loop is live up
-to *client submits payment proof*, one step short of *confirmed* (Phase 9's job, see Phase 4
+**Done:** Phases 0, 1, 2, 2.5, 3, 5. **Phase 4 partial:** a `pending_payment` booking can be paid
+via the manage-session modal's PayNow flow, landing at `pending_verification` — the loop is live
+up to *client submits payment proof*, one step short of *confirmed* (Phase 9's job, see Phase 4
 above).
 
-**Next on the critical path:** Phase 5 (bookings management: reschedule/cancel, and possibly
-moving the "pay" trigger into its per-row actions) or Phase 9 (trainer portal, which is what
-actually verifies a payment and flips a booking to `confirmed`) — whichever unblocks testing
-the loop end-to-end faster.
+**Next on the critical path:** Phase 9 (trainer portal) — it verifies a PayNow payment, flips a
+booking to `confirmed`, and re-approves rescheduled bookings; until it lands both
+`pending_verification` and post-reschedule re-approval are dead ends. Phase 6 (packages / credits
+/ invoices) is the other client-side option.
 
 ## Suggested near-term order
 
