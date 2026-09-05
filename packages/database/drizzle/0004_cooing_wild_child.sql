@@ -1,0 +1,1 @@
+ALTER TABLE "invoice" ADD COLUMN "proof_image_key" text;

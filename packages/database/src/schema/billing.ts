@@ -100,6 +100,8 @@ export const invoice = pgTable(
     /** e.g. "visa ···· 4242", "paynow · awaiting verification", "credit used". */
     method: text("method").notNull(),
     status: text("status").$type<InvoiceStatus>().notNull(),
+    /** S3 object key of the uploaded paynow screenshot, when method is paynow. */
+    proofImageKey: text("proof_image_key"),
     issuedAt: timestamp("issued_at", { withTimezone: true }).defaultNow().notNull(),
     purchaseId: text("purchase_id").references(() => packagePurchase.id, {
       onDelete: "set null",

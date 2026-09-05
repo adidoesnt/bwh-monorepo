@@ -20,6 +20,8 @@ export type SessionType =
 export type BookingStatus =
   | "pending_approval"
   | "pending_payment"
+  /** Paynow screenshot submitted, awaiting a coach/admin to verify it (Phase 9). */
+  | "pending_verification"
   | "confirmed"
   | "completed"
   | "cancelled";
