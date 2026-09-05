@@ -133,16 +133,42 @@ Cross-cutting change done between Phase 2 and Phase 3 because Phase 3's slot mat
   `/bookings` (left column). Row actions (pay / reschedule / cancel / notes) + the 24h
   cancellation policy are still **Phase 5**.
 
-## Phase 4 — Checkout & payments (client) ⬜
-**Estimate: ~6h** (PayNow only) **+ ~2h** (Stripe, deferred)
+## Phase 4 — Checkout & payments (client) 🚧 partial
+**Estimate: ~6h** (PayNow + flag + object storage, done) **+ ~2h** (Stripe, still deferred)
 
 *Design screen: checkout modal (review → pay → waiting/confirmed)*
 
-- Checkout modal shell: review → pay → waiting/confirmed steps — *2h*
-- PayNow flow (QR + screenshot upload, `pending_verification` status) — *2.5h*
-- On confirmation: decrement credit ledger or mark invoice paid, flip booking to `confirmed`,
-  toast/notification — *1.5h*
-- Stripe card flow — *2h, defer until PayNow path is proven end-to-end*
+- ✅ **`ENABLE_STRIPE_PAYMENTS` feature flag** (`apps/booking-portal/src/lib/server/payments.ts`,
+  default `false`). `false` → the paynow flow below runs; `true` → the `pay` action
+  short-circuits with a descriptive "not implemented yet" error instead of touching
+  Stripe (`STRIPE_NOT_IMPLEMENTED` in `src/lib/payments.ts`, shared with the client so
+  the checkout modal can render the same message) — Stripe itself is still deferred.
+- ✅ Checkout modal shell (`src/lib/components/checkoutModal.svelte`): review → pay →
+  **waiting** steps, triggered from a "pay" button on `pending_payment` rows in the
+  bookings list.
+- ✅ PayNow flow: review step shows a mock QR placeholder + amount (no real PayNow
+  integration exists, so this is explicitly a stand-in); pay step uploads a screenshot
+  to object storage (with a live preview) and inserts an `invoice` row (`status: "pending"`,
+  `method: "paynow · awaiting verification"`); booking flips to the new
+  **`pending_verification`** status ("waiting"). Amount = coach's `rateFromCents`
+  treated as hourly, scaled to the booking's duration.
+- ⬜ **Real payment QR: Ishita's PayNow QR.** All client payments land in one account
+  (Ishita's) rather than per-coach. Coaches then get paid out by Ishita when they
+  request a payout (Phase 9's "my payouts"), net of a **per-booking/session platform
+  commission** — so payout = Σ(session price − commission) for verified, completed
+  sessions not yet paid out. The commission rate + payout ledger are Phase 10 admin
+  settings; the QR image itself just replaces the placeholder in `checkoutModal.svelte`.
+- ✅ **Object storage**: new `@repo/storage` package (thin S3 wrapper, works
+  unchanged against dev and prod). Dev runs [floci](https://floci.io) in
+  `docker-compose.yml` (S3-compatible, no docker.sock needed since only S3 — an
+  in-process service — is used); prod points the same client at real S3.
+- ⬜ **Verification → confirmed is NOT built here, by design.** `pending_verification`
+  is a dead end until Phase 9 ships the trainer's real payments-to-verify queue —
+  that's where invoice-paid + credit-ledger + booking-confirmed actually happens.
+  No temporary admin/trainer UI was added for this on purpose, to avoid throwaway
+  code once Phase 9 lands.
+- ⬜ Stripe card flow — deferred; the flag above is the only Stripe-shaped code that
+  exists today.
 
 ## Phase 5 — Bookings management (client) ⬜
 **Estimate: ~5.5h**
@@ -234,11 +260,15 @@ Cross-cutting change done between Phase 2 and Phase 3 because Phase 3's slot mat
 
 ## Progress
 
-**Done:** Phases 0, 1, 2, 2.5, 3. The booking loop is live up to *request* — browse coaches →
-open a coach → pick a real slot → `booking` row created (`pending_approval` / `pending_payment`).
+**Done:** Phases 0, 1, 2, 2.5, 3. **Phase 4 partial:** a `pending_payment` booking can be paid
+via the checkout modal's PayNow flow, landing at `pending_verification` — the loop is live up
+to *client submits payment proof*, one step short of *confirmed* (Phase 9's job, see Phase 4
+above).
 
-**Next on the critical path:** Phase 4 (checkout) then Phase 5 (bookings management) close the
-loop — pay to confirm, then reschedule/cancel.
+**Next on the critical path:** Phase 5 (bookings management: reschedule/cancel, and possibly
+moving the "pay" trigger into its per-row actions) or Phase 9 (trainer portal, which is what
+actually verifies a payment and flips a booking to `confirmed`) — whichever unblocks testing
+the loop end-to-end faster.
 
 ## Suggested near-term order
 
