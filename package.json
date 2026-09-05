@@ -21,6 +21,7 @@
     "blog:publish": "claude --plugin-dir ./plugins/bwh-blog \"/bwh-blog:publish\""
   },
   "devDependencies": {
+    "@types/node": "^26.4.1",
     "prettier": "^3.7.4",
     "turbo": "^2.9.5",
     "typescript": "5.9.2"
