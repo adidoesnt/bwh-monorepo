@@ -146,17 +146,18 @@
 			<p class="text-base-content/60 mb-4 text-sm">
 				from the coaches you've been training with. <a class="link" href="/bookings">all coaches →</a>
 			</p>
-			<div class="flex flex-col gap-5">
+			<div class="flex flex-col gap-4">
 				{#each byCoach as g (g.coachSlug)}
-					<div>
-						<div class="mb-2 flex items-baseline gap-2">
-							<a class="font-headings text-lg hover:underline" href="/bookings/{g.coachSlug}">
-								{g.coachName}
-							</a>
-						</div>
+					<div class="border-base-300 rounded-sm border bg-white p-4">
+						<a
+							class="font-headings mb-3 block text-lg hover:underline"
+							href="/bookings/{g.coachSlug}"
+						>
+							{g.coachName}
+						</a>
 						<div class="grid gap-2 sm:grid-cols-2">
 							{#each g.items as pk (pk.id)}
-								<div class="border-base-300 bg-white flex items-center justify-between gap-3 rounded-sm border p-3">
+								<div class="bg-base-200/40 rounded-field flex items-center justify-between gap-3 p-3">
 									<div class="min-w-0">
 										<div class="text-sm font-medium">{pk.name}</div>
 										<div class="text-base-content/55 text-xs">
