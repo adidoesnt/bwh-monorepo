@@ -160,8 +160,9 @@ Cross-cutting change done between Phase 2 and Phase 3 because Phase 3's slot mat
   `method: "paynow · awaiting verification"`); booking flips to the new
   **`pending_verification`** status ("waiting"). Amount = coach's `rateFromCents`
   treated as hourly, scaled to the booking's duration. *(Phase 5.5: checkout sells a whole
-  **package**, not a single session — amount = package total, invoice links the intended
-  package, `package_purchase` is created at Phase 9 verification.)*
+  **package**, not a single session. Phase 6: the checkout is no longer tied to a booking at
+  all — `?/buy` on `/packages` writes a pending package-invoice; `package_purchase` + sessions
+  land at Phase 9 verification.)*
 - ⬜ **Real payment QR: Ishita's PayNow QR.** All client payments land in one account
   (Ishita's) rather than per-coach. Coaches then get paid out by Ishita when they
   request a payout (Phase 9's "my payouts"), net of a **per-booking/session platform
@@ -172,10 +173,10 @@ Cross-cutting change done between Phase 2 and Phase 3 because Phase 3's slot mat
   unchanged against dev and prod). Dev runs [floci](https://floci.io) in
   `docker-compose.yml` (S3-compatible, no docker.sock needed since only S3 — an
   in-process service — is used); prod points the same client at real S3.
-- ⬜ **Verification → confirmed is NOT built here, by design.** `pending_verification`
-  is a dead end until Phase 9 ships the trainer's real payments-to-verify queue —
-  that's where invoice-paid + session-ledger + booking-confirmed actually happens
-  (post-5.5: also `package_purchase` creation + first session consumed).
+- ⬜ **Payment verification is NOT built here, by design.** A submitted PayNow proof
+  (post-6: a pending package-invoice) is a dead end until Phase 9 ships the trainer's
+  payments-to-verify queue — that's where the `package_purchase` is created, the
+  `+N` session-ledger entry written, and the invoice flipped to `paid`.
   No temporary admin/trainer UI was added for this on purpose, to avoid throwaway
   code once Phase 9 lands.
 - ⬜ Stripe card flow — deferred; the flag above is the only Stripe-shaped code that
@@ -194,7 +195,7 @@ State machine (all of Phases 3–5, plus the Phase 9 gaps): [`BOOKING-LIFECYCLE.
   matching flow.
 - ✅ Per-row actions:
   - **pay to confirm** — the Phase 4 PayNow review → upload → waiting steps, now a branch of the
-    manage modal
+    manage modal *(removed in Phase 6 — bookings have no payment step)*
   - **reschedule** — reuses the coach page's live slot grid via
     `/bookings/[slug]?reschedule=<id>` (same coach only). `?/reschedule` re-validates the slot
     (excluding the booking's own slot), re-applies the cross-zone / PAR-Q / package-expiry gates,
@@ -214,13 +215,16 @@ State machine (all of Phases 3–5, plus the Phase 9 gaps): [`BOOKING-LIFECYCLE.
   - `confirmed`, <24h out → credit forfeited, recorded as a `no_charge` "late cancellation" invoice
     (mirrors the seed's `bwh-0118`)
   - **Phase 5.5 simplifies this** — no cash/credit refunds, just session-returned (≥24h) vs
-    session-forfeited (<24h); the `<24h` no-charge invoice is dropped. See Phase 5.5.
+    session-forfeited (<24h); the `<24h` no-charge invoice is dropped. **Phase 6** further drops
+    the `pending_verification` / `void` case (no such booking state any more). See Phase 6.
 
-## Phase 5.5 — Coach packages (replaces credits) ⬜
+## Phase 5.5 — Coach packages (replaces credits) ✅ done
 **Estimate: ~14.5h** (+ ~2.5h for the Phase 9 package editor)
 
-Cross-cutting model change, like Phase 2.5 — inserted mid-stream because everything downstream
-depends on it. The credit model assumed one platform-wide session price; that breaks the moment
+Migrations `0006_coach_packages`. Cross-cutting model change, like Phase 2.5 — inserted mid-stream
+because everything downstream depends on it. *(Phase 6 then decoupled package-buying from the
+booking flow — the `pending_payment` / `pending_verification` booking states and
+`booking.intended_package_id` described below were removed. See Phase 6 + `BOOKING-LIFECYCLE.md`.)* The credit model assumed one platform-wide session price; that breaks the moment
 a second coach prices differently. Replaced with **coach-authored packages**. Phases 6, 9 and 10
 build on this shape. The prototype's "Packages & credits" screen (credit pips) is no longer
 source-of-truth for this area.
@@ -300,19 +304,50 @@ Reschedule < 24h: blocked. The `< 24h` cancel no longer writes a `no_charge` inv
 | Docs (ROADMAP, BOOKING-LIFECYCLE) | ~1.5h |
 | **Total** | **~14.5h** |
 
-## Phase 6 — Packages & sessions, payments (client) ⬜
-**Estimate: ~6.5h**
+## Phase 6 — Decouple purchases + packages/payments/activity pages (client) ⬜
+**Estimate: ~10h**
 
-*Design screens: "Packages & credits" (re-scoped by Phase 5.5), "Payments"*
+*Design screens: "Packages & credits" (re-scoped), "Payments"*
 
-- "Your packages" — a card per active `package_purchase`: coach, package name, sessions
-  remaining / N, length, expiry, + that purchase's `session_ledger_entry` activity log — *2h*
-- "Buy a package" — browse a coach's packages and purchase via the Phase 4 checkout modal
-  **standalone** (not tied to a booking; the 5.5 checkout only handles the booking-linked path) — *1h*
-- Payments page: stats, invoice table, saved payment methods, cancellation-policy blurb — *2.5h*
-- **`/activity`** — full session-ledger log across all packages (the dashboard's "recent
-  activity" card links here via its disabled "view all"; sidebar item `activity` exists as
-  `enabled: false`). Chronological list, filter by coach/package, running balance — *1h*
+Phase 5.5 bundled "buy a package" into `?/request`, producing a `pending_payment` booking with a
+"pay" step. That's wrong: **a session must come from a package that's already paid for**. Phase 6
+splits the two — money lives entirely on the purchase side, a booking is only ever
+`pending_approval` → `confirmed`. See `BOOKING-LIFECYCLE.md` for the revised state machines.
+
+### Part A — decouple buying from booking — *~3h*
+
+- **Schema** (migration `0007`, no prod data): drop `booking.intended_package_id`; add
+  `invoice.package_id` (nullable FK — the package a pending purchase-invoice is for). Remove
+  `pending_payment` / `pending_verification` from the `BookingStatus` union (kept written to
+  never; no DB constraint to change).
+- **`?/request`** (`bookings/[slug]`): drop the "no package → buy inside the form" branch. No
+  active package with this coach → the booking form is replaced by "get a {coach} package to
+  book" + that coach's packages + a **buy** button (opens the standalone buy modal). Free
+  consult still books with no package.
+- **`ManageBookingModal`**: remove the `pay-*` steps and the `pending_payment` menu entry —
+  nothing to pay on a booking.
+- **`cancelOutcome`**: drop the `void` case. Outcomes are `none` (`pending_approval`), `return`
+  (confirmed ≥24h), `forfeit` (confirmed <24h), `blocked`.
+- **`getPayableBooking`** → deleted; **checkout modal's booking-linked path** → deleted.
+- **Seed**: drop `pending_payment` bookings; add a couple of unverified purchase-invoices
+  (`status: pending`, `package_id`, `proof_image_key`) so the new pages have rows.
+
+### Part B — the pages — *~7h*
+
+- **`?/buy`** + **buy-a-package modal** — review (package, total, PayNow QR) → upload proof →
+  writes an `invoice` (`status: pending`, `package_id`, `proof_image_key`, `method: "paynow ·
+  awaiting verification"`, amount = package total). No `package_purchase`, no sessions — Phase 9
+  verifies. Reused by `/packages` and the `[slug]` "get a package" branch — *1.5h*
+- **`/packages`** — "your packages" (card per active `package_purchase`: coach, name, sessions
+  remaining / N, length, expiry, + that purchase's `session_ledger_entry` log) · "awaiting
+  verification" (pending purchase-invoices) · "get more sessions" → browse coaches → buy modal — *2.5h*
+- **`/payments`** — invoice table (number, date, description, amount, status, PayNow proof
+  thumbnail) + stats (total spent, sessions bought) + cancellation-policy blurb. No saved
+  payment methods (nothing to save without Stripe) — *2h*
+- **`/activity`** — full `session_ledger_entry` log across all packages, chronological, with the
+  resulting **per-purchase running balance** on each row and coach filter chips. Sidebar item
+  `activity` + the dashboard "recent activity" card's "view all" flip to enabled — *1.5h*
+- Docs (ROADMAP, BOOKING-LIFECYCLE) — *0.5h*
 
 ## Phase 7 — Intake / PAR-Q health screening ⬜
 **Estimate: ~4.5h**
@@ -340,9 +375,10 @@ Reschedule < 24h: blocked. The `< 24h` cancel no longer writes a `no_charge` inv
 *Design screens: "Trainer dashboard", "Trainer clients"*
 
 - Dashboard: today's schedule, pending requests (approve / suggest another time — approve flips
-  booking to `confirmed` **and consumes a session from the client's purchase**), payments-to-verify
-  queue (PayNow screenshots from Phase 4 — verify creates the `package_purchase`, grants sessions,
-  consumes the first, confirms the booking) — *3.5h*
+  booking to `confirmed` **and consumes a session** `−1` from the client's purchase),
+  payments-to-verify queue (pending package-invoices with PayNow proofs — verify creates the
+  `package_purchase`, writes the `+N` `purchase` ledger entry, flips the invoice to `paid`;
+  bookings are unaffected) — *3.5h*
 - Weekly availability grid: tap to toggle open/closed; booked cells derived from real bookings,
   not manually set — *3h*
 - Clients table: roster with sessions remaining, next session, attendance %, flags — derived
@@ -389,24 +425,20 @@ Reschedule < 24h: blocked. The `< 24h` cancel no longer writes a `no_charge` inv
 
 ## Progress
 
-**Done:** Phases 0, 1, 2, 2.5, 3, 5. **Phase 4 partial:** a `pending_payment` booking can be paid
-via the manage-session modal's PayNow flow, landing at `pending_verification` — the loop is live
-up to *client submits payment proof*, one step short of *confirmed* (Phase 9's job, see Phase 4
-above).
+**Done:** Phases 0, 1, 2, 2.5, 3, 5, 5.5. **Phase 6 in progress** (decouple purchases + the
+`/packages` · `/payments` · `/activity` pages). **Phase 4 partial:** the PayNow-proof flow exists
+but every path through it (buy a package, get a booking confirmed) is a dead end until Phase 9.
 
-**Next on the critical path:** Phase 5.5 (coach packages — replaces credits). It's a model change
-Phase 6 (packages page) and Phase 9 (verify/approve, package editor) both build on, so it goes
-first. After that, Phase 9 (trainer portal) — it verifies a PayNow payment, flips a booking to
-`confirmed`, and re-approves rescheduled bookings; until it lands both `pending_verification` and
-post-reschedule re-approval are dead ends.
+**Next on the critical path:** Phase 9 (trainer portal) — nothing the client does completes
+without it: `pending_approval` bookings can't be confirmed, pending package-invoices can't be
+verified into real sessions. Phase 6 finishes the client-facing surfaces around that gap.
 
 ## Suggested near-term order
 
-Phase 1 → 2 → 3 → 4 → 5 is the critical path: it turns the placeholder dashboard into a working
-booking loop (browse coach → request → pay → see it in bookings) before touching packages,
-progress, trainer tools, or admin. **Phase 5.5 (coach packages)** then rebases the billing model
-before Phase 6/9 build on it. Phases 6–11 can proceed in roughly the listed order, or be
-reprioritized based on which role (client vs. coach vs. admin) needs to go live first.
+Phases 1 → 5 built the client booking loop; Phase 5.5 rebased billing onto coach packages;
+Phase 6 splits buying from booking and adds the packages/payments/activity pages. **Phase 9
+(trainer portal) is the real unblock** — until it lands, `pending_approval` bookings and pending
+package-invoices both sit idle. Phases 7–11 otherwise proceed in roughly the listed order.
 
 ## Total estimated effort
 
@@ -414,10 +446,11 @@ reprioritized based on which role (client vs. coach vs. admin) needs to go live 
 | :-- | :-- |
 | Critical path (Phases 1–5) | ~33h |
 | Phase 5.5 (coach packages — replaces credits) | ~14.5h |
-| Full client + trainer + admin core (Phases 1–11, excluding deferred items) | ~88h |
+| Phase 6 (decouple purchases + packages/payments/activity pages) | ~10h |
+| Full client + trainer + admin core (Phases 1–11, excluding deferred items) | ~91h |
 | Deferred items (Stripe, real AI assistant, "preview as") | ~8-10h |
 | Polish & hardening (Phase 12) | ~16h |
-| **End-to-end** | **~113-123h**, i.e. roughly 3-3.5 weeks of focused solo AI-assisted work |
+| **End-to-end** | **~116-126h**, i.e. roughly 3-3.5 weeks of focused solo AI-assisted work |
 
 Treat these as planning inputs, not commitments — re-estimate each phase once Phase 1's schema is
 locked in, since it's the foundation everything else measures against. (Phase 5.5 re-opens the
