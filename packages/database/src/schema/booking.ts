@@ -1,15 +1,9 @@
 import { relations } from "drizzle-orm";
-import {
-  pgTable,
-  text,
-  integer,
-  numeric,
-  timestamp,
-  index,
-} from "drizzle-orm/pg-core";
+import { pgTable, text, integer, timestamp, index } from "drizzle-orm/pg-core";
 import { createId } from "./id";
 import { user } from "./auth";
 import { coachProfile } from "./coaching";
+import { packageOffering, packagePurchase } from "./billing";
 
 export type SessionType =
   | "1:1 in-person"
@@ -41,8 +35,19 @@ export const booking = pgTable(
     location: text("location").notNull(),
     startsAt: timestamp("starts_at", { withTimezone: true }).notNull(),
     durationMin: integer("duration_min").notNull(),
-    /** Credits this session costs: 45min → 0.75, 60min → 1, 90min → 1.5. */
-    creditCost: numeric("credit_cost", { precision: 4, scale: 2 }).notNull(),
+    /**
+     * The purchase this session draws from. Null for a free consult, and while
+     * `pending_payment` (see `intendedPackageId`); set once a package is in hand.
+     */
+    packagePurchaseId: text("package_purchase_id").references(
+      () => packagePurchase.id,
+      { onDelete: "set null" },
+    ),
+    /** While `pending_payment`: the package the client will buy at checkout. */
+    intendedPackageId: text("intended_package_id").references(
+      () => packageOffering.id,
+      { onDelete: "set null" },
+    ),
     status: text("status").$type<BookingStatus>().notNull(),
     /** Free-text "anything I should know?" from the client at request time. */
     clientNote: text("client_note"),
@@ -72,5 +77,9 @@ export const bookingRelations = relations(booking, ({ one }) => ({
   coach: one(coachProfile, {
     fields: [booking.coachId],
     references: [coachProfile.id],
+  }),
+  packagePurchase: one(packagePurchase, {
+    fields: [booking.packagePurchaseId],
+    references: [packagePurchase.id],
   }),
 }));

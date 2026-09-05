@@ -20,7 +20,7 @@ import {
   booking,
   packageOffering,
   packagePurchase,
-  creditLedgerEntry,
+  sessionLedgerEntry,
   invoice,
   intakeResponse,
   progressEntry,
@@ -30,7 +30,7 @@ import {
   type UserStatus,
   type SessionType,
   type BookingStatus,
-  type CreditReason,
+  type SessionLedgerReason,
 } from "./schema";
 
 const DATABASE_URL = process.env.DATABASE_URL;
@@ -134,13 +134,13 @@ async function wipeDomainTables() {
   await db.delete(measurement);
   await db.delete(progressEntry);
   await db.delete(intakeResponse);
-  await db.delete(creditLedgerEntry);
+  await db.delete(sessionLedgerEntry);
   await db.delete(invoice);
-  await db.delete(packagePurchase);
   await db.delete(booking);
+  await db.delete(packagePurchase);
   await db.delete(availabilitySlot);
-  await db.delete(coachProfile);
   await db.delete(packageOffering);
+  await db.delete(coachProfile);
 }
 
 /** Weekly open windows, in [startMin, endMin] minutes from midnight. */
@@ -152,7 +152,6 @@ const COACHES = [
     tagline: "progressive strength for women, taught from the ground up",
     bio: "i came to coaching from life sciences, and it shows: no fads, no guesswork. we'll build your programme around progressive resistance training, sustainable nutrition and the body you actually have — then keep it interesting enough that you come back.",
     tags: ["strength", "hypertrophy", "beginners", "nutrition"],
-    rateFromCents: 8000,
     locations: ["meyer road", "cbd", "online"],
     timezone: "Asia/Singapore",
     coachingSince: 2023,
@@ -168,7 +167,6 @@ const COACHES = [
     tagline: "moving well again — through pregnancy, postpartum and after injury",
     bio: "i work with women rebuilding trust in their bodies. sessions start with what hurts or feels stiff, and we work outward from there: joint control, breathing mechanics, then load. patient, unhurried, and deeply un-scary if the gym intimidates you.",
     tags: ["mobility", "pre/postnatal", "rehab-adjacent", "core"],
-    rateFromCents: 8500,
     locations: ["meyer road", "raffles place"],
     timezone: "Asia/Singapore",
     coachingSince: 2021,
@@ -185,7 +183,6 @@ const COACHES = [
     tagline: "conditioning and consistency, wherever you are",
     bio: "most of my clients train with me over video, in a condo gym or a hotel one. we build cardio capacity and full-body strength with whatever equipment you've got, and i'm blunt about what actually moves the needle when your week is chaos.",
     tags: ["conditioning", "online", "fat loss", "travel-friendly"],
-    rateFromCents: 7500,
     locations: ["online", "east coast"],
     // A deliberately different zone so the cross-timezone (online-only) path is seeded.
     timezone: "Asia/Dubai",
@@ -197,14 +194,81 @@ const COACHES = [
   },
 ];
 
+/** Coach-authored packages: N sessions of a fixed length, priced per session. */
 const PACKAGES = [
-  { name: "discover", sessionCount: 1, priceCents: 9500 },
-  { name: "build", sessionCount: 5, priceCents: 45000 },
-  { name: "transform", sessionCount: 10, priceCents: 80000 },
-];
+  // ishita
+  { key: "ishita-discover", coachKey: "ishita", name: "discover", sessionCount: 1, sessionLengthMin: 60, pricePerSessionCents: 9500, validityDays: 30, description: "one session to see how we work together" },
+  { key: "ishita-build", coachKey: "ishita", name: "build", sessionCount: 5, sessionLengthMin: 60, pricePerSessionCents: 8800, validityDays: 90, description: "five sessions to get a programme going" },
+  { key: "ishita-transform", coachKey: "ishita", name: "transform", sessionCount: 10, sessionLengthMin: 60, pricePerSessionCents: 8000, validityDays: 120, description: "ten sessions — the full progression" },
+  { key: "ishita-deepdive", coachKey: "ishita", name: "deep dive", sessionCount: 3, sessionLengthMin: 90, pricePerSessionCents: 13000, validityDays: 90, description: "three 90-minute sessions — assessments or two focuses" },
+  // nadia
+  { key: "nadia-starter", coachKey: "nadia", name: "starter", sessionCount: 3, sessionLengthMin: 60, pricePerSessionCents: 9000, validityDays: 60, description: "ease in over three sessions" },
+  { key: "nadia-rebuild", coachKey: "nadia", name: "rebuild", sessionCount: 8, sessionLengthMin: 60, pricePerSessionCents: 8200, validityDays: 120, description: "eight sessions to rebuild strength and control" },
+  // jolene
+  { key: "jolene-kickstart", coachKey: "jolene", name: "kickstart", sessionCount: 4, sessionLengthMin: 60, pricePerSessionCents: 7500, validityDays: 60, description: "four online sessions to build a habit" },
+  { key: "jolene-momentum", coachKey: "jolene", name: "momentum", sessionCount: 12, sessionLengthMin: 60, pricePerSessionCents: 6800, validityDays: 180, description: "twelve sessions for consistency through a busy stretch" },
+] as const;
 
-const creditCostFor = (durationMin: number) =>
-  durationMin === 45 ? "0.75" : durationMin === 90 ? "1.50" : "1.00";
+const pkgByKey = (key: string) => {
+  const p = PACKAGES.find((x) => x.key === key);
+  if (!p) throw new Error(`seed: no package ${key}`);
+  return p;
+};
+
+const sgd = (cents: number) => `sg$${(cents / 100).toFixed(2)}`;
+
+/** N days after `from`, as a real instant. */
+const daysAfter = (from: Date, n: number) =>
+  new Date(from.getTime() + n * 86_400_000);
+
+/**
+ * A client's purchase of a package. `used` / `returned` are historical ledger
+ * movements not tied to a seeded booking; booking-linked consumption is added
+ * later, per booking. Balances must stay ≥ 0.
+ */
+const PURCHASES = [
+  { key: "tessa-transform", clientKey: "tessa", pkgKey: "ishita-transform", purchasedAt: day(-24, "10:00"), used: 1, returned: 1 },
+  { key: "tessa-starter", clientKey: "tessa", pkgKey: "nadia-starter", purchasedAt: day(-6, "10:00"), used: 0, returned: 0 },
+  { key: "tessa-kickstart", clientKey: "tessa", pkgKey: "jolene-kickstart", purchasedAt: day(-75, "10:00"), used: 3, returned: 0 },
+  // near-expiry: 60-day validity, bought ~48 days ago → exercises Phase 3's date cap
+  { key: "farah-kickstart", clientKey: "farah", pkgKey: "jolene-kickstart", purchasedAt: day(-48, "10:00"), used: 1, returned: 0 },
+  { key: "renee-build", clientKey: "renee", pkgKey: "ishita-build", purchasedAt: day(-3, "10:00"), used: 0, returned: 0 },
+  { key: "hana-build", clientKey: "hana", pkgKey: "ishita-build", purchasedAt: day(-20, "10:00"), used: 2, returned: 0 },
+  { key: "yasmin-rebuild", clientKey: "yasmin", pkgKey: "nadia-rebuild", purchasedAt: day(-30, "10:00"), used: 3, returned: 0 },
+] as const;
+
+type BookingSeed = {
+  clientKey: string;
+  coachKey: string;
+  type: SessionType;
+  location: string;
+  startsAt: Date;
+  status: BookingStatus;
+  /** Purchase the session draws from (pending_approval / confirmed / completed). */
+  purchaseKey?: string;
+  /** Package the client will buy at checkout (pending_payment). */
+  intendedPkgKey?: string;
+  clientNote?: string;
+  clientReflection?: string;
+};
+
+const BOOKINGS: BookingSeed[] = [
+  // day(9) is comfortably >24h out (reschedule / cancel-with-return);
+  // day(1) is in the past now (completed-ish, exercises the past tab).
+  { clientKey: "tessa", coachKey: "ishita", type: "1:1 in-person", location: "anytime fitness, meyer rd", startsAt: day(9, "07:30"), status: "confirmed", purchaseKey: "tessa-transform" },
+  { clientKey: "tessa", coachKey: "ishita", type: "assessment", location: "anytime fitness, meyer rd", startsAt: day(11, "09:00"), status: "confirmed", purchaseKey: "tessa-transform" },
+  { clientKey: "tessa", coachKey: "jolene", type: "1:1 online", location: "video call", startsAt: day(6, "19:30"), status: "pending_payment", intendedPkgKey: "jolene-momentum" },
+  { clientKey: "tessa", coachKey: "nadia", type: "1:1 in-person", location: "virgin active, raffles pl", startsAt: day(8, "12:00"), status: "pending_approval", purchaseKey: "tessa-starter", clientNote: "niggling left knee this week — happy to swap lunges" },
+  { clientKey: "tessa", coachKey: "ishita", type: "1:1 in-person", location: "anytime fitness, meyer rd", startsAt: day(-3, "07:30"), status: "completed", purchaseKey: "tessa-transform", clientReflection: "felt strong — added 5kg on the trap bar deadlift and knee held up fine." },
+  { clientKey: "tessa", coachKey: "ishita", type: "1:1 in-person", location: "anytime fitness, meyer rd", startsAt: day(-7, "07:30"), status: "completed", purchaseKey: "tessa-transform" },
+  { clientKey: "tessa", coachKey: "jolene", type: "1:1 online", location: "video call", startsAt: day(-11, "19:30"), status: "completed", purchaseKey: "tessa-kickstart" },
+  // Other clients — populate the trainer/admin tables.
+  { clientKey: "renee", coachKey: "ishita", type: "1:1 in-person", location: "anytime fitness, meyer rd", startsAt: day(2, "07:30"), status: "pending_approval", purchaseKey: "renee-build", clientNote: "first session after the consult call!" },
+  { clientKey: "declan", coachKey: "nadia", type: "1:1 in-person", location: "virgin active, raffles pl", startsAt: day(3, "12:00"), status: "pending_payment", intendedPkgKey: "nadia-starter" },
+  { clientKey: "hana", coachKey: "ishita", type: "assessment", location: "anytime fitness, meyer rd", startsAt: day(5, "09:00"), status: "confirmed", purchaseKey: "hana-build" },
+  { clientKey: "farah", coachKey: "jolene", type: "1:1 online", location: "video call", startsAt: day(5, "19:30"), status: "confirmed", purchaseKey: "farah-kickstart" },
+  { clientKey: "yasmin", coachKey: "nadia", type: "1:1 in-person", location: "anytime fitness, meyer rd", startsAt: day(-1, "10:30"), status: "completed", purchaseKey: "yasmin-rebuild" },
+];
 
 async function seed() {
   console.log("seeding users…");
@@ -212,19 +276,6 @@ async function seed() {
 
   console.log("wiping domain tables…");
   await wipeDomainTables();
-
-  console.log("seeding packages…");
-  const pkgIds: Record<string, string> = {};
-  for (const p of PACKAGES) {
-    const row = one(
-      await db
-        .insert(packageOffering)
-        .values({ ...p, creditExpiryMonths: 3, active: true })
-        .returning({ id: packageOffering.id }),
-      `package ${p.name}`,
-    );
-    pkgIds[p.name] = row.id;
-  }
 
   console.log("seeding coaches + availability…");
   const coachIds: Record<string, string> = {};
@@ -239,7 +290,6 @@ async function seed() {
           tagline: c.tagline,
           bio: c.bio,
           tags: c.tags,
-          rateFromCents: c.rateFromCents,
           locations: c.locations,
           timezone: c.timezone,
           coachingSince: c.coachingSince,
@@ -263,128 +313,146 @@ async function seed() {
     }
   }
 
-  console.log("seeding tessa's package purchase + credit ledger…");
-  const transformPurchase = one(
-    await db
-      .insert(packagePurchase)
-      .values({
-        clientId: pick(uid, "tessa"),
-        packageId: pick(pkgIds, "transform"),
-        purchasedAt: new Date("2026-08-12T10:00:00+08:00"),
-        pricePaidCents: 80000,
-        creditsGranted: 10,
-        expiresAt: new Date("2026-11-30T23:59:59+08:00"),
-      })
-      .returning({ id: packagePurchase.id }),
-    "transform purchase",
-  );
-
-  const ledger: {
-    delta: string;
-    reason: CreditReason;
-    description: string;
-    at: Date;
-    purchaseId: string | null;
-  }[] = [
-    { delta: "10", reason: "purchase", description: "transform purchased · sg$800.00 · card", at: day(-19), purchaseId: transformPurchase.id },
-    { delta: "-1", reason: "session_confirmed", description: "session confirmed · ishita · 07:30", at: day(-16), purchaseId: null },
-    { delta: "-1", reason: "session_confirmed", description: "session confirmed · ishita · 07:30", at: day(-13), purchaseId: null },
-    { delta: "-1", reason: "session_confirmed", description: "session confirmed · ishita · 07:30", at: day(-11), purchaseId: null },
-    { delta: "1", reason: "refund_in_time", description: "cancelled in time · credit returned", at: day(-9), purchaseId: null },
-    { delta: "-1", reason: "session_confirmed", description: "session confirmed · jolene · 19:30", at: day(-11), purchaseId: null },
-    { delta: "-1", reason: "session_confirmed", description: "session confirmed · ishita · 07:30", at: day(-4), purchaseId: null },
-  ];
-  for (const e of ledger) {
-    await db.insert(creditLedgerEntry).values({
-      clientId: pick(uid, "tessa"),
-      purchaseId: e.purchaseId,
-      delta: e.delta,
-      reason: e.reason,
-      description: e.description,
-      createdAt: e.at,
-    });
+  console.log("seeding packages…");
+  const pkgIds: Record<string, string> = {};
+  for (const p of PACKAGES) {
+    const row = one(
+      await db
+        .insert(packageOffering)
+        .values({
+          coachId: pick(coachIds, p.coachKey),
+          name: p.name,
+          description: p.description,
+          sessionCount: p.sessionCount,
+          sessionLengthMin: p.sessionLengthMin,
+          pricePerSessionCents: p.pricePerSessionCents,
+          validityDays: p.validityDays,
+          active: true,
+        })
+        .returning({ id: packageOffering.id }),
+      `package ${p.key}`,
+    );
+    pkgIds[p.key] = row.id;
   }
 
-  console.log("seeding farah's near-expiry package…");
-  const farahBuild = one(
-    await db
-      .insert(packagePurchase)
-      .values({
-        clientId: pick(uid, "farah"),
-        packageId: pick(pkgIds, "build"),
-        purchasedAt: day(-18, "10:00"),
-        pricePaidCents: 45000,
-        creditsGranted: 5,
-        expiresAt: day(12, "23:59"),
-      })
-      .returning({ id: packagePurchase.id }),
-    "farah build purchase",
-  );
-  const farahLedger: { delta: string; reason: CreditReason; description: string; at: Date; purchaseId: string | null }[] = [
-    { delta: "5", reason: "purchase", description: "build purchased · sg$450.00 · paynow", at: day(-18), purchaseId: farahBuild.id },
-    { delta: "-1", reason: "session_confirmed", description: "session confirmed · jolene · 19:30", at: day(-2), purchaseId: null },
-  ];
-  for (const e of farahLedger) {
-    await db.insert(creditLedgerEntry).values({
-      clientId: pick(uid, "farah"),
-      purchaseId: e.purchaseId,
-      delta: e.delta,
-      reason: e.reason,
-      description: e.description,
-      createdAt: e.at,
-    });
+  console.log("seeding package purchases + session ledger…");
+  const purchaseIds: Record<string, string> = {};
+  for (const p of PURCHASES) {
+    const pkg = pkgByKey(p.pkgKey);
+    const row = one(
+      await db
+        .insert(packagePurchase)
+        .values({
+          clientId: pick(uid, p.clientKey),
+          packageId: pick(pkgIds, p.pkgKey),
+          purchasedAt: p.purchasedAt,
+          pricePaidCents: pkg.sessionCount * pkg.pricePerSessionCents,
+          sessionsGranted: pkg.sessionCount,
+          sessionLengthMin: pkg.sessionLengthMin,
+          expiresAt: daysAfter(p.purchasedAt, pkg.validityDays),
+        })
+        .returning({ id: packagePurchase.id }),
+      `purchase ${p.key}`,
+    );
+    purchaseIds[p.key] = row.id;
+
+    const entries: {
+      delta: number;
+      reason: SessionLedgerReason;
+      description: string;
+      at: Date;
+    }[] = [
+      {
+        delta: pkg.sessionCount,
+        reason: "purchase",
+        description: `${pkg.name} purchased · ${sgd(pkg.sessionCount * pkg.pricePerSessionCents)}`,
+        at: p.purchasedAt,
+      },
+    ];
+    for (let i = 0; i < p.used; i++) {
+      entries.push({
+        delta: -1,
+        reason: "session_consumed",
+        description: "session completed",
+        at: daysAfter(p.purchasedAt, (i + 1) * 4),
+      });
+    }
+    for (let i = 0; i < p.returned; i++) {
+      entries.push({
+        delta: 1,
+        reason: "returned_in_time",
+        description: "cancelled in time · session returned",
+        at: daysAfter(p.purchasedAt, 6),
+      });
+    }
+    for (const e of entries) {
+      await db.insert(sessionLedgerEntry).values({
+        clientId: pick(uid, p.clientKey),
+        purchaseId: row.id,
+        delta: e.delta,
+        reason: e.reason,
+        description: e.description,
+        createdAt: e.at,
+      });
+    }
   }
 
   console.log("seeding invoices…");
+  const kick = pkgByKey("jolene-kickstart");
   await db.insert(invoice).values([
-    { number: "bwh-0182", clientId: pick(uid, "tessa"), description: "1:1 online · 6 sep", amountCents: 9500, method: "paynow · awaiting verification", status: "pending", issuedAt: day(0) },
-    { number: "bwh-0171", clientId: pick(uid, "tessa"), description: "transform · 10 sessions", amountCents: 80000, method: "visa ···· 4242", status: "paid", issuedAt: new Date("2026-08-12T10:00:00+08:00"), purchaseId: transformPurchase.id },
-    { number: "bwh-0146", clientId: pick(uid, "tessa"), description: "build · 5 sessions", amountCents: 45000, method: "paynow · verified", status: "paid", issuedAt: new Date("2026-07-04T10:00:00+08:00") },
-    { number: "bwh-0121", clientId: pick(uid, "tessa"), description: "discover · 1 session", amountCents: 9500, method: "visa ···· 4242", status: "paid", issuedAt: new Date("2026-06-12T10:00:00+08:00") },
-    { number: "bwh-0118", clientId: pick(uid, "tessa"), description: "late cancellation", amountCents: 0, method: "credit used", status: "no_charge", issuedAt: new Date("2026-06-09T10:00:00+08:00") },
+    { number: "bwh-0140", clientId: pick(uid, "tessa"), description: "kickstart · 4 sessions", amountCents: kick.sessionCount * kick.pricePerSessionCents, method: "paynow · verified", status: "paid", issuedAt: day(-75, "10:00"), purchaseId: pick(purchaseIds, "tessa-kickstart") },
+    { number: "bwh-0171", clientId: pick(uid, "tessa"), description: "transform · 10 sessions", amountCents: 80000, method: "paynow · verified", status: "paid", issuedAt: day(-24, "10:00"), purchaseId: pick(purchaseIds, "tessa-transform") },
+    { number: "bwh-0178", clientId: pick(uid, "farah"), description: "kickstart · 4 sessions", amountCents: kick.sessionCount * kick.pricePerSessionCents, method: "paynow · verified", status: "paid", issuedAt: day(-48, "10:00"), purchaseId: pick(purchaseIds, "farah-kickstart") },
+    { number: "bwh-0182", clientId: pick(uid, "tessa"), description: "starter · 3 sessions", amountCents: 27000, method: "visa ···· 4242", status: "paid", issuedAt: day(-6, "10:00"), purchaseId: pick(purchaseIds, "tessa-starter") },
   ]);
 
   console.log("seeding bookings…");
-  const bk = (
-    clientKey: string,
-    coachKey: string,
-    type: SessionType,
-    location: string,
-    startsAt: Date,
-    status: BookingStatus,
-    durationMin = 60,
-    clientNote: string | null = null,
-    clientReflection: string | null = null,
-  ) => ({
-    clientId: pick(uid, clientKey),
-    coachId: pick(coachIds, coachKey),
-    type,
-    location,
-    startsAt,
-    durationMin,
-    creditCost: creditCostFor(durationMin),
-    status,
-    clientNote,
-    clientReflection,
-  });
+  for (const b of BOOKINGS) {
+    const purchasePkgKey = b.purchaseKey
+      ? PURCHASES.find((x) => x.key === b.purchaseKey)?.pkgKey
+      : undefined;
+    const durationMin =
+      b.type === "free consult"
+        ? 30
+        : purchasePkgKey
+          ? pkgByKey(purchasePkgKey).sessionLengthMin
+          : b.intendedPkgKey
+            ? pkgByKey(b.intendedPkgKey).sessionLengthMin
+            : 60;
 
-  await db.insert(booking).values([
-    // day(9) is comfortably >24h out (reschedule / cancel-with-refund);
-    // day(1) is soon (cancel inside the 24h window → credit forfeited).
-    bk("tessa", "ishita", "1:1 in-person", "anytime fitness, meyer rd", day(9, "07:30"), "confirmed"),
-    bk("tessa", "ishita", "assessment", "anytime fitness, meyer rd", day(1, "09:00"), "confirmed"),
-    bk("tessa", "jolene", "1:1 online", "video call", day(6, "19:30"), "pending_payment"),
-    bk("tessa", "nadia", "1:1 in-person", "virgin active, raffles pl", day(8, "12:00"), "pending_approval", 60, "niggling left knee this week — happy to swap lunges"),
-    bk("tessa", "ishita", "1:1 in-person", "anytime fitness, meyer rd", day(-3, "07:30"), "completed", 60, null, "felt strong — added 5kg on the trap bar deadlift and knee held up fine."),
-    bk("tessa", "ishita", "1:1 in-person", "anytime fitness, meyer rd", day(-7, "07:30"), "completed"),
-    bk("tessa", "jolene", "1:1 online", "video call", day(-11, "19:30"), "completed"),
-    // Other clients — populate the trainer/admin tables.
-    bk("renee", "ishita", "1:1 in-person", "anytime fitness, meyer rd", day(2, "07:30"), "pending_approval", 60, "first session after the consult call!"),
-    bk("declan", "nadia", "1:1 in-person", "virgin active, raffles pl", day(3, "12:00"), "pending_payment"),
-    bk("hana", "ishita", "assessment", "anytime fitness, meyer rd", day(5, "09:00"), "confirmed"),
-    bk("farah", "jolene", "1:1 online", "video call", day(5, "19:30"), "confirmed"),
-    bk("yasmin", "nadia", "1:1 in-person", "anytime fitness, meyer rd", day(-1, "10:30"), "completed"),
-  ]);
+    const row = one(
+      await db
+        .insert(booking)
+        .values({
+          clientId: pick(uid, b.clientKey),
+          coachId: pick(coachIds, b.coachKey),
+          type: b.type,
+          location: b.location,
+          startsAt: b.startsAt,
+          durationMin,
+          packagePurchaseId: b.purchaseKey ? pick(purchaseIds, b.purchaseKey) : null,
+          intendedPackageId: b.intendedPkgKey ? pick(pkgIds, b.intendedPkgKey) : null,
+          status: b.status,
+          clientNote: b.clientNote ?? null,
+          clientReflection: b.clientReflection ?? null,
+        })
+        .returning({ id: booking.id }),
+      `booking ${b.clientKey}/${b.coachKey}`,
+    );
+
+    // A confirmed / completed session has drawn one from the purchase.
+    if (b.purchaseKey && (b.status === "confirmed" || b.status === "completed")) {
+      await db.insert(sessionLedgerEntry).values({
+        clientId: pick(uid, b.clientKey),
+        purchaseId: pick(purchaseIds, b.purchaseKey),
+        bookingId: row.id,
+        delta: -1,
+        reason: "session_consumed",
+        description: `${b.type} · ${b.coachKey}`,
+        createdAt: b.startsAt,
+      });
+    }
+  }
 
   console.log("seeding tessa's intake…");
   await db.insert(intakeResponse).values({
@@ -443,7 +511,7 @@ async function seed() {
   await db.insert(chatMessage).values({
     clientId: pick(uid, "tessa"),
     sender: "bot",
-    body: "hi! i can help with packages, credits, cancellations, locations and how booking works. what do you need?",
+    body: "hi! i can help with packages, sessions, cancellations, locations and how booking works. what do you need?",
     createdAt: day(-2, "14:00"),
   });
 

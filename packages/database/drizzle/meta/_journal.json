@@ -43,6 +43,13 @@
       "when": 1788628746739,
       "tag": "0005_naive_tyger_tiger",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1788631815212,
+      "tag": "0006_coach_packages",
+      "breakpoints": true
     }
   ]
 }

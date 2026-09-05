@@ -30,8 +30,6 @@ export const coachProfile = pgTable(
     tagline: text("tagline").notNull(),
     bio: text("bio").notNull(),
     tags: text("tags").array().notNull().default([]),
-    /** Cheapest session rate, in cents (SG$80 → 8000). */
-    rateFromCents: integer("rate_from_cents").notNull(),
     /** Where this coach trains clients, e.g. ["meyer road", "cbd", "online"]. */
     locations: text("locations").array().notNull().default([]),
     /**
