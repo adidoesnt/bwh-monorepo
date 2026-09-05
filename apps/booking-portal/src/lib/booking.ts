@@ -31,3 +31,8 @@ export const durationNote: Record<number, string> = {
 };
 
 export const ONLINE_LOCATION = 'online (video call)';
+
+/** Cash price of a session: coach's rate treated as hourly, scaled to the duration. */
+export function sessionAmountCents(rateFromCents: number, durationMin: number): number {
+	return Math.round((rateFromCents * durationMin) / 60);
+}

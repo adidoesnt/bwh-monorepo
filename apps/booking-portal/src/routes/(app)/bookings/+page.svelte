@@ -1,7 +1,9 @@
 <script lang="ts">
+	import CheckoutModal from '$lib/components/CheckoutModal.svelte';
 	import { dateChip, relativeDay, timeOf } from '$lib/format';
 	import { statusLabel, statusPill } from '$lib/status';
 	import { browserZone } from '$lib/tz';
+	import type { ClientBooking } from '$lib/server/queries';
     import { untrack } from 'svelte';
 	import type { PageProps } from './$types';
 
@@ -19,6 +21,8 @@
 	let limit = $state(10);
 	let bkTab = $state<'upcoming' | 'awaiting' | 'past'>('upcoming');
 	let bannerOpen = $state(untrack(() => data.requested));
+	let payTarget = $state<ClientBooking | null>(null);
+	let modalOpen = $state(false);
 
 	const coaches = $derived(data.coaches ?? []);
 
@@ -47,7 +51,8 @@
 	});
 	const shown = $derived(matched.slice(0, limit));
 
-	const isPending = (s: string) => s === 'pending_payment' || s === 'pending_approval';
+	const isPending = (s: string) =>
+		s === 'pending_payment' || s === 'pending_approval' || s === 'pending_verification';
 	const bookings = $derived(data.bookings ?? []);
 	const now = Date.now();
 	const tabbed = $derived({
@@ -63,6 +68,22 @@
 		['past', 'past']
 	] as const;
 </script>
+
+{#snippet bookingRow(b: ClientBooking, chip: { mon: string; day: number })}
+	<div class="bg-base-200 rounded-field w-12 shrink-0 py-1 text-center">
+		<div class="text-base-content/60 font-body text-[10px] uppercase">{chip.mon}</div>
+		<div class="font-headings text-lg leading-tight">{chip.day}</div>
+	</div>
+	<div class="min-w-0 flex-1">
+		<div class="text-sm font-medium">{b.type}</div>
+		<div class="text-base-content/60 mt-0.5 truncate text-xs">
+			{timeOf(new Date(b.startsAt), clientZone)} · {b.coachName} · {b.location}
+		</div>
+	</div>
+	<span class="badge badge-sm {statusPill[b.status]} font-body shrink-0">
+		{statusLabel[b.status]}
+	</span>
+{/snippet}
 
 <div class="mx-auto max-w-5xl p-6 md:p-10">
 	{#if !data.coaches}
@@ -92,11 +113,19 @@
 				<div class="mb-4 flex flex-wrap gap-1.5">
 					{#each bkTabs as [id, label] (id)}
 						<button
-							class="rounded-full border px-3 py-1 text-xs transition-colors
+							class="flex items-center gap-1.5 rounded-full border px-3 py-1 text-xs transition-colors
 								{bkTab === id ? 'border-neutral bg-neutral text-neutral-content' : 'border-base-300 text-base-content/60'}"
 							onclick={() => (bkTab = id)}
 						>
 							{label}
+							{#if id !== 'past' && tabbed[id].length > 0}
+								<span
+									class="rounded-full px-1.5 text-[10px] leading-4
+										{bkTab === id ? 'bg-neutral-content/20' : 'bg-base-200 text-base-content/70'}"
+								>
+									{tabbed[id].length}
+								</span>
+							{/if}
 						</button>
 					{/each}
 				</div>
@@ -109,24 +138,31 @@
 					<ul class="flex flex-col gap-2.5">
 						{#each tabbed[bkTab] as b (b.id)}
 							{@const chip = dateChip(new Date(b.startsAt), clientZone)}
-							<li class="border-base-200 bg-base-200/40 flex items-center gap-3 rounded-field border p-3">
-								<div class="bg-base-200 rounded-field w-12 shrink-0 py-1 text-center">
-									<div class="text-base-content/60 font-body text-[10px] uppercase">{chip.mon}</div>
-									<div class="font-headings text-lg leading-tight">{chip.day}</div>
-								</div>
-								<div class="min-w-0 flex-1">
-									<div class="text-sm font-medium">{b.type}</div>
-									<div class="text-base-content/60 mt-0.5 truncate text-xs">
-										{timeOf(new Date(b.startsAt), clientZone)} · {b.coachName} · {b.location}
+							<li>
+								{#if b.status === 'pending_payment'}
+									<button
+										type="button"
+										class="border-base-200 bg-base-200/40 hover:border-primary flex w-full cursor-pointer items-center gap-3 rounded-field border p-3 text-left transition-colors"
+										onclick={() => {
+											payTarget = b;
+											modalOpen = true;
+										}}
+									>
+										{@render bookingRow(b, chip)}
+									</button>
+								{:else}
+									<div class="border-base-200 bg-base-200/40 flex items-center gap-3 rounded-field border p-3">
+										{@render bookingRow(b, chip)}
 									</div>
-								</div>
-								<span class="badge badge-sm {statusPill[b.status]} font-body shrink-0">
-									{statusLabel[b.status]}
-								</span>
+								{/if}
 							</li>
 						{/each}
 					</ul>
 				{/if}
+
+				<p class="text-base-content/40 mt-4 text-xs">
+					times shown in your timezone ({zoneLabel(clientZone)}).
+				</p>
 			</section>
 
 			<!-- choose your coach -->
@@ -242,9 +278,14 @@
 				{/if}
 			</section>
 		</div>
+	{/if}
 
-		<p class="text-base-content/40 mt-4 text-xs">
-			times shown in your timezone ({zoneLabel(clientZone)}).
-		</p>
+	{#if payTarget}
+		<CheckoutModal
+			booking={payTarget}
+			{clientZone}
+			stripeEnabled={data.stripeEnabled}
+			bind:open={modalOpen}
+		/>
 	{/if}
 </div>

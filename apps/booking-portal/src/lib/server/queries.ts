@@ -5,19 +5,29 @@ import {
   coachProfile,
   creditLedgerEntry,
   intakeResponse,
+  invoice,
   packageOffering,
   packagePurchase,
   user,
   type BookingStatus,
   type SessionType,
 } from "@repo/database/schema";
+import { sessionAmountCents } from "$lib/booking";
 import { db } from "./db";
 
 /** Booking statuses that occupy a slot on the coach's calendar. */
 const ACTIVE_BOOKING_STATUSES: BookingStatus[] = [
   "pending_approval",
   "pending_payment",
+  "pending_verification",
   "confirmed",
+];
+
+/** Not-yet-settled bookings — drives the "awaiting action" tab and its nav badge. */
+const PENDING_STATUSES: BookingStatus[] = [
+  "pending_payment",
+  "pending_approval",
+  "pending_verification",
 ];
 
 /** Monday 00:00 through the following Monday 00:00 for the week containing `ref`. */
@@ -154,7 +164,7 @@ export async function getClientNavBadges(clientId: string) {
       .where(
         and(
           eq(booking.clientId, clientId),
-          inArray(booking.status, ["pending_payment", "pending_approval"]),
+          inArray(booking.status, PENDING_STATUSES),
         ),
       ),
     db
@@ -212,7 +222,7 @@ export async function getClientDashboard(
         .where(
           and(
             eq(booking.clientId, clientId),
-            inArray(booking.status, ["pending_payment", "pending_approval"]),
+            inArray(booking.status, PENDING_STATUSES),
           ),
         ),
     ]);
@@ -331,13 +341,15 @@ export type ClientBooking = {
   location: string;
   status: BookingStatus;
   coachName: string;
+  /** Cost of this booking if paid in cash rather than credits — checkout's amount. */
+  amountCents: number;
 };
 
 /** Every non-cancelled booking for a client, for the bookings-screen list. */
 export async function getClientBookings(
   clientId: string,
 ): Promise<ClientBooking[]> {
-  return db
+  const rows = await db
     .select({
       id: booking.id,
       type: booking.type,
@@ -346,10 +358,69 @@ export async function getClientBookings(
       location: booking.location,
       status: booking.status,
       coachName: user.name,
+      rateFromCents: coachProfile.rateFromCents,
     })
     .from(booking)
     .innerJoin(coachProfile, eq(coachProfile.id, booking.coachId))
     .innerJoin(user, eq(user.id, coachProfile.userId))
     .where(and(eq(booking.clientId, clientId), ne(booking.status, "cancelled")))
     .orderBy(booking.startsAt);
+  return rows.map(({ rateFromCents, ...b }) => ({
+    ...b,
+    amountCents: sessionAmountCents(rateFromCents, b.durationMin),
+  }));
+}
+
+// ─── Checkout ────────────────────────────────────────────────────────────
+
+export type PayableBooking = {
+  id: string;
+  type: SessionType;
+  startsAt: Date;
+  durationMin: number;
+  location: string;
+  coachName: string;
+  amountCents: number;
+};
+
+/** A client's own `pending_payment` booking, with what the pay action needs. */
+export async function getPayableBooking(
+  bookingId: string,
+  clientId: string,
+): Promise<PayableBooking | null> {
+  const [row] = await db
+    .select({
+      id: booking.id,
+      type: booking.type,
+      startsAt: booking.startsAt,
+      durationMin: booking.durationMin,
+      location: booking.location,
+      coachName: user.name,
+      rateFromCents: coachProfile.rateFromCents,
+    })
+    .from(booking)
+    .innerJoin(coachProfile, eq(coachProfile.id, booking.coachId))
+    .innerJoin(user, eq(user.id, coachProfile.userId))
+    .where(
+      and(
+        eq(booking.id, bookingId),
+        eq(booking.clientId, clientId),
+        eq(booking.status, "pending_payment"),
+      ),
+    )
+    .limit(1);
+  if (!row) return null;
+  const { rateFromCents, ...b } = row;
+  return { ...b, amountCents: sessionAmountCents(rateFromCents, b.durationMin) };
+}
+
+/** Next `bwh-NNNN` invoice number, continuing from the highest one issued so far. */
+export async function nextInvoiceNumber(): Promise<string> {
+  const [row] = await db
+    .select({
+      max: sql<number | null>`max(substring(${invoice.number} from 5)::int)`,
+    })
+    .from(invoice);
+  const n = (row?.max ?? 0) + 1;
+  return `bwh-${n.toString().padStart(4, "0")}`;
 }

@@ -6,6 +6,7 @@ export const statusPill: Record<BookingStatus, string> = {
 	completed: 'badge-ghost',
 	pending_approval: 'badge-ghost',
 	pending_payment: 'badge-warning',
+	pending_verification: 'badge-info',
 	cancelled: 'badge-ghost',
 };
 
@@ -14,5 +15,6 @@ export const statusLabel: Record<BookingStatus, string> = {
 	completed: 'completed',
 	pending_approval: 'awaiting approval',
 	pending_payment: 'payment due',
+	pending_verification: 'verifying payment',
 	cancelled: 'cancelled',
 };
