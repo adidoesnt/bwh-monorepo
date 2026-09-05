@@ -61,6 +61,8 @@ the schema the rest of the roadmap fills in.
   with a signed `numeric` delta, `invoice`), `health.ts` (`intake_response`, `progress_entry`,
   `measurement`), `messaging.ts` (`chat_message`). Migration `0001_windy_bromley`.
   `coach_profile` is decoupled from `role` on purpose — Ishita is an admin who also coaches.
+  *(Phase 5.5 reworks the billing tables: global credits → coach-authored packages,
+  `credit_ledger_entry` → `session_ledger_entry`, `coach_profile.rate_from_cents` dropped.)*
 - ✅ Role-based route guards in `hooks.server.ts`: shared surfaces need any session;
   `/trainer/*` is trainer+admin, `/admin/*` is admin-only; wrong-role access → role's home.
   (`HOME_BY_ROLE` all point at `/dashboard` until the trainer/admin route trees exist.)
@@ -69,7 +71,8 @@ the schema the rest of the roadmap fills in.
   bookings, progress, measurements, completed PAR-Q), plus Renee/Farah/Declan/Hana/Yasmin.
   Farah has a `build` package expiring soon and **no** PAR-Q, to exercise Phase 3's date-cap
   and screening gates. All seed users log in with password `password`. Idempotent (upserts
-  users, wipes+reinserts domain tables).
+  users, wipes+reinserts domain tables). *(Phase 5.5 rewrites the package/purchase/ledger seed
+  data to the coach-packages model.)*
 
 ## Phase 2 — Client dashboard shell & navigation ✅ done
 **Estimate: ~5h**
@@ -111,12 +114,14 @@ Cross-cutting change done between Phase 2 and Phase 3 because Phase 3's slot mat
 - ✅ Booking form: session type / duration (45·60·90 → 0.75·1·1.5 credits) / date / live slot
   grid; submit → `booking` row, `pending_approval` when the client has the credits else
   `pending_payment`. Server action re-validates the slot (`?/request` in
-  `[slug]/+page.server.ts`) — never trusts the posted time.
+  `[slug]/+page.server.ts`) — never trusts the posted time. *(Phase 5.5 replaces the duration
+  picker with a package picker — length follows the chosen package.)*
 - ✅ Date range: today **through the day the active package's credits expire** (`getActivePackage`;
   8 weeks out if no package). Picker is month chips → day chips (`datesInRange` in `tz.ts`);
   month row hides when the range is a single month. Form notes the expiry date; the action
   rejects a start after `packagePurchase.expiresAt`. Seed: Farah has a `build` package expiring
-  ~12 sep to exercise the near-expiry case.
+  ~12 sep to exercise the near-expiry case. *(Phase 5.5: the cap becomes the selected purchase's
+  `expires_at`.)*
 - ✅ Real availability (`src/lib/availability.ts` `daySlots` / `openness`): generates 30-min
   starts from `availability_slot` windows on the coach-local weekday, blocks starts that overlap
   a `pending_approval | pending_payment | confirmed` booking or are in the past.
@@ -151,7 +156,9 @@ Cross-cutting change done between Phase 2 and Phase 3 because Phase 3's slot mat
   to object storage (with a live preview) and inserts an `invoice` row (`status: "pending"`,
   `method: "paynow · awaiting verification"`); booking flips to the new
   **`pending_verification`** status ("waiting"). Amount = coach's `rateFromCents`
-  treated as hourly, scaled to the booking's duration.
+  treated as hourly, scaled to the booking's duration. *(Phase 5.5: checkout sells a whole
+  **package**, not a single session — amount = package total, invoice links the intended
+  package, `package_purchase` is created at Phase 9 verification.)*
 - ⬜ **Real payment QR: Ishita's PayNow QR.** All client payments land in one account
   (Ishita's) rather than per-coach. Coaches then get paid out by Ishita when they
   request a payout (Phase 9's "my payouts"), net of a **per-booking/session platform
@@ -164,7 +171,8 @@ Cross-cutting change done between Phase 2 and Phase 3 because Phase 3's slot mat
   in-process service — is used); prod points the same client at real S3.
 - ⬜ **Verification → confirmed is NOT built here, by design.** `pending_verification`
   is a dead end until Phase 9 ships the trainer's real payments-to-verify queue —
-  that's where invoice-paid + credit-ledger + booking-confirmed actually happens.
+  that's where invoice-paid + session-ledger + booking-confirmed actually happens
+  (post-5.5: also `package_purchase` creation + first session consumed).
   No temporary admin/trainer UI was added for this on purpose, to avoid throwaway
   code once Phase 9 lands.
 - ⬜ Stripe card flow — deferred; the flag above is the only Stripe-shaped code that
@@ -202,15 +210,103 @@ State machine (all of Phases 3–5, plus the Phase 9 gaps): [`BOOKING-LIFECYCLE.
   - `confirmed`, ≥24h out → `refund_in_time` credit returned to the ledger
   - `confirmed`, <24h out → credit forfeited, recorded as a `no_charge` "late cancellation" invoice
     (mirrors the seed's `bwh-0118`)
+  - **Phase 5.5 simplifies this** — no cash/credit refunds, just session-returned (≥24h) vs
+    session-forfeited (<24h); the `<24h` no-charge invoice is dropped. See Phase 5.5.
 
-## Phase 6 — Packages, credits & invoices (client) ⬜
+## Phase 5.5 — Coach packages (replaces credits) ⬜
+**Estimate: ~14.5h** (+ ~2.5h for the Phase 9 package editor)
+
+Cross-cutting model change, like Phase 2.5 — inserted mid-stream because everything downstream
+depends on it. The credit model assumed one platform-wide session price; that breaks the moment
+a second coach prices differently. Replaced with **coach-authored packages**. Phases 6, 9 and 10
+build on this shape. The prototype's "Packages & credits" screen (credit pips) is no longer
+source-of-truth for this area.
+
+**The model**
+
+- A **package** belongs to a coach and specifies: number of sessions, length of each session
+  (minutes), cost per session, validity window (days). Total price = count × per-session cost
+  (computed, not stored). Coaches author their own — seeded until Phase 9 ships the editor.
+- Buying a package creates a `package_purchase` granting N sessions of that length, expiring
+  `purchased_at + validity_days`. Balance is tracked **per purchase** (append-only
+  `session_ledger_entry`, whole-session deltas), drawn down FIFO by soonest expiry.
+- `coach_profile.rate_from_cents` is **removed** — pricing lives entirely in packages. A coach
+  who wants one-offs publishes a 1-session package. Directory / profile show "packages from
+  SG$X / session" (cheapest package, subquery); the price sort keys on that.
+- "Credits" is gone from schema and UI — everything is "sessions" tied to a named package
+  with a coach.
+
+**Booking**
+
+- The 45/60/90 duration picker is replaced by a **package picker** — length follows the chosen
+  package. Session *type* (in-person / online / consult / assessment) stays an independent
+  booking-time choice, still gated by timezone / PAR-Q. Free consult is unchanged: free, no
+  package, fixed 30 min.
+- Active package with this coach + a session in hand (balance − pending holds ≥ 1) → request
+  lands `pending_approval`; the session is consumed at Phase 9 approval, as credits were.
+- No package with this coach → pick one of their packages → `pending_payment` booking carrying
+  `intended_package_id` and the package's length. The Phase 4 checkout modal now sells the
+  **whole package**: PayNow QR for the full price, upload proof, an `invoice` (pending, linked to
+  the intended package) is written, booking → `pending_verification`. The `package_purchase` +
+  session grant + first consume happen at Phase 9 verification — so it stays a clean dead end
+  until then.
+
+**Cancel / reschedule** (supersedes Phase 5's credit policy)
+
+No cash refunds — a package is bought as a block. The only question is whether the session goes
+back to the pack or is burned:
+
+| Booking state | Notice | Result |
+| :-- | :-- | :-- |
+| `pending_approval` / `pending_payment` | — | plain cancel — no session consumed yet |
+| `pending_verification` | — | void the pending package invoice (purchase never happened) |
+| `confirmed` | ≥ 24h | session returned to the purchase (`+1` ledger entry) |
+| `confirmed` | < 24h | session forfeited — the `−1` stands, nothing else |
+
+Reschedule ≥ 24h: session returned, booking → `pending_approval`, re-approval re-consumes.
+Reschedule < 24h: blocked. The `< 24h` cancel no longer writes a `no_charge` invoice.
+`cancelOutcome`'s `refund` outcome is renamed `return`.
+
+**Schema** — migration `0006`, no prod data:
+
+- `package` + `coach_id`, `session_length_min`, `price_per_session_cents`, `validity_days`
+  (was `credit_expiry_months`); `session_count` kept
+- `package_purchase` — `credits_granted` → `sessions_granted`, + `session_length_min` snapshot,
+  `expires_at` derived from `validity_days`
+- `credit_ledger_entry` → `session_ledger_entry`; `purchase_id` NOT NULL; `delta` whole sessions;
+  reasons `purchase` / `session_consumed` / `returned_in_time` / `adjustment`
+- `booking` — drop `credit_cost`; add `package_purchase_id` (draws from) + `intended_package_id`
+  (set while `pending_payment`)
+- `coach_profile` — drop `rate_from_cents`
+
+**Code** (~10 files): `src/lib/booking.ts` (drop `creditCostFor` / `sessionAmountCents` /
+`DURATIONS`; `cancelOutcome` `refund`→`return`, drop the forfeit invoice); `queries.ts`
+(per-purchase balance, active-purchase pick, dashboard list, coach cheapest-price);
+`cancellation.ts`; `bookings/[slug]/+page.server.ts` + `.svelte` (package picker, buy branch);
+`ManageBookingModal.svelte` (sell a package); `dashboard/+page.svelte`; `seed.ts`
+(per-coach packages); `BOOKING-LIFECYCLE.md`.
+
+| Line item | Estimate |
+| :-- | :-- |
+| Schema + migration + seed | ~2h |
+| `queries.ts` rework | ~2h |
+| Booking form — package picker, buy-a-package path | ~3h |
+| Booking gate / reschedule / cancel against packages | ~2h |
+| Checkout modal — sell a package | ~2h |
+| Dashboard + modal + copy | ~2h |
+| Docs (ROADMAP, BOOKING-LIFECYCLE) | ~1.5h |
+| **Total** | **~14.5h** |
+
+## Phase 6 — Packages & sessions, payments (client) ⬜
 **Estimate: ~5.5h**
 
-*Design screens: "Packages & credits", "Payments"*
+*Design screens: "Packages & credits" (re-scoped by Phase 5.5), "Payments"*
 
-- Active package card (credit pips, expiry) + credit activity log — *2h*
-- "Top up" package cards reusing the Phase 4 checkout modal — *1h*
-- Payments page: stats, invoice table, saved payment methods, cancellation policy blurb — *2.5h*
+- "Your packages" — a card per active `package_purchase`: coach, package name, sessions
+  remaining / N, length, expiry, + that purchase's `session_ledger_entry` activity log — *2h*
+- "Buy a package" — browse a coach's packages and purchase via the Phase 4 checkout modal
+  **standalone** (not tied to a booking; the 5.5 checkout only handles the booking-linked path) — *1h*
+- Payments page: stats, invoice table, saved payment methods, cancellation-policy blurb — *2.5h*
 
 ## Phase 7 — Intake / PAR-Q health screening ⬜
 **Estimate: ~4.5h**
@@ -233,16 +329,21 @@ State machine (all of Phases 3–5, plus the Phase 9 gaps): [`BOOKING-LIFECYCLE.
 - Check-in photos — private storage (client + assigned coach only) — *3h*
 
 ## Phase 9 — Trainer (coach) portal ⬜
-**Estimate: ~9h**
+**Estimate: ~11.5h**
 
 *Design screens: "Trainer dashboard", "Trainer clients"*
 
 - Dashboard: today's schedule, pending requests (approve / suggest another time — approve flips
-  booking to confirmed), payments-to-verify queue (PayNow screenshots from Phase 4) — *3.5h*
+  booking to `confirmed` **and consumes a session from the client's purchase**), payments-to-verify
+  queue (PayNow screenshots from Phase 4 — verify creates the `package_purchase`, grants sessions,
+  consumes the first, confirms the booking) — *3.5h*
 - Weekly availability grid: tap to toggle open/closed; booked cells derived from real bookings,
   not manually set — *3h*
-- Clients table: roster with credits, next session, attendance %, flags — derived (credits low /
-  no screening / etc.), not manually set — *2.5h*
+- Clients table: roster with sessions remaining, next session, attendance %, flags — derived
+  (package running low / no screening / etc.), not manually set — *2.5h*
+- **Package editor** (from Phase 5.5): CRUD the packages clients buy from this coach — session
+  count, length, per-session price, validity days; deactivate without deleting (past purchases
+  keep their snapshot) — *2.5h*
 
 ## Phase 10 — Admin portal ⬜
 **Estimate: ~8h** **+ ~2h** ("preview as", deferred)
@@ -250,8 +351,9 @@ State machine (all of Phases 3–5, plus the Phase 9 gaps): [`BOOKING-LIFECYCLE.
 *Design screens: "Admin overview", "Admin users"*
 
 - Overview: revenue by coach, utilization, all-bookings table — *3h*
-- Package pricing editor, cancellation-policy / credit-expiry settings (becomes the real source
-  for Phase 5's 24h rule and Phase 6/9 expiry) — *2h*
+- Settings: cancellation-window (the hardcoded 24h rule becomes editable), platform
+  **commission rate** + payout ledger (Phase 4's payout math). Package pricing/validity is
+  **coach-owned** now (Phase 9 editor), not admin — *2h*
 - Users: role management (client/trainer/admin), invite flow, audit log of role changes — *3h*
 - "Preview as" mode (admin viewing the app as a client/trainer) — *2h, defer until the client and
   trainer surfaces are stable, since it just re-renders them with a banner*
@@ -273,8 +375,8 @@ State machine (all of Phases 3–5, plus the Phase 9 gaps): [`BOOKING-LIFECYCLE.
 - Email/SMS reminders for upcoming sessions and pending approvals — *3h*
 - Notifications/toasts wired to real events (booking confirmed, payment verified, etc.) — *2h*
 - Accessibility and responsive pass against the prototype's breakpoints — *3h*
-- Test coverage for booking/credit/cancellation logic (real money and scheduling correctness at
-  stake) — *4h*
+- Test coverage for booking / session-ledger / cancellation logic (real money and scheduling
+  correctness at stake) — *4h*
 - Production deploy pipeline — *2h*
 
 ---
@@ -286,27 +388,31 @@ via the manage-session modal's PayNow flow, landing at `pending_verification` �
 up to *client submits payment proof*, one step short of *confirmed* (Phase 9's job, see Phase 4
 above).
 
-**Next on the critical path:** Phase 9 (trainer portal) — it verifies a PayNow payment, flips a
-booking to `confirmed`, and re-approves rescheduled bookings; until it lands both
-`pending_verification` and post-reschedule re-approval are dead ends. Phase 6 (packages / credits
-/ invoices) is the other client-side option.
+**Next on the critical path:** Phase 5.5 (coach packages — replaces credits). It's a model change
+Phase 6 (packages page) and Phase 9 (verify/approve, package editor) both build on, so it goes
+first. After that, Phase 9 (trainer portal) — it verifies a PayNow payment, flips a booking to
+`confirmed`, and re-approves rescheduled bookings; until it lands both `pending_verification` and
+post-reschedule re-approval are dead ends.
 
 ## Suggested near-term order
 
 Phase 1 → 2 → 3 → 4 → 5 is the critical path: it turns the placeholder dashboard into a working
 booking loop (browse coach → request → pay → see it in bookings) before touching packages,
-progress, trainer tools, or admin. Phases 6–11 can then proceed in roughly the listed order, or
-be reprioritized based on which role (client vs. coach vs. admin) needs to go live first.
+progress, trainer tools, or admin. **Phase 5.5 (coach packages)** then rebases the billing model
+before Phase 6/9 build on it. Phases 6–11 can proceed in roughly the listed order, or be
+reprioritized based on which role (client vs. coach vs. admin) needs to go live first.
 
 ## Total estimated effort
 
 | Scope | Estimate |
 | :-- | :-- |
 | Critical path (Phases 1–5) | ~33h |
-| Full client + trainer + admin core (Phases 1–11, excluding deferred items) | ~70h |
+| Phase 5.5 (coach packages — replaces credits) | ~14.5h |
+| Full client + trainer + admin core (Phases 1–11, excluding deferred items) | ~87h |
 | Deferred items (Stripe, real AI assistant, "preview as") | ~8-10h |
 | Polish & hardening (Phase 12) | ~16h |
-| **End-to-end** | **~95-105h**, i.e. roughly 2.5-3 weeks of focused solo AI-assisted work |
+| **End-to-end** | **~112-122h**, i.e. roughly 3-3.5 weeks of focused solo AI-assisted work |
 
 Treat these as planning inputs, not commitments — re-estimate each phase once Phase 1's schema is
-locked in, since it's the foundation everything else measures against.
+locked in, since it's the foundation everything else measures against. (Phase 5.5 re-opens the
+billing tables — treat the Phase 6/9/10 estimates as provisional until it lands.)
