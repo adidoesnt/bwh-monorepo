@@ -4,7 +4,7 @@
   "tasks": {
     "db:seed": {
       "cache": false,
-      "env": ["DATABASE_URL", "AUTH_BASE_URL"]
+      "env": ["DATABASE_URL", "AUTH_BASE_URL", "BETTER_AUTH_SECRET"]
     }
   }
 }

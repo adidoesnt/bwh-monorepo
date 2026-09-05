@@ -1,3 +1,4 @@
+import { building, dev } from "$app/environment";
 import { env } from "$env/dynamic/private";
 
 // Dev fallbacks target the docker-compose services so a bare checkout runs
@@ -6,6 +7,16 @@ export const DATABASE_URL =
   env.DATABASE_URL || "postgresql://bwh:bwh@localhost:5432/bwh";
 
 export const AUTH_BASE_URL = env.AUTH_BASE_URL || "http://localhost:4322/";
+
+/**
+ * Signs session tokens. **Required in production** — the app throws on boot
+ * without it. In dev and during `vite build` a throwaway value is used so a
+ * bare checkout still runs; at real prod runtime `undefined` is passed through
+ * and better-auth throws if `BETTER_AUTH_SECRET` isn't set.
+ */
+export const AUTH_SECRET =
+  env.BETTER_AUTH_SECRET ||
+  (dev || building ? "dev-insecure-secret-not-for-production" : undefined);
 
 // Object storage — defaults target the floci container; prod points at real S3.
 export const s3 = {

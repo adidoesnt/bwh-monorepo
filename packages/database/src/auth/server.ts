@@ -7,10 +7,18 @@ import { createDb, schema } from "../db";
 export function createAuth({
   databaseUrl,
   baseURL,
+  secret,
   getRequestEvent,
 }: {
   databaseUrl: string;
   baseURL: string;
+  /**
+   * Signs session tokens. Passed through to better-auth; when undefined,
+   * better-auth reads BETTER_AUTH_SECRET / AUTH_SECRET from the environment and
+   * throws in production if neither is set. Each app resolves it in its
+   * `src/lib/server/config` module.
+   */
+  secret?: string;
   getRequestEvent: () => RequestEvent;
 }) {
   const db = createDb(databaseUrl);
@@ -18,6 +26,7 @@ export function createAuth({
   return betterAuth({
     database: drizzleAdapter(db, { provider: "pg", schema }),
     baseURL,
+    secret,
     emailAndPassword: { enabled: true },
     user: {
       additionalFields: {
