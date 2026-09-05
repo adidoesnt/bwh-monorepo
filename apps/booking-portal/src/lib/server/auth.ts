@@ -1,9 +1,9 @@
-import { env } from "$env/dynamic/private";
+import { DATABASE_URL, AUTH_BASE_URL } from "./config"
 import { getRequestEvent } from "$app/server";
 import { createAuth } from "@repo/database";
 
 export const auth = createAuth({
-  databaseUrl: env.DATABASE_URL,
-  baseURL: env.AUTH_BASE_URL,
+  databaseUrl: DATABASE_URL,
+  baseURL: AUTH_BASE_URL,
   getRequestEvent,
 });

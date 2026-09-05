@@ -1,4 +1,4 @@
-import { env } from "$env/dynamic/private";
 import { createDb } from "@repo/database";
+import { DATABASE_URL } from "./config";
 
-export const db = createDb(env.DATABASE_URL);
+export const db = createDb(DATABASE_URL);
