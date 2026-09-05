@@ -229,6 +229,8 @@ const daysAfter = (from: Date, n: number) =>
  * later, per booking. Balances must stay ≥ 0.
  */
 const PURCHASES = [
+  // an older transform, since expired with 1 session left — history for the activity log
+  { key: "tessa-transform-1", clientKey: "tessa", pkgKey: "ishita-transform", purchasedAt: day(-160, "10:00"), used: 9, returned: 0 },
   { key: "tessa-transform", clientKey: "tessa", pkgKey: "ishita-transform", purchasedAt: day(-24, "10:00"), used: 1, returned: 1 },
   { key: "tessa-starter", clientKey: "tessa", pkgKey: "nadia-starter", purchasedAt: day(-6, "10:00"), used: 0, returned: 0 },
   { key: "tessa-kickstart", clientKey: "tessa", pkgKey: "jolene-kickstart", purchasedAt: day(-75, "10:00"), used: 3, returned: 0 },
@@ -400,6 +402,7 @@ async function seed() {
   const momentum = pkgByKey("jolene-momentum");
   const nadStarter = pkgByKey("nadia-starter");
   await db.insert(invoice).values([
+    { number: "bwh-0061", clientId: pick(uid, "tessa"), description: "transform · 10 sessions", amountCents: 80000, method: "visa ···· 4242", status: "paid", issuedAt: day(-160, "10:00"), purchaseId: pick(purchaseIds, "tessa-transform-1") },
     { number: "bwh-0140", clientId: pick(uid, "tessa"), description: "kickstart · 4 sessions", amountCents: kick.sessionCount * kick.pricePerSessionCents, method: "paynow · verified", status: "paid", issuedAt: day(-75, "10:00"), purchaseId: pick(purchaseIds, "tessa-kickstart") },
     { number: "bwh-0171", clientId: pick(uid, "tessa"), description: "transform · 10 sessions", amountCents: 80000, method: "paynow · verified", status: "paid", issuedAt: day(-24, "10:00"), purchaseId: pick(purchaseIds, "tessa-transform") },
     { number: "bwh-0178", clientId: pick(uid, "farah"), description: "kickstart · 4 sessions", amountCents: kick.sessionCount * kick.pricePerSessionCents, method: "paynow · verified", status: "paid", issuedAt: day(-48, "10:00"), purchaseId: pick(purchaseIds, "farah-kickstart") },

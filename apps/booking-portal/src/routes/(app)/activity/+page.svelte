@@ -9,12 +9,23 @@
 
 	const tz = untrack(() => data.user.timezone ?? browserZone());
 	const firstOf = (name: string) => name.split(' ')[0] ?? name;
+	const PAGE_SIZE = 20;
 
 	const all = $derived(data.activity);
 	const coaches = $derived([...new Set(all.map((e) => e.coachName))].sort());
 
 	let coach = $state<string | null>(null);
-	const shown = $derived(coach ? all.filter((e) => e.coachName === coach) : all);
+	let page = $state(1);
+
+	const filtered = $derived(coach ? all.filter((e) => e.coachName === coach) : all);
+	const pageCount = $derived(Math.max(1, Math.ceil(filtered.length / PAGE_SIZE)));
+	const start = $derived((page - 1) * PAGE_SIZE);
+	const shown = $derived(filtered.slice(start, start + PAGE_SIZE));
+
+	function setCoach(c: string | null) {
+		coach = c;
+		page = 1;
+	}
 </script>
 
 <div class="mx-auto max-w-3xl p-6 md:p-10">
@@ -35,7 +46,7 @@
 				<button
 					class="rounded-full border px-3 py-1 text-xs transition-colors
 						{coach === null ? 'border-neutral bg-neutral text-neutral-content' : 'border-base-300 text-base-content/60'}"
-					onclick={() => (coach = null)}
+					onclick={() => setCoach(null)}
 				>
 					all
 				</button>
@@ -43,7 +54,7 @@
 					<button
 						class="rounded-full border px-3 py-1 text-xs transition-colors
 							{coach === c ? 'border-neutral bg-neutral text-neutral-content' : 'border-base-300 text-base-content/60'}"
-						onclick={() => (coach = c)}
+						onclick={() => setCoach(c)}
 					>
 						{firstOf(c)}
 					</button>
@@ -52,7 +63,7 @@
 		{/if}
 
 		<ul class="border-base-300 divide-base-200 divide-y overflow-hidden rounded-sm border bg-white">
-			{#each shown as e, i (`${e.createdAt}-${i}`)}
+			{#each shown as e, i (`${e.createdAt}-${start + i}`)}
 				<li class="flex items-baseline gap-3 px-4 py-2.5 text-sm">
 					<span
 						class="font-body w-8 shrink-0 text-xs {e.delta > 0
@@ -72,5 +83,30 @@
 				</li>
 			{/each}
 		</ul>
+
+		{#if pageCount > 1}
+			<div class="mt-4 flex items-center justify-between text-xs">
+				<span class="text-base-content/45">
+					{start + 1}–{Math.min(start + PAGE_SIZE, filtered.length)} of {filtered.length}
+				</span>
+				<div class="flex gap-1.5">
+					<button
+						class="btn btn-xs"
+						disabled={page === 1}
+						onclick={() => (page = Math.max(1, page - 1))}
+					>
+						prev
+					</button>
+					<span class="text-base-content/60 self-center px-1">page {page} / {pageCount}</span>
+					<button
+						class="btn btn-xs"
+						disabled={page === pageCount}
+						onclick={() => (page = Math.min(pageCount, page + 1))}
+					>
+						next
+					</button>
+				</div>
+			</div>
+		{/if}
 	{/if}
 </div>
