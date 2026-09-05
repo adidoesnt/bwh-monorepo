@@ -1,5 +1,4 @@
 import { and, desc, eq, gte, inArray, lt, ne, sql } from "drizzle-orm";
-import { alias } from "drizzle-orm/pg-core";
 import {
   availabilitySlot,
   booking,
@@ -19,17 +18,11 @@ import { db } from "./db";
 /** Booking statuses that occupy a slot on the coach's calendar. */
 const ACTIVE_BOOKING_STATUSES: BookingStatus[] = [
   "pending_approval",
-  "pending_payment",
-  "pending_verification",
   "confirmed",
 ];
 
 /** Not-yet-settled bookings — drives the "awaiting action" tab and its nav badge. */
-const PENDING_STATUSES: BookingStatus[] = [
-  "pending_payment",
-  "pending_approval",
-  "pending_verification",
-];
+const PENDING_STATUSES: BookingStatus[] = ["pending_approval"];
 
 /** Monday 00:00 through the following Monday 00:00 for the week containing `ref`. */
 function weekBounds(ref: Date) {
@@ -186,6 +179,199 @@ export async function getPackageById(
     .where(eq(packageOffering.id, id))
     .limit(1);
   return row ?? null;
+}
+
+export type PurchasablePackage = PackageSummary & {
+  active: boolean;
+  coachName: string;
+  coachSlug: string;
+};
+
+/** A package by id with its coach + active flag — for the `?/buy` action. */
+export async function getPackageForPurchase(
+  id: string,
+): Promise<PurchasablePackage | null> {
+  const [row] = await db
+    .select({
+      ...packageColumns,
+      active: packageOffering.active,
+      coachName: user.name,
+      coachSlug: coachProfile.slug,
+    })
+    .from(packageOffering)
+    .innerJoin(coachProfile, eq(coachProfile.id, packageOffering.coachId))
+    .innerJoin(user, eq(user.id, coachProfile.userId))
+    .where(eq(packageOffering.id, id))
+    .limit(1);
+  return row ?? null;
+}
+
+/** Every active coach's active packages, for "get more sessions" browsing. */
+export async function listBuyablePackages(): Promise<PurchasablePackage[]> {
+  return db
+    .select({
+      ...packageColumns,
+      active: packageOffering.active,
+      coachName: user.name,
+      coachSlug: coachProfile.slug,
+    })
+    .from(packageOffering)
+    .innerJoin(coachProfile, eq(coachProfile.id, packageOffering.coachId))
+    .innerJoin(user, eq(user.id, coachProfile.userId))
+    .where(and(eq(packageOffering.active, true), eq(coachProfile.active, true)))
+    .orderBy(user.name, packageOffering.pricePerSessionCents);
+}
+
+// ─── /packages · /payments · /activity ──────────────────────────────────────
+
+export type LedgerEntry = {
+  delta: number;
+  reason: SessionLedgerReason;
+  description: string;
+  createdAt: Date;
+};
+
+export type PurchaseWithLedger = ActivePurchase & { ledger: LedgerEntry[] };
+
+/** Active purchases (as `getActivePurchases`) each with its full ledger, newest first. */
+export async function getPurchasesWithLedger(
+  clientId: string,
+): Promise<PurchaseWithLedger[]> {
+  const purchases = await getActivePurchases(clientId);
+  if (purchases.length === 0) return [];
+  const rows = await db
+    .select({
+      purchaseId: sessionLedgerEntry.purchaseId,
+      delta: sessionLedgerEntry.delta,
+      reason: sessionLedgerEntry.reason,
+      description: sessionLedgerEntry.description,
+      createdAt: sessionLedgerEntry.createdAt,
+    })
+    .from(sessionLedgerEntry)
+    .where(
+      inArray(
+        sessionLedgerEntry.purchaseId,
+        purchases.map((p) => p.id),
+      ),
+    )
+    .orderBy(desc(sessionLedgerEntry.createdAt));
+  return purchases.map((p) => ({
+    ...p,
+    ledger: rows.filter((r) => r.purchaseId === p.id),
+  }));
+}
+
+export type PendingPurchaseInvoice = {
+  id: string;
+  number: string;
+  amountCents: number;
+  issuedAt: Date;
+  packageName: string;
+  coachName: string;
+  sessionCount: number;
+};
+
+/** PayNow package purchases the client has submitted but no one has verified yet. */
+export async function getPendingPurchaseInvoices(
+  clientId: string,
+): Promise<PendingPurchaseInvoice[]> {
+  return db
+    .select({
+      id: invoice.id,
+      number: invoice.number,
+      amountCents: invoice.amountCents,
+      issuedAt: invoice.issuedAt,
+      packageName: packageOffering.name,
+      coachName: user.name,
+      sessionCount: packageOffering.sessionCount,
+    })
+    .from(invoice)
+    .innerJoin(packageOffering, eq(packageOffering.id, invoice.packageId))
+    .innerJoin(coachProfile, eq(coachProfile.id, packageOffering.coachId))
+    .innerJoin(user, eq(user.id, coachProfile.userId))
+    .where(and(eq(invoice.clientId, clientId), eq(invoice.status, "pending")))
+    .orderBy(desc(invoice.issuedAt));
+}
+
+export type ClientInvoice = {
+  id: string;
+  number: string;
+  description: string;
+  amountCents: number;
+  method: string;
+  status: "pending" | "paid" | "no_charge";
+  issuedAt: Date;
+  proofImageKey: string | null;
+};
+
+export async function getClientInvoices(
+  clientId: string,
+): Promise<ClientInvoice[]> {
+  return db
+    .select({
+      id: invoice.id,
+      number: invoice.number,
+      description: invoice.description,
+      amountCents: invoice.amountCents,
+      method: invoice.method,
+      status: invoice.status,
+      issuedAt: invoice.issuedAt,
+      proofImageKey: invoice.proofImageKey,
+    })
+    .from(invoice)
+    .where(eq(invoice.clientId, clientId))
+    .orderBy(desc(invoice.issuedAt));
+}
+
+export type FullActivityEntry = ActivityEntry & {
+  description: string;
+  /** Balance of that purchase immediately after this movement. */
+  balanceAfter: number;
+};
+
+/** Every session-ledger movement, newest first, with a per-purchase running balance. */
+export async function getClientActivity(
+  clientId: string,
+): Promise<FullActivityEntry[]> {
+  const rows = await db
+    .select({
+      purchaseId: sessionLedgerEntry.purchaseId,
+      delta: sessionLedgerEntry.delta,
+      reason: sessionLedgerEntry.reason,
+      description: sessionLedgerEntry.description,
+      createdAt: sessionLedgerEntry.createdAt,
+      packageName: packageOffering.name,
+      coachName: user.name,
+    })
+    .from(sessionLedgerEntry)
+    .innerJoin(
+      packagePurchase,
+      eq(packagePurchase.id, sessionLedgerEntry.purchaseId),
+    )
+    .innerJoin(
+      packageOffering,
+      eq(packageOffering.id, packagePurchase.packageId),
+    )
+    .innerJoin(coachProfile, eq(coachProfile.id, packageOffering.coachId))
+    .innerJoin(user, eq(user.id, coachProfile.userId))
+    .where(eq(sessionLedgerEntry.clientId, clientId))
+    .orderBy(sessionLedgerEntry.createdAt);
+
+  const running = new Map<string, number>();
+  const withBalance = rows.map((r) => {
+    const bal = (running.get(r.purchaseId) ?? 0) + r.delta;
+    running.set(r.purchaseId, bal);
+    return {
+      delta: r.delta,
+      reason: r.reason,
+      description: r.description,
+      createdAt: r.createdAt,
+      packageName: r.packageName,
+      coachName: r.coachName,
+      balanceAfter: bal,
+    };
+  });
+  return withBalance.reverse();
 }
 
 // ─── Dashboard ──────────────────────────────────────────────────────────────
@@ -496,38 +682,6 @@ export async function coachAvailabilityInputs(
   return { windows, busy };
 }
 
-const intendedPkg = alias(packageOffering, "intended_pkg");
-
-function toPackageSummary(row: {
-  intendedId: string | null;
-  intendedName: string | null;
-  intendedDescription: string | null;
-  intendedSessionCount: number | null;
-  intendedSessionLengthMin: number | null;
-  intendedPricePerSessionCents: number | null;
-  intendedValidityDays: number | null;
-}): PackageSummary | null {
-  if (
-    row.intendedId === null ||
-    row.intendedName === null ||
-    row.intendedSessionCount === null ||
-    row.intendedSessionLengthMin === null ||
-    row.intendedPricePerSessionCents === null ||
-    row.intendedValidityDays === null
-  ) {
-    return null;
-  }
-  return {
-    id: row.intendedId,
-    name: row.intendedName,
-    description: row.intendedDescription,
-    sessionCount: row.intendedSessionCount,
-    sessionLengthMin: row.intendedSessionLengthMin,
-    pricePerSessionCents: row.intendedPricePerSessionCents,
-    validityDays: row.intendedValidityDays,
-  };
-}
-
 export type ClientBooking = {
   id: string;
   type: SessionType;
@@ -544,8 +698,6 @@ export type ClientBooking = {
   packagePurchaseId: string | null;
   /** Name of that purchase's package — for cancel / reschedule copy. */
   packageName: string | null;
-  /** For a `pending_payment` booking: the package checkout will sell. */
-  intendedPackage: PackageSummary | null;
 };
 
 const clientBookingColumns = {
@@ -562,20 +714,13 @@ const clientBookingColumns = {
   coachName: user.name,
   coachSlug: coachProfile.slug,
   coachActive: coachProfile.active,
-  intendedId: intendedPkg.id,
-  intendedName: intendedPkg.name,
-  intendedDescription: intendedPkg.description,
-  intendedSessionCount: intendedPkg.sessionCount,
-  intendedSessionLengthMin: intendedPkg.sessionLengthMin,
-  intendedPricePerSessionCents: intendedPkg.pricePerSessionCents,
-  intendedValidityDays: intendedPkg.validityDays,
 };
 
 /** Every non-cancelled booking for a client, for the bookings-screen list. */
 export async function getClientBookings(
   clientId: string,
 ): Promise<ClientBooking[]> {
-  const rows = await db
+  return db
     .select(clientBookingColumns)
     .from(booking)
     .innerJoin(coachProfile, eq(coachProfile.id, booking.coachId))
@@ -588,89 +733,8 @@ export async function getClientBookings(
       packageOffering,
       eq(packageOffering.id, packagePurchase.packageId),
     )
-    .leftJoin(intendedPkg, eq(intendedPkg.id, booking.intendedPackageId))
     .where(and(eq(booking.clientId, clientId), ne(booking.status, "cancelled")))
     .orderBy(booking.startsAt);
-  return rows.map(
-    ({
-      intendedId,
-      intendedName,
-      intendedDescription,
-      intendedSessionCount,
-      intendedSessionLengthMin,
-      intendedPricePerSessionCents,
-      intendedValidityDays,
-      ...b
-    }) => ({
-      ...b,
-      intendedPackage: toPackageSummary({
-        intendedId,
-        intendedName,
-        intendedDescription,
-        intendedSessionCount,
-        intendedSessionLengthMin,
-        intendedPricePerSessionCents,
-        intendedValidityDays,
-      }),
-    }),
-  );
-}
-
-// ─── Checkout ────────────────────────────────────────────────────────────
-
-export type PayableBooking = {
-  id: string;
-  type: SessionType;
-  startsAt: Date;
-  location: string;
-  coachName: string;
-  /** The package the client is buying to hold this booking. */
-  package: PackageSummary;
-};
-
-/** A client's own `pending_payment` booking + the package checkout will sell. */
-export async function getPayableBooking(
-  bookingId: string,
-  clientId: string,
-): Promise<PayableBooking | null> {
-  const [row] = await db
-    .select({
-      id: booking.id,
-      type: booking.type,
-      startsAt: booking.startsAt,
-      location: booking.location,
-      coachName: user.name,
-      intendedId: intendedPkg.id,
-      intendedName: intendedPkg.name,
-      intendedDescription: intendedPkg.description,
-      intendedSessionCount: intendedPkg.sessionCount,
-      intendedSessionLengthMin: intendedPkg.sessionLengthMin,
-      intendedPricePerSessionCents: intendedPkg.pricePerSessionCents,
-      intendedValidityDays: intendedPkg.validityDays,
-    })
-    .from(booking)
-    .innerJoin(coachProfile, eq(coachProfile.id, booking.coachId))
-    .innerJoin(user, eq(user.id, coachProfile.userId))
-    .leftJoin(intendedPkg, eq(intendedPkg.id, booking.intendedPackageId))
-    .where(
-      and(
-        eq(booking.id, bookingId),
-        eq(booking.clientId, clientId),
-        eq(booking.status, "pending_payment"),
-      ),
-    )
-    .limit(1);
-  if (!row) return null;
-  const pkg = toPackageSummary(row);
-  if (!pkg) return null;
-  return {
-    id: row.id,
-    type: row.type,
-    startsAt: row.startsAt,
-    location: row.location,
-    coachName: row.coachName,
-    package: pkg,
-  };
 }
 
 export type ManagedBooking = {

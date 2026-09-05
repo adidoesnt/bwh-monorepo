@@ -63,15 +63,16 @@
 	});
 	const shown = $derived(matched.slice(0, limit));
 
-	const isPending = (s: string) =>
-		s === 'pending_payment' || s === 'pending_approval' || s === 'pending_verification';
 	const bookings = $derived(data.bookings ?? []);
 	const now = Date.now();
 	const tabbed = $derived({
 		upcoming: bookings.filter(
-			(b) => +new Date(b.startsAt) >= now && !isPending(b.status) && b.status !== 'completed'
+			(b) =>
+				+new Date(b.startsAt) >= now &&
+				b.status !== 'pending_approval' &&
+				b.status !== 'completed'
 		),
-		awaiting: bookings.filter((b) => isPending(b.status)),
+		awaiting: bookings.filter((b) => b.status === 'pending_approval'),
 		past: bookings.filter((b) => +new Date(b.startsAt) < now || b.status === 'completed')
 	});
 	const bkTabs = [
@@ -296,11 +297,6 @@
 	{/if}
 
 	{#if manageTarget}
-		<ManageBookingModal
-			booking={manageTarget}
-			{clientZone}
-			stripeEnabled={data.stripeEnabled}
-			bind:open={manageOpen}
-		/>
+		<ManageBookingModal booking={manageTarget} {clientZone} bind:open={manageOpen} />
 	{/if}
 </div>

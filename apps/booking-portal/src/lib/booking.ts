@@ -41,13 +41,12 @@ export const CANCELLATION_WINDOW_HOURS = 24;
 
 /**
  * What cancelling a booking does to the client's package:
- * - `none`    — no session was consumed yet (pending approval/payment)
- * - `void`    — a paynow proof is in flight → void its unverified invoice
+ * - `none`    — nothing was consumed yet (still awaiting approval)
  * - `return`  — confirmed & outside the window → session goes back to the pack
  * - `forfeit` — confirmed & inside the window → session is used, nothing back
  * - `blocked` — already completed/cancelled, nothing to do
  */
-export type CancelOutcome = 'none' | 'void' | 'return' | 'forfeit' | 'blocked';
+export type CancelOutcome = 'none' | 'return' | 'forfeit' | 'blocked';
 
 export function cancelOutcome(
 	status: BookingStatus,
@@ -55,21 +54,20 @@ export function cancelOutcome(
 	now: Date = new Date(),
 ): CancelOutcome {
 	if (status === 'completed' || status === 'cancelled') return 'blocked';
-	if (status === 'pending_approval' || status === 'pending_payment') return 'none';
-	if (status === 'pending_verification') return 'void';
-	// confirmed
+	// pending_approval (+ any pre-6 pending_* rows) — no session drawn yet
+	if (status !== 'confirmed') return 'none';
 	const hoursOut = (startsAt.getTime() - now.getTime()) / 3_600_000;
 	return hoursOut >= CANCELLATION_WINDOW_HOURS ? 'return' : 'forfeit';
 }
 
-/** A confirmed session can only be moved while still outside the window; other
- *  live statuses are always reschedulable, settled ones never. */
+/** A confirmed session can only be moved while still outside the window; a
+ *  pending request always, settled ones never. */
 export function canReschedule(
 	status: BookingStatus,
 	startsAt: Date,
 	now: Date = new Date(),
 ): boolean {
-	if (status === 'pending_approval' || status === 'pending_payment') return true;
+	if (status === 'pending_approval') return true;
 	if (status !== 'confirmed') return false;
 	return (startsAt.getTime() - now.getTime()) / 3_600_000 >= CANCELLATION_WINDOW_HOURS;
 }

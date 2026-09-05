@@ -2,7 +2,6 @@ import { and, eq } from "drizzle-orm";
 import {
   booking as bookingTable,
   sessionLedgerEntry,
-  invoice,
 } from "@repo/database/schema";
 import { cancelOutcome, type CancelOutcome } from "$lib/booking";
 import { db } from "./db";
@@ -13,8 +12,7 @@ export type CancelResult = { outcome: CancelOutcome };
  * Cancel a client's own booking, applying the 24h policy:
  * - `return`  → the session goes back to the pack (`+1` ledger entry)
  * - `forfeit` → the session is spent, nothing back
- * - `void`    → an in-flight paynow invoice is voided (purchase never happened)
- * - `none`    → nothing was consumed yet
+ * - `none`    → nothing was drawn yet (still awaiting approval)
  * See `cancelOutcome`.
  */
 export async function cancelBooking(
@@ -56,18 +54,6 @@ export async function cancelBooking(
         reason: "returned_in_time",
         description: `cancelled in time · ${row.type} · session returned`,
       });
-    }
-
-    if (outcome === "void") {
-      await tx
-        .update(invoice)
-        .set({
-          status: "no_charge",
-          method: "paynow · cancelled before verification",
-        })
-        .where(
-          and(eq(invoice.bookingId, row.id), eq(invoice.status, "pending")),
-        );
     }
   });
 

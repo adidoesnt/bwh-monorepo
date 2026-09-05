@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { ledgerLabel } from '$lib/activity';
 	import { dateChip, longDate, longDateNoYear, relativeDay, timeOf } from '$lib/format';
 	import { statusLabel, statusPill } from '$lib/status';
 	import { browserZone } from '$lib/tz';
@@ -47,19 +48,6 @@
 		granted > 0 ? Math.round((left / granted) * 100) : 0;
 	const pkgBarClass = (p: number) => (p > 50 ? 'bg-success' : p > 20 ? 'bg-warning' : 'bg-error');
 
-	const firstOf = (name: string) => name.split(' ')[0] ?? name;
-	function activityLabel(a: {
-		reason: string;
-		delta: number;
-		packageName: string;
-		coachName: string;
-	}) {
-		const coach = firstOf(a.coachName);
-		if (a.reason === 'purchase') return `bought ${a.packageName} · ${coach}`;
-		if (a.reason === 'session_consumed') return `session with ${coach}`;
-		if (a.reason === 'returned_in_time') return `session returned · ${coach}`;
-		return `${a.delta > 0 ? '+' : ''}${a.delta} adjustment · ${coach}`;
-	}
 </script>
 
 <div class="mx-auto max-w-5xl p-6 md:p-10">
@@ -185,19 +173,16 @@
 								<li
 									class="rounded-field flex items-baseline justify-between gap-3 px-2.5 py-2 text-sm {zebra}"
 								>
-									<span class="min-w-0 flex-1 truncate">{activityLabel(a)}</span>
+									<span class="min-w-0 flex-1 truncate">{ledgerLabel(a)}</span>
 									<span class="text-base-content/40 shrink-0 text-xs">
 										{relativeDay(new Date(a.createdAt), tz, today)}
 									</span>
 								</li>
 							{/each}
 						</ul>
-						<span
-							class="text-base-content/35 mt-3 block cursor-not-allowed text-xs"
-							title="full activity log — coming in a later phase"
-						>
+						<a href="/activity" class="text-base-content/45 hover:text-base-content mt-3 block text-xs">
 							view all →
-						</span>
+						</a>
 					{/if}
 				</section>
 			</div>

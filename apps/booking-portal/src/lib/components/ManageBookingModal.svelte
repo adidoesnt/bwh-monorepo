@@ -1,29 +1,25 @@
 <script lang="ts">
 	import { enhance } from '$app/forms';
 	import { goto } from '$app/navigation';
-	import { cancelOutcome, canReschedule, packageTotalCents, type CancelOutcome } from '$lib/booking';
+	import { cancelOutcome, canReschedule, type CancelOutcome } from '$lib/booking';
 	import { longDate, timeOf } from '$lib/format';
-	import { STRIPE_NOT_IMPLEMENTED } from '$lib/payments';
 	import { statusLabel } from '$lib/status';
 	import type { ClientBooking } from '$lib/server/queries';
 
-	type Step = 'menu' | 'pay-review' | 'pay-upload' | 'pay-done' | 'cancel' | 'cancel-done' | 'note';
+	type Step = 'menu' | 'cancel' | 'cancel-done' | 'note';
 
 	type Props = {
 		booking: ClientBooking;
 		clientZone: string;
-		stripeEnabled: boolean;
 		open?: boolean;
 		onclose?: () => void;
 	};
-	let { booking, clientZone, stripeEnabled, open = $bindable(false), onclose }: Props = $props();
+	let { booking, clientZone, open = $bindable(false), onclose }: Props = $props();
 
 	let dialog = $state<HTMLDialogElement>();
 	let step = $state<Step>('menu');
 	let submitting = $state(false);
 	let error = $state<string | null>(null);
-	let fileName = $state<string | null>(null);
-	let previewUrl = $state<string | null>(null);
 	let doneOutcome = $state<CancelOutcome | null>(null);
 
 	const now = new Date();
@@ -32,24 +28,14 @@
 	const outcome = $derived(cancelOutcome(booking.status, start, now));
 	const reschedulable = $derived(booking.coachActive && canReschedule(booking.status, start, now));
 	const cancelable = $derived(outcome !== 'blocked');
-
-	const sgd = (cents: number) => `SG$${(cents / 100).toFixed(2)}`;
-	const pkg = $derived(booking.intendedPackage);
 	const packLabel = $derived(booking.packageName ?? 'your package');
 
 	const cancelCopy: Record<CancelOutcome, string> = $derived({
-		none: 'this frees the slot back up. no session was taken for this one, so there is nothing to give back.',
-		void: "we'll mark your payment as cancelled — the package purchase won't go through. if your paynow transfer already went out, message your coach and she'll sort the refund.",
+		none: 'this frees the slot back up. no session was drawn for this one, so there is nothing to give back.',
 		return: `you're more than 24 hours out, so the session goes straight back to ${packLabel}.`,
 		forfeit: `this is within 24 hours of the session, so it's used up — it won't come back to ${packLabel}. this can't be undone.`,
 		blocked: ''
 	});
-
-	function setPreview(file: File | undefined) {
-		if (previewUrl) URL.revokeObjectURL(previewUrl);
-		previewUrl = file ? URL.createObjectURL(file) : null;
-		fileName = file?.name ?? null;
-	}
 
 	// Show/hide only — reset to the menu each time it opens.
 	$effect(() => {
@@ -63,16 +49,11 @@
 		}
 	});
 
-	$effect(() => () => {
-		if (previewUrl) URL.revokeObjectURL(previewUrl);
-	});
-
 	function close() {
 		open = false;
 		step = 'menu';
 		error = null;
 		doneOutcome = null;
-		setPreview(undefined);
 		onclose?.();
 	}
 
@@ -93,12 +74,10 @@
 		</button>
 
 		<h3 class="font-headings mb-1 text-xl">
-			{#if step === 'menu'}manage session
-			{:else if step === 'cancel'}cancel this session?
+			{#if step === 'cancel'}cancel this session?
 			{:else if step === 'cancel-done'}session cancelled
 			{:else if step === 'note'}your notes
-			{:else if step === 'pay-done'}payment submitted
-			{:else}buy a package{/if}
+			{:else}manage session{/if}
 		</h3>
 		<p class="text-base-content/60 mb-4 text-xs">
 			{booking.coachName} · {booking.type} · {longDate(start, clientZone)} ·
@@ -115,12 +94,6 @@
 					{statusLabel[booking.status]}
 				</span>
 
-				{#if booking.status === 'pending_payment'}
-					<button class="btn btn-primary btn-sm w-full" onclick={() => (step = 'pay-review')}>
-						{pkg ? `buy ${pkg.name} to confirm` : 'buy a package to confirm'}
-					</button>
-				{/if}
-
 				{#if isPast}
 					<button class="btn btn-sm w-full" onclick={() => (step = 'note')}>
 						{booking.clientReflection ? 'edit your notes' : 'add your notes'}
@@ -129,7 +102,7 @@
 
 				{#if reschedulable}
 					<button class="btn btn-sm w-full" onclick={reschedule}>reschedule</button>
-				{:else if !isPast && booking.status !== 'pending_verification' && !booking.coachActive}
+				{:else if !isPast && !booking.coachActive}
 					<p class="text-base-content/45 text-xs">
 						this coach is no longer taking bookings — reschedule isn't available.
 					</p>
@@ -148,7 +121,7 @@
 			<p class="text-base-content/70 text-sm leading-relaxed">{cancelCopy[outcome]}</p>
 			<form
 				method="POST"
-				action="?/cancel"
+				action="/bookings?/cancel"
 				use:enhance={() => {
 					submitting = true;
 					error = null;
@@ -168,9 +141,7 @@
 			>
 				<input type="hidden" name="bookingId" value={booking.id} />
 				<div class="modal-action">
-					<button type="button" class="btn btn-sm" onclick={() => (step = 'menu')}>
-						keep it
-					</button>
+					<button type="button" class="btn btn-sm" onclick={() => (step = 'menu')}>keep it</button>
 					<button type="submit" class="btn btn-sm btn-error" disabled={submitting}>
 						{submitting ? 'cancelling…' : 'cancel session'}
 					</button>
@@ -182,8 +153,6 @@
 					done — the session is back on {packLabel}.
 				{:else if doneOutcome === 'forfeit'}
 					done. the session was used for this late cancellation.
-				{:else if doneOutcome === 'void'}
-					done — the payment is marked cancelled. contact your coach if your transfer already went through.
 				{:else}
 					done — the slot is freed up.
 				{/if}
@@ -191,10 +160,10 @@
 			<div class="modal-action">
 				<button class="btn btn-sm btn-primary" onclick={close}>done</button>
 			</div>
-		{:else if step === 'note'}
+		{:else}
 			<form
 				method="POST"
-				action="?/reflect"
+				action="/bookings?/reflect"
 				use:enhance={() => {
 					submitting = true;
 					error = null;
@@ -227,111 +196,6 @@
 					<button type="button" class="btn btn-sm" onclick={() => (step = 'menu')}>back</button>
 					<button type="submit" class="btn btn-sm btn-primary" disabled={submitting}>
 						{submitting ? 'saving…' : 'save'}
-					</button>
-				</div>
-			</form>
-		{:else if step === 'pay-done'}
-			<p class="text-base-content/70 text-sm leading-relaxed">
-				thanks — we've got your paynow screenshot. your coach confirms it once it's verified,
-				usually within a few hours. your sessions land on your account then, and this booking
-				shows as <strong>verifying payment</strong> under awaiting action.
-			</p>
-			{#if previewUrl}
-				<img
-					src={previewUrl}
-					alt="your uploaded payment screenshot"
-					class="border-base-300 mt-3 max-h-48 w-full rounded-md border object-contain"
-				/>
-			{/if}
-			<div class="modal-action">
-				<button class="btn btn-sm btn-primary" onclick={close}>done</button>
-			</div>
-		{:else if stripeEnabled}
-			<div class="border-warning bg-warning/15 rounded-md border p-3 text-sm leading-relaxed">
-				{STRIPE_NOT_IMPLEMENTED}
-			</div>
-			<div class="modal-action">
-				<button class="btn btn-sm" onclick={() => (step = 'menu')}>back</button>
-			</div>
-		{:else if !pkg}
-			<div class="border-warning bg-warning/15 rounded-md border p-3 text-sm leading-relaxed">
-				this booking has no package attached — start a new request from the coach's page.
-			</div>
-			<div class="modal-action">
-				<button class="btn btn-sm" onclick={() => (step = 'menu')}>back</button>
-			</div>
-		{:else if step === 'pay-review'}
-			<div class="border-base-300 bg-base-200/40 mb-4 rounded-md border p-4">
-				<div class="mb-2 flex items-baseline justify-between gap-2">
-					<span class="text-sm font-medium">{pkg.name}</span>
-					<span class="font-headings text-xl uppercase">{sgd(packageTotalCents(pkg))}</span>
-				</div>
-				<div class="text-base-content/55 text-xs">
-					{pkg.sessionCount} × {pkg.sessionLengthMin}-min sessions · {sgd(pkg.pricePerSessionCents)}/session
-					· valid {pkg.validityDays} days
-				</div>
-				<div
-					class="border-base-300 bg-base-100 mx-auto mt-4 grid h-32 w-32 place-items-center rounded-md border border-dashed"
-				>
-					<span class="text-base-content/30 font-body text-[10px] uppercase">qr placeholder</span>
-				</div>
-				<div class="text-base-content/45 font-body mt-2 text-center text-[11px]">
-					scan to pay with paynow · reference {booking.id.slice(0, 8)}
-				</div>
-			</div>
-			<button class="btn btn-primary w-full" onclick={() => (step = 'pay-upload')}>
-				i've paid — upload proof
-			</button>
-		{:else}
-			<form
-				method="POST"
-				action="?/pay"
-				enctype="multipart/form-data"
-				use:enhance={() => {
-					submitting = true;
-					error = null;
-					return async ({ result, update }) => {
-						submitting = false;
-						if (result.type === 'failure') {
-							error = (result.data?.error as string) ?? 'something went wrong — try again.';
-							return;
-						}
-						if (result.type === 'success') {
-							step = 'pay-done';
-							await update({ invalidateAll: true });
-						}
-					};
-				}}
-			>
-				<input type="hidden" name="bookingId" value={booking.id} />
-				<label class="text-base-content/60 mb-3 flex flex-col gap-1.5 text-xs">
-					screenshot of your paynow payment
-					<input
-						type="file"
-						name="screenshot"
-						accept="image/*"
-						required
-						class="file-input file-input-sm border-base-300 w-full"
-						onchange={(e) => setPreview(e.currentTarget.files?.[0])}
-					/>
-				</label>
-				{#if previewUrl}
-					<img
-						src={previewUrl}
-						alt="payment screenshot preview"
-						class="border-base-300 mb-4 max-h-48 w-full rounded-md border object-contain"
-					/>
-				{/if}
-				<div class="flex gap-2">
-					<button type="button" class="btn btn-sm flex-1" onclick={() => (step = 'pay-review')}>
-						back
-					</button>
-					<button
-						type="submit"
-						class="btn btn-sm btn-primary flex-1"
-						disabled={submitting || !fileName}
-					>
-						{submitting ? 'submitting…' : 'submit'}
 					</button>
 				</div>
 			</form>

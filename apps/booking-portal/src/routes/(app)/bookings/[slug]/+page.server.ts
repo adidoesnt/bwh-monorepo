@@ -11,6 +11,7 @@ import {
   SESSION_TYPES,
 } from "$lib/booking";
 import { db } from "$lib/server/db";
+import { stripeEnabled } from "$lib/server/payments";
 import {
   coachAvailabilityInputs,
   getActivePurchasesForCoach,
@@ -20,7 +21,6 @@ import {
   getHeldSessions,
   getIntakeComplete,
   getManagedBooking,
-  getPackageById,
   getPurchaseBalance,
 } from "$lib/server/queries";
 import type { Actions, PageServerLoad } from "./$types";
@@ -94,6 +94,7 @@ export const load: PageServerLoad = async ({ params, parent, url }) => {
       durationMin: b.durationMin,
     })),
     intakeComplete: badges?.intakeComplete ?? true,
+    stripeEnabled: stripeEnabled(),
     purchases: purchases.map((p) => ({
       id: p.id,
       packageName: p.packageName,
@@ -125,10 +126,8 @@ const requestSchema = z.object({
   location: z.string().trim().min(1).max(120),
   note: z.string().trim().max(500).optional(),
   clientZone: z.string().trim().min(1).max(64),
-  /** Draw the session from this active purchase … */
+  /** Draw the session from this active purchase (omitted for a free consult). */
   purchaseId: z.string().trim().min(1).optional(),
-  /** … or buy this package to hold it (pending_payment). */
-  packageId: z.string().trim().min(1).optional(),
 });
 
 const rescheduleSchema = z.object({
@@ -211,18 +210,15 @@ export const actions: Actions = {
     if (!parsed.success) {
       return fail(400, { error: "check the form and try again" });
     }
-    const { type, location, note, purchaseId, packageId } = parsed.data;
+    const { type, location, note, purchaseId } = parsed.data;
 
-    // Work out the session length, resulting status, and what backs the booking.
+    // A session's length + backing purchase come from the package it draws from.
     let durationMin: number;
-    let status: "pending_approval" | "pending_payment";
     let packagePurchaseId: string | null = null;
-    let intendedPackageId: string | null = null;
     let expiryCap: Date | null = null;
 
     if (type === "free consult") {
       durationMin = CONSULT_MIN;
-      status = "pending_approval";
     } else if (purchaseId) {
       const purchases = await getActivePurchasesForCoach(userId, coach.id);
       const purchase = purchases.find((p) => p.id === purchaseId);
@@ -239,18 +235,12 @@ export const actions: Actions = {
         });
       }
       durationMin = purchase.sessionLengthMin;
-      status = "pending_approval";
       packagePurchaseId = purchase.id;
       expiryCap = new Date(purchase.expiresAt);
-    } else if (packageId) {
-      const pkg = await getPackageById(packageId);
-      if (!pkg) return fail(400, { error: "pick a package to continue" });
-      durationMin = pkg.sessionLengthMin;
-      status = "pending_payment";
-      intendedPackageId = pkg.id;
-      expiryCap = new Date(Date.now() + pkg.validityDays * 86_400_000);
     } else {
-      return fail(400, { error: "pick a package to continue" });
+      return fail(400, {
+        error: `buy a package with ${coach.name.split(" ")[0]} before booking a session`,
+      });
     }
 
     const slot = await resolveSlot({
@@ -280,8 +270,7 @@ export const actions: Actions = {
       startsAt: slot.at,
       durationMin,
       packagePurchaseId,
-      intendedPackageId,
-      status,
+      status: "pending_approval",
       clientNote: note ?? null,
     });
 
