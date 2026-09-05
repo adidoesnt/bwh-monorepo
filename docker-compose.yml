@@ -11,5 +11,18 @@ services:
     volumes:
       - postgres_data:/var/lib/postgresql
 
+  # S3-compatible object storage for dev (PayNow screenshots etc). Only S3 is
+  # used, so no /var/run/docker.sock mount — that's only needed for floci's
+  # Docker-backed services (Lambda, RDS, ...), which run in-process for S3.
+  floci:
+    image: floci/floci:latest
+    restart: unless-stopped
+    ports:
+      - "4566:4566"
+    environment:
+      AWS_ACCESS_KEY_ID: test
+      AWS_SECRET_ACCESS_KEY: test
+      AWS_DEFAULT_REGION: us-east-1
+
 volumes:
   postgres_data:
