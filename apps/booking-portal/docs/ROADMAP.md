@@ -304,50 +304,51 @@ Reschedule < 24h: blocked. The `< 24h` cancel no longer writes a `no_charge` inv
 | Docs (ROADMAP, BOOKING-LIFECYCLE) | ~1.5h |
 | **Total** | **~14.5h** |
 
-## Phase 6 — Decouple purchases + packages/payments/activity pages (client) ⬜
+## Phase 6 — Decouple purchases + packages/payments/activity pages (client) ✅ done
 **Estimate: ~10h**
 
 *Design screens: "Packages & credits" (re-scoped), "Payments"*
 
 Phase 5.5 bundled "buy a package" into `?/request`, producing a `pending_payment` booking with a
-"pay" step. That's wrong: **a session must come from a package that's already paid for**. Phase 6
-splits the two — money lives entirely on the purchase side, a booking is only ever
-`pending_approval` → `confirmed`. See `BOOKING-LIFECYCLE.md` for the revised state machines.
+"pay" step — wrong, because **a session must come from a package that's already paid for**.
+Phase 6 split the two: money lives entirely on the purchase side, a booking is only ever
+`pending_approval` → `confirmed`. See `BOOKING-LIFECYCLE.md` for the two state machines.
 
-### Part A — decouple buying from booking — *~3h*
+### Part A — decouple buying from booking
 
-- **Schema** (migration `0007`, no prod data): drop `booking.intended_package_id`; add
-  `invoice.package_id` (nullable FK — the package a pending purchase-invoice is for). Remove
-  `pending_payment` / `pending_verification` from the `BookingStatus` union (kept written to
-  never; no DB constraint to change).
-- **`?/request`** (`bookings/[slug]`): drop the "no package → buy inside the form" branch. No
-  active package with this coach → the booking form is replaced by "get a {coach} package to
-  book" + that coach's packages + a **buy** button (opens the standalone buy modal). Free
-  consult still books with no package.
-- **`ManageBookingModal`**: remove the `pay-*` steps and the `pending_payment` menu entry —
-  nothing to pay on a booking.
-- **`cancelOutcome`**: drop the `void` case. Outcomes are `none` (`pending_approval`), `return`
-  (confirmed ≥24h), `forfeit` (confirmed <24h), `blocked`.
-- **`getPayableBooking`** → deleted; **checkout modal's booking-linked path** → deleted.
-- **Seed**: drop `pending_payment` bookings; add a couple of unverified purchase-invoices
-  (`status: pending`, `package_id`, `proof_image_key`) so the new pages have rows.
+- ✅ **Schema** (migration `0007_decouple_purchases`, no prod data): dropped
+  `booking.intended_package_id`; added `invoice.package_id` (the package a pending
+  purchase-invoice is for). `pending_payment` / `pending_verification` stay in the
+  `BookingStatus` type for pre-6 rows but are never written; `ACTIVE_BOOKING_STATUSES` /
+  `PENDING_STATUSES` trimmed to what's live.
+- ✅ **`?/request`** (`bookings/[slug]`): no active package with this coach → the form is
+  replaced by "get a {coach} package to book" + that coach's packages + a **buy** button
+  (`BuyPackageModal`). Free consult still books with no package.
+- ✅ **`ManageBookingModal`**: `pay-*` steps + the `pending_payment` menu entry gone.
+- ✅ **`cancelOutcome`**: `void` case dropped — `none` / `return` / `forfeit` / `blocked`.
+- ✅ `getPayableBooking` + the checkout modal's booking-linked path deleted.
+- ✅ **Seed**: no `pending_payment` bookings; two unverified purchase-invoices for the new pages.
 
-### Part B — the pages — *~7h*
+### Part B — the pages
 
-- **`?/buy`** + **buy-a-package modal** — review (package, total, PayNow QR) → upload proof →
-  writes an `invoice` (`status: pending`, `package_id`, `proof_image_key`, `method: "paynow ·
-  awaiting verification"`, amount = package total). No `package_purchase`, no sessions — Phase 9
-  verifies. Reused by `/packages` and the `[slug]` "get a package" branch — *1.5h*
-- **`/packages`** — "your packages" (card per active `package_purchase`: coach, name, sessions
-  remaining / N, length, expiry, + that purchase's `session_ledger_entry` log) · "awaiting
-  verification" (pending purchase-invoices) · "get more sessions" → browse coaches → buy modal — *2.5h*
-- **`/payments`** — invoice table (number, date, description, amount, status, PayNow proof
-  thumbnail) + stats (total spent, sessions bought) + cancellation-policy blurb. No saved
-  payment methods (nothing to save without Stripe) — *2h*
-- **`/activity`** — full `session_ledger_entry` log across all packages, chronological, with the
-  resulting **per-purchase running balance** on each row and coach filter chips. Sidebar item
-  `activity` + the dashboard "recent activity" card's "view all" flip to enabled — *1.5h*
-- Docs (ROADMAP, BOOKING-LIFECYCLE) — *0.5h*
+- ✅ **`BuyPackageModal` + `/packages` `?/buy`** — review (package, total, PayNow QR) → upload
+  proof → writes a pending `invoice` (`package_id`, `proof_image_key`, amount = package total).
+  No `package_purchase`, no sessions — **Phase 9 verifies**. Stripe short-circuits via the flag.
+- ✅ **`/packages`** — "your packages" (card per active `package_purchase` with an expandable
+  `session_ledger_entry` log) · "awaiting verification" (pending purchase-invoices) · "get more
+  sessions" as **one card per coach**, showing packages from the **≤3 coaches the client engaged
+  with most recently** (`getSuggestedPackages`, booked-or-bought, recency-ordered) — full
+  browsing stays on `/bookings`.
+- ✅ **`/packages`** also enforces **`MAX_ACTIVE_PACKAGES = 5`** (`src/lib/booking.ts`, hardcoded
+  until Phase 10): held = active purchases + pending purchase-invoices; `?/buy` rejects at the
+  cap and the buy buttons (here + on `[slug]`) disable with a reason.
+- ✅ **`/payments`** — invoice table (number, date, description, amount, status, presigned
+  PayNow-proof link) + stats (total paid / count / awaiting verification) + cancellation-policy
+  blurb. No saved payment methods.
+- ✅ **`/activity`** — full `session_ledger_entry` log, chronological, **per-purchase running
+  balance** on each row, coach filter chips, **20/page** client-side pagination. Sidebar item
+  `activity` + the dashboard "recent activity" "view all" now enabled. Shared `ledgerLabel`
+  helper (`src/lib/activity.ts`).
 
 ## Phase 7 — Intake / PAR-Q health screening ⬜
 **Estimate: ~4.5h**
@@ -420,24 +421,26 @@ splits the two — money lives entirely on the purchase side, a booking is only 
 - Accessibility and responsive pass against the prototype's breakpoints — *3h*
 - Test coverage for booking / session-ledger / cancellation logic (real money and scheduling
   correctness at stake) — *4h*
-- Production deploy pipeline — *2h*
+- Production deploy pipeline: pick a concrete SvelteKit adapter (adapter-auto can't detect one),
+  and set the prod env — `BETTER_AUTH_SECRET` is **required** (dev + `vite build` fall back to a
+  throwaway value; real prod runtime throws without it — see `src/lib/server/config.ts`) — *2h*
 
 ---
 
 ## Progress
 
-**Done:** Phases 0, 1, 2, 2.5, 3, 5, 5.5. **Phase 6 in progress** (decouple purchases + the
-`/packages` · `/payments` · `/activity` pages). **Phase 4 partial:** the PayNow-proof flow exists
-but every path through it (buy a package, get a booking confirmed) is a dead end until Phase 9.
+**Done:** Phases 0, 1, 2, 2.5, 3, 5, 5.5, 6. **Phase 4 partial:** the PayNow-proof flow exists but
+every path through it (buy a package, get a booking confirmed) is a dead end until Phase 9.
 
 **Next on the critical path:** Phase 9 (trainer portal) — nothing the client does completes
 without it: `pending_approval` bookings can't be confirmed, pending package-invoices can't be
-verified into real sessions. Phase 6 finishes the client-facing surfaces around that gap.
+verified into real sessions. Phase 6 built every client-facing surface around that gap, so the
+client side is feature-complete pending Phase 9 + Phase 7 (PAR-Q form) + Phase 8 (progress).
 
 ## Suggested near-term order
 
 Phases 1 → 5 built the client booking loop; Phase 5.5 rebased billing onto coach packages;
-Phase 6 splits buying from booking and adds the packages/payments/activity pages. **Phase 9
+Phase 6 split buying from booking and shipped the packages/payments/activity pages. **Phase 9
 (trainer portal) is the real unblock** — until it lands, `pending_approval` bookings and pending
 package-invoices both sit idle. Phases 7–11 otherwise proceed in roughly the listed order.
 
@@ -453,6 +456,6 @@ package-invoices both sit idle. Phases 7–11 otherwise proceed in roughly the l
 | Polish & hardening (Phase 12) | ~16h |
 | **End-to-end** | **~116-126h**, i.e. roughly 3-3.5 weeks of focused solo AI-assisted work |
 
-Treat these as planning inputs, not commitments — re-estimate each phase once Phase 1's schema is
-locked in, since it's the foundation everything else measures against. (Phase 5.5 re-opens the
-billing tables — treat the Phase 6/9/10 estimates as provisional until it lands.)
+Treat these as planning inputs, not commitments. Phases 1–6 came in roughly on estimate
+(~57.5h). The Phase 9/10 estimates are still provisional — they inherit whatever shape the
+Phase 9 trainer portal settles on.
