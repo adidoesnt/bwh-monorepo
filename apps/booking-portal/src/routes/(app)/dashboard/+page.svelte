@@ -27,11 +27,14 @@
 							: 'nothing booked'
 					},
 					{
-						label: 'credits left',
-						value: String(dash.creditBalance),
-						sub: dash.activePackage
-							? `${dash.activePackage.name} · expires ${longDateNoYear(new Date(dash.activePackage.expiresAt), tz)}`
-							: 'no active package'
+						label: 'sessions left',
+						value: String(dash.sessionsRemaining),
+						sub:
+							dash.packages.length === 0
+								? 'no active package'
+								: dash.packages.length === 1
+									? `${dash.packages[0]!.packageName} · with ${dash.packages[0]!.coachName.split(' ')[0]}`
+									: `across ${dash.packages.length} packages`
 					},
 					{ label: 'sessions done', value: String(dash.stats.sessionsDone), sub: 'completed with us' },
 					{ label: 'this week', value: String(dash.stats.thisWeek), sub: 'confirmed or done' }
@@ -39,15 +42,10 @@
 			: []
 	);
 
-	const pkgPct = $derived(
-		dash?.activePackage && dash.activePackage.creditsGranted > 0
-			? Math.round((dash.activePackage.creditsLeft / dash.activePackage.creditsGranted) * 100)
-			: 0
-	);
-	// Bar colour tracks how much of the package is left: healthy → running low → nearly out.
-	const pkgBarClass = $derived(
-		pkgPct > 50 ? 'bg-success' : pkgPct > 20 ? 'bg-warning' : 'bg-error'
-	);
+	// Bar colour tracks how much of a package is left: healthy → running low → nearly out.
+	const pkgPct = (left: number, granted: number) =>
+		granted > 0 ? Math.round((left / granted) * 100) : 0;
+	const pkgBarClass = (p: number) => (p > 50 ? 'bg-success' : p > 20 ? 'bg-warning' : 'bg-error');
 </script>
 
 <div class="mx-auto max-w-5xl p-6 md:p-10">
@@ -118,34 +116,40 @@
 			<!-- right column -->
 			<div class="flex flex-col gap-4">
 				<section class="bg-neutral text-neutral-content rounded-sm p-5">
-					{#if dash.activePackage}
-						<div class="text-neutral-content/60 mb-1.5 text-xs">
-							{dash.activePackage.name} · {dash.activePackage.creditsGranted} credits
-						</div>
-						<div class="mb-3 flex items-end gap-2">
-							<span class="font-headings text-4xl leading-none">{dash.activePackage.creditsLeft}</span>
-							<span class="text-neutral-content/60 pb-1 text-sm">
-								of {dash.activePackage.creditsGranted} credits left
-							</span>
-						</div>
-						<div class="bg-neutral-content/15 mb-3 h-1.5 overflow-hidden rounded-full">
-							<div class="{pkgBarClass} h-full rounded-full transition-all" style:width="{pkgPct}%"></div>
-						</div>
-						<div class="text-neutral-content/60 text-xs">
-							expires {longDateNoYear(new Date(dash.activePackage.expiresAt), tz)}
+					{#if dash.packages.length === 0}
+						<div class="text-neutral-content/70 text-sm">
+							no active package. pick a coach to see her packages.
 						</div>
 					{:else}
-						<div class="text-neutral-content/70 text-sm">
-							no active package. buy credits to start booking.
-						</div>
+						<div class="text-neutral-content/60 mb-3 text-xs">your packages</div>
+						<ul class="flex flex-col gap-4">
+							{#each dash.packages as p (p.coachName + p.packageName + p.expiresAt)}
+								{@const pct = pkgPct(p.sessionsRemaining, p.sessionsGranted)}
+								<li>
+									<div class="mb-1 flex items-end justify-between gap-2">
+										<span class="text-sm">
+											{p.packageName} · <span class="text-neutral-content/60">{p.coachName.split(' ')[0]}</span>
+										</span>
+										<span class="font-headings text-lg leading-none">
+											{p.sessionsRemaining}<span class="text-neutral-content/50 text-xs">/{p.sessionsGranted}</span>
+										</span>
+									</div>
+									<div class="bg-neutral-content/15 mb-1 h-1.5 overflow-hidden rounded-full">
+										<div class="{pkgBarClass(pct)} h-full rounded-full transition-all" style:width="{pct}%"></div>
+									</div>
+									<div class="text-neutral-content/60 text-xs">
+										expires {longDateNoYear(new Date(p.expiresAt), tz)}
+									</div>
+								</li>
+							{/each}
+						</ul>
 					{/if}
-					<button
-						class="border-neutral-content/25 text-neutral-content hover:bg-neutral-content/10 mt-4 w-full rounded-field border px-3 py-2 text-sm transition-colors"
-						disabled
-						title="coming in a later phase"
+					<a
+						href="/bookings"
+						class="border-neutral-content/25 text-neutral-content hover:bg-neutral-content/10 mt-4 block w-full rounded-field border px-3 py-2 text-center text-sm transition-colors"
 					>
-						top up credits
-					</button>
+						browse packages
+					</a>
 				</section>
 
 				<section class="border-success bg-success/30 flex-1 rounded-sm border p-5">

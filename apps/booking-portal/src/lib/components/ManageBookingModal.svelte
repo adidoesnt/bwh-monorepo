@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { enhance } from '$app/forms';
 	import { goto } from '$app/navigation';
-	import { cancelOutcome, canReschedule, type CancelOutcome } from '$lib/booking';
+	import { cancelOutcome, canReschedule, packageTotalCents, type CancelOutcome } from '$lib/booking';
 	import { longDate, timeOf } from '$lib/format';
 	import { STRIPE_NOT_IMPLEMENTED } from '$lib/payments';
 	import { statusLabel } from '$lib/status';
@@ -30,19 +30,18 @@
 	const start = $derived(new Date(booking.startsAt));
 	const isPast = $derived(start < now || booking.status === 'completed');
 	const outcome = $derived(cancelOutcome(booking.status, start, now));
-	const reschedulable = $derived(
-		booking.coachActive && canReschedule(booking.status, start, now)
-	);
+	const reschedulable = $derived(booking.coachActive && canReschedule(booking.status, start, now));
 	const cancelable = $derived(outcome !== 'blocked');
 
 	const sgd = (cents: number) => `SG$${(cents / 100).toFixed(2)}`;
-	const credits = (n: number) => (n === 1 ? '1 credit' : `${n} credits`);
+	const pkg = $derived(booking.intendedPackage);
+	const packLabel = $derived(booking.packageName ?? 'your package');
 
 	const cancelCopy: Record<CancelOutcome, string> = $derived({
-		none: 'this frees the slot back up. no credit was taken for this one, so there is nothing to refund.',
-		void: "we'll mark your payment as cancelled. if your paynow transfer already went through, message your coach and she'll sort the refund.",
-		refund: `you're more than 24 hours out, so your ${credits(booking.creditCost)} goes straight back to your balance.`,
-		forfeit: `this is within 24 hours of the session, so the ${credits(booking.creditCost)} will be used. this can't be undone.`,
+		none: 'this frees the slot back up. no session was taken for this one, so there is nothing to give back.',
+		void: "we'll mark your payment as cancelled — the package purchase won't go through. if your paynow transfer already went out, message your coach and she'll sort the refund.",
+		return: `you're more than 24 hours out, so the session goes straight back to ${packLabel}.`,
+		forfeit: `this is within 24 hours of the session, so it's used up — it won't come back to ${packLabel}. this can't be undone.`,
 		blocked: ''
 	});
 
@@ -99,7 +98,7 @@
 			{:else if step === 'cancel-done'}session cancelled
 			{:else if step === 'note'}your notes
 			{:else if step === 'pay-done'}payment submitted
-			{:else}pay to confirm{/if}
+			{:else}buy a package{/if}
 		</h3>
 		<p class="text-base-content/60 mb-4 text-xs">
 			{booking.coachName} · {booking.type} · {longDate(start, clientZone)} ·
@@ -118,7 +117,7 @@
 
 				{#if booking.status === 'pending_payment'}
 					<button class="btn btn-primary btn-sm w-full" onclick={() => (step = 'pay-review')}>
-						pay to confirm
+						{pkg ? `buy ${pkg.name} to confirm` : 'buy a package to confirm'}
 					</button>
 				{/if}
 
@@ -131,7 +130,9 @@
 				{#if reschedulable}
 					<button class="btn btn-sm w-full" onclick={reschedule}>reschedule</button>
 				{:else if !isPast && booking.status !== 'pending_verification' && !booking.coachActive}
-					<p class="text-base-content/45 text-xs">this coach is no longer taking bookings — reschedule isn't available.</p>
+					<p class="text-base-content/45 text-xs">
+						this coach is no longer taking bookings — reschedule isn't available.
+					</p>
 				{/if}
 
 				{#if cancelable && !isPast}
@@ -177,10 +178,10 @@
 			</form>
 		{:else if step === 'cancel-done'}
 			<p class="text-base-content/70 text-sm leading-relaxed">
-				{#if doneOutcome === 'refund'}
-					done — your {credits(booking.creditCost)} is back on your balance.
+				{#if doneOutcome === 'return'}
+					done — the session is back on {packLabel}.
 				{:else if doneOutcome === 'forfeit'}
-					done. the {credits(booking.creditCost)} was used for this late cancellation.
+					done. the session was used for this late cancellation.
 				{:else if doneOutcome === 'void'}
 					done — the payment is marked cancelled. contact your coach if your transfer already went through.
 				{:else}
@@ -232,8 +233,8 @@
 		{:else if step === 'pay-done'}
 			<p class="text-base-content/70 text-sm leading-relaxed">
 				thanks — we've got your paynow screenshot. your coach confirms it once it's verified,
-				usually within a few hours. this session now shows as <strong>verifying payment</strong>
-				under awaiting action.
+				usually within a few hours. your sessions land on your account then, and this booking
+				shows as <strong>verifying payment</strong> under awaiting action.
 			</p>
 			{#if previewUrl}
 				<img
@@ -252,17 +253,30 @@
 			<div class="modal-action">
 				<button class="btn btn-sm" onclick={() => (step = 'menu')}>back</button>
 			</div>
+		{:else if !pkg}
+			<div class="border-warning bg-warning/15 rounded-md border p-3 text-sm leading-relaxed">
+				this booking has no package attached — start a new request from the coach's page.
+			</div>
+			<div class="modal-action">
+				<button class="btn btn-sm" onclick={() => (step = 'menu')}>back</button>
+			</div>
 		{:else if step === 'pay-review'}
-			<div class="border-base-300 bg-base-200/40 mb-4 rounded-md border p-4 text-center">
-				<div class="text-base-content/45 mb-2 text-[11px]">scan to pay with paynow</div>
+			<div class="border-base-300 bg-base-200/40 mb-4 rounded-md border p-4">
+				<div class="mb-2 flex items-baseline justify-between gap-2">
+					<span class="text-sm font-medium">{pkg.name}</span>
+					<span class="font-headings text-xl uppercase">{sgd(packageTotalCents(pkg))}</span>
+				</div>
+				<div class="text-base-content/55 text-xs">
+					{pkg.sessionCount} × {pkg.sessionLengthMin}-min sessions · {sgd(pkg.pricePerSessionCents)}/session
+					· valid {pkg.validityDays} days
+				</div>
 				<div
-					class="border-base-300 bg-base-100 mx-auto grid h-32 w-32 place-items-center rounded-md border border-dashed"
+					class="border-base-300 bg-base-100 mx-auto mt-4 grid h-32 w-32 place-items-center rounded-md border border-dashed"
 				>
 					<span class="text-base-content/30 font-body text-[10px] uppercase">qr placeholder</span>
 				</div>
-				<div class="font-headings mt-3 text-2xl uppercase">{sgd(booking.amountCents)}</div>
-				<div class="text-base-content/45 font-body mt-1 text-[11px]">
-					reference · booking {booking.id.slice(0, 8)}
+				<div class="text-base-content/45 font-body mt-2 text-center text-[11px]">
+					scan to pay with paynow · reference {booking.id.slice(0, 8)}
 				</div>
 			</div>
 			<button class="btn btn-primary w-full" onclick={() => (step = 'pay-upload')}>

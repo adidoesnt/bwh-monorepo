@@ -1,20 +1,21 @@
 import { and, eq } from "drizzle-orm";
 import {
   booking as bookingTable,
-  creditLedgerEntry,
+  sessionLedgerEntry,
   invoice,
 } from "@repo/database/schema";
 import { cancelOutcome, type CancelOutcome } from "$lib/booking";
-import { timeOf } from "$lib/format";
 import { db } from "./db";
-import { nextInvoiceNumber } from "./queries";
 
 export type CancelResult = { outcome: CancelOutcome };
 
 /**
  * Cancel a client's own booking, applying the 24h policy:
- * refund the credit, forfeit it (with a no-charge invoice for the record), or
- * void an in-flight paynow invoice — see `cancelOutcome`.
+ * - `return`  → the session goes back to the pack (`+1` ledger entry)
+ * - `forfeit` → the session is spent, nothing back
+ * - `void`    → an in-flight paynow invoice is voided (purchase never happened)
+ * - `none`    → nothing was consumed yet
+ * See `cancelOutcome`.
  */
 export async function cancelBooking(
   bookingId: string,
@@ -25,8 +26,8 @@ export async function cancelBooking(
       id: bookingTable.id,
       status: bookingTable.status,
       startsAt: bookingTable.startsAt,
-      creditCost: bookingTable.creditCost,
       type: bookingTable.type,
+      packagePurchaseId: bookingTable.packagePurchaseId,
     })
     .from(bookingTable)
     .where(
@@ -40,35 +41,20 @@ export async function cancelBooking(
     return { error: "this booking can't be cancelled" };
   }
 
-  const invoiceNumber =
-    outcome === "forfeit" ? await nextInvoiceNumber() : null;
-  const when = timeOf(row.startsAt, "Asia/Singapore");
-
   await db.transaction(async (tx) => {
     await tx
       .update(bookingTable)
       .set({ status: "cancelled", cancelledAt: new Date() })
       .where(eq(bookingTable.id, row.id));
 
-    if (outcome === "refund") {
-      await tx.insert(creditLedgerEntry).values({
+    if (outcome === "return" && row.packagePurchaseId) {
+      await tx.insert(sessionLedgerEntry).values({
         clientId,
+        purchaseId: row.packagePurchaseId,
         bookingId: row.id,
-        delta: row.creditCost,
-        reason: "refund_in_time",
-        description: `cancelled in time · ${row.type} · ${when} · credit returned`,
-      });
-    }
-
-    if (outcome === "forfeit" && invoiceNumber) {
-      await tx.insert(invoice).values({
-        number: invoiceNumber,
-        clientId,
-        description: "late cancellation",
-        amountCents: 0,
-        method: "credit used",
-        status: "no_charge",
-        bookingId: row.id,
+        delta: 1,
+        reason: "returned_in_time",
+        description: `cancelled in time · ${row.type} · session returned`,
       });
     }
 

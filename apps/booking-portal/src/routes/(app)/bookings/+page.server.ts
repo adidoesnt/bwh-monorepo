@@ -3,6 +3,7 @@ import { and, eq } from "drizzle-orm";
 import { z } from "zod";
 import { invoice, booking as bookingTable } from "@repo/database/schema";
 import { openness } from "$lib/availability";
+import { packageTotalCents } from "$lib/booking";
 import { STRIPE_NOT_IMPLEMENTED } from "$lib/payments";
 import { cancelBooking } from "$lib/server/cancellation";
 import { db } from "$lib/server/db";
@@ -10,7 +11,6 @@ import { stripeEnabled } from "$lib/server/payments";
 import {
   coachAvailabilityInputs,
   getClientBookings,
-  getCreditBalance,
   getPayableBooking,
   listActiveCoaches,
   nextInvoiceNumber,
@@ -31,7 +31,6 @@ export const load: PageServerLoad = async ({ parent, url }) => {
   const empty = {
     coaches: null,
     bookings: [] as ClientBooking[],
-    creditBalance: 0,
     requested,
     rescheduled,
     stripeEnabled: stripeEnabled(),
@@ -40,10 +39,9 @@ export const load: PageServerLoad = async ({ parent, url }) => {
 
   const coaches = await listActiveCoaches();
   const ids = coaches.map((c) => c.id);
-  const [{ windows, busy }, bookings, creditBalance] = await Promise.all([
+  const [{ windows, busy }, bookings] = await Promise.all([
     coachAvailabilityInputs(ids),
     getClientBookings(user.id),
-    getCreditBalance(user.id),
   ]);
 
   const now = new Date();
@@ -62,7 +60,6 @@ export const load: PageServerLoad = async ({ parent, url }) => {
   return {
     coaches: withOpenness,
     bookings,
-    creditBalance,
     requested,
     rescheduled,
     stripeEnabled: stripeEnabled(),
@@ -94,7 +91,7 @@ export const actions: Actions = {
       return fail(400, { error: "that image is too large (max 5mb)" });
     }
 
-    // Never trust the client for ownership, status or amount — re-fetch.
+    // Never trust the client for ownership, status or package — re-fetch.
     const payable = await getPayableBooking(bookingId, locals.user.id);
     if (!payable) {
       return fail(400, { error: "that booking isn't awaiting payment" });
@@ -111,12 +108,14 @@ export const actions: Actions = {
       screenshot.type,
     );
 
+    // Sells the whole package; the package_purchase + session grant land at
+    // Phase 9 verification, keyed off booking.intended_package_id.
     const number = await nextInvoiceNumber();
     await db.insert(invoice).values({
       number,
       clientId: locals.user.id,
-      description: `${payable.type} · ${payable.coachName}`,
-      amountCents: payable.amountCents,
+      description: `${payable.package.name} · ${payable.package.sessionCount} sessions · ${payable.coachName}`,
+      amountCents: packageTotalCents(payable.package),
       method: "paynow · awaiting verification",
       status: "pending",
       proofImageKey: key,

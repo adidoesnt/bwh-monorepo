@@ -1,11 +1,11 @@
 import { error, fail, redirect } from "@sveltejs/kit";
 import { eq } from "drizzle-orm";
 import { z } from "zod";
-import { booking, creditLedgerEntry } from "@repo/database/schema";
+import { booking, sessionLedgerEntry } from "@repo/database/schema";
 import { daySlots, type Window } from "$lib/availability";
 import {
   canReschedule,
-  creditCostFor,
+  CONSULT_MIN,
   ONLINE_TYPES,
   PRE_SCREENING_TYPES,
   SESSION_TYPES,
@@ -13,16 +13,23 @@ import {
 import { db } from "$lib/server/db";
 import {
   coachAvailabilityInputs,
-  getActivePackage,
-  getClientNavBadges,
+  getActivePurchasesForCoach,
   getCoachBySlug,
-  getCreditBalance,
+  getCoachPackages,
+  getClientNavBadges,
+  getHeldSessions,
   getIntakeComplete,
   getManagedBooking,
+  getPackageById,
+  getPurchaseBalance,
 } from "$lib/server/queries";
 import type { Actions, PageServerLoad } from "./$types";
 
-const dropCoachId = (w: { weekday: number; startMin: number; endMin: number }): Window => ({
+const dropCoachId = (w: {
+  weekday: number;
+  startMin: number;
+  endMin: number;
+}): Window => ({
   weekday: w.weekday,
   startMin: w.startMin,
   endMin: w.endMin,
@@ -50,16 +57,19 @@ export const load: PageServerLoad = async ({ params, parent, url }) => {
 
   const canBook = user.role === "client";
   const rescheduleId = url.searchParams.get("reschedule");
-  const [{ windows, busy }, badges, pkg, managed] = await Promise.all([
-    coachAvailabilityInputs([coach.id]),
-    canBook ? getClientNavBadges(user.id) : Promise.resolve(null),
-    canBook ? getActivePackage(user.id) : Promise.resolve(null),
-    canBook && rescheduleId
-      ? getManagedBooking(rescheduleId, user.id)
-      : Promise.resolve(null),
-  ]);
+  const [{ windows, busy }, badges, purchases, packages, managed] =
+    await Promise.all([
+      coachAvailabilityInputs([coach.id]),
+      canBook ? getClientNavBadges(user.id) : Promise.resolve(null),
+      canBook
+        ? getActivePurchasesForCoach(user.id, coach.id)
+        : Promise.resolve([]),
+      canBook ? getCoachPackages(coach.id) : Promise.resolve([]),
+      canBook && rescheduleId
+        ? getManagedBooking(rescheduleId, user.id)
+        : Promise.resolve(null),
+    ]);
 
-  // Only offer reschedule for this coach's still-movable bookings.
   const reschedule =
     managed &&
     managed.coachId === coach.id &&
@@ -71,16 +81,27 @@ export const load: PageServerLoad = async ({ params, parent, url }) => {
     coach,
     canBook,
     windows: windows.map(dropCoachId),
-    busy: excludeSelf(busy, reschedule).map((b) => ({
+    busy: excludeSelf(
+      busy,
+      reschedule
+        ? {
+            startsAt: reschedule.startsAt,
+            durationMin: reschedule.durationMin,
+          }
+        : null,
+    ).map((b) => ({
       startsAt: b.startsAt.toISOString(),
       durationMin: b.durationMin,
     })),
-    creditBalance: badges?.creditBalance ?? 0,
     intakeComplete: badges?.intakeComplete ?? true,
-    // Sessions can't be booked past the day the current package's credits expire.
-    activePackage: pkg
-      ? { name: pkg.name, expiresAt: pkg.expiresAt.toISOString() }
-      : null,
+    purchases: purchases.map((p) => ({
+      id: p.id,
+      packageName: p.packageName,
+      sessionLengthMin: p.sessionLengthMin,
+      sessionsRemaining: p.sessionsRemaining,
+      expiresAt: p.expiresAt.toISOString(),
+    })),
+    packages,
     reschedule: reschedule
       ? {
           id: reschedule.id,
@@ -89,6 +110,9 @@ export const load: PageServerLoad = async ({ params, parent, url }) => {
           location: reschedule.location,
           note: reschedule.clientNote,
           startsAt: reschedule.startsAt.toISOString(),
+          packageName: reschedule.packageName,
+          purchaseExpiresAt:
+            reschedule.purchaseExpiresAt?.toISOString() ?? null,
         }
       : null,
   };
@@ -97,26 +121,51 @@ export const load: PageServerLoad = async ({ params, parent, url }) => {
 const requestSchema = z.object({
   dateISO: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
   startMin: z.coerce.number().int().min(0).max(1439),
-  durationMin: z.coerce.number().refine((n) => [45, 60, 90].includes(n)),
+  type: z.enum(SESSION_TYPES),
+  location: z.string().trim().min(1).max(120),
+  note: z.string().trim().max(500).optional(),
+  clientZone: z.string().trim().min(1).max(64),
+  /** Draw the session from this active purchase … */
+  purchaseId: z.string().trim().min(1).optional(),
+  /** … or buy this package to hold it (pending_payment). */
+  packageId: z.string().trim().min(1).optional(),
+});
+
+const rescheduleSchema = z.object({
+  bookingId: z.string().min(1),
+  dateISO: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+  startMin: z.coerce.number().int().min(0).max(1439),
   type: z.enum(SESSION_TYPES),
   location: z.string().trim().min(1).max(120),
   note: z.string().trim().max(500).optional(),
   clientZone: z.string().trim().min(1).max(64),
 });
 
-const rescheduleSchema = requestSchema.extend({ bookingId: z.string().min(1) });
+type Coach = NonNullable<Awaited<ReturnType<typeof getCoachBySlug>>>;
 
-/** Shared gate + slot re-validation for request / reschedule. Returns the
- *  resolved slot instant or a `fail`-ready error string. */
+/** Timezone / screening / slot gate shared by request and reschedule. */
 async function resolveSlot(opts: {
-  coach: NonNullable<Awaited<ReturnType<typeof getCoachBySlug>>>;
+  coach: Coach;
   userId: string;
   userZone: string | null | undefined;
-  data: z.infer<typeof requestSchema>;
+  dateISO: string;
+  startMin: number;
+  type: (typeof SESSION_TYPES)[number];
+  clientZone: string;
+  durationMin: number;
   excludeBusy: { startsAt: Date; durationMin: number } | null;
 }): Promise<{ at: Date } | { error: string }> {
-  const { coach, userId, userZone, data, excludeBusy } = opts;
-  const { dateISO, startMin, durationMin, type, clientZone } = data;
+  const {
+    coach,
+    userId,
+    userZone,
+    dateISO,
+    startMin,
+    type,
+    clientZone,
+    durationMin,
+    excludeBusy,
+  } = opts;
 
   const effZone = userZone ?? clientZone;
   if (effZone !== coach.timezone && !ONLINE_TYPES.includes(type)) {
@@ -144,13 +193,6 @@ async function resolveSlot(opts: {
   }).find((s) => s.startMin === startMin && s.ok);
   if (!picked) return { error: "that slot is no longer available" };
 
-  const pkg = await getActivePackage(userId);
-  if (pkg && picked.at > pkg.expiresAt) {
-    return {
-      error: `that's after your ${pkg.name} credits expire — pick an earlier date`,
-    };
-  }
-
   return { at: picked.at };
 }
 
@@ -159,40 +201,86 @@ export const actions: Actions = {
     if (!locals.user || locals.user.role !== "client") {
       return fail(403, { error: "clients only" });
     }
+    const userId = locals.user.id;
     const coach = await getCoachBySlug(params.slug);
     if (!coach) return fail(404, { error: "coach not found" });
 
     const parsed = requestSchema.safeParse(
       Object.fromEntries(await request.formData()),
     );
-    if (!parsed.success)
+    if (!parsed.success) {
       return fail(400, { error: "check the form and try again" });
-    const { durationMin, type, location, note } = parsed.data;
+    }
+    const { type, location, note, purchaseId, packageId } = parsed.data;
+
+    // Work out the session length, resulting status, and what backs the booking.
+    let durationMin: number;
+    let status: "pending_approval" | "pending_payment";
+    let packagePurchaseId: string | null = null;
+    let intendedPackageId: string | null = null;
+    let expiryCap: Date | null = null;
+
+    if (type === "free consult") {
+      durationMin = CONSULT_MIN;
+      status = "pending_approval";
+    } else if (purchaseId) {
+      const purchases = await getActivePurchasesForCoach(userId, coach.id);
+      const purchase = purchases.find((p) => p.id === purchaseId);
+      if (!purchase) {
+        return fail(400, { error: "that package is no longer active" });
+      }
+      const [balance, held] = await Promise.all([
+        getPurchaseBalance(purchase.id),
+        getHeldSessions(purchase.id),
+      ]);
+      if (balance - held < 1) {
+        return fail(400, {
+          error: "you've used up the sessions in that package",
+        });
+      }
+      durationMin = purchase.sessionLengthMin;
+      status = "pending_approval";
+      packagePurchaseId = purchase.id;
+      expiryCap = new Date(purchase.expiresAt);
+    } else if (packageId) {
+      const pkg = await getPackageById(packageId);
+      if (!pkg) return fail(400, { error: "pick a package to continue" });
+      durationMin = pkg.sessionLengthMin;
+      status = "pending_payment";
+      intendedPackageId = pkg.id;
+      expiryCap = new Date(Date.now() + pkg.validityDays * 86_400_000);
+    } else {
+      return fail(400, { error: "pick a package to continue" });
+    }
 
     const slot = await resolveSlot({
       coach,
-      userId: locals.user.id,
+      userId,
       userZone: locals.user.timezone,
-      data: parsed.data,
+      dateISO: parsed.data.dateISO,
+      startMin: parsed.data.startMin,
+      type,
+      clientZone: parsed.data.clientZone,
+      durationMin,
       excludeBusy: null,
     });
     if ("error" in slot) return fail(400, { error: slot.error });
 
-    const creditCost = creditCostFor(type, durationMin);
-    const balance = await getCreditBalance(locals.user.id);
-    const status =
-      creditCost === "0.00" || balance >= Number(creditCost)
-        ? "pending_approval"
-        : "pending_payment";
+    if (expiryCap && slot.at > expiryCap) {
+      return fail(400, {
+        error: "that's after those sessions expire — pick an earlier date",
+      });
+    }
 
     await db.insert(booking).values({
-      clientId: locals.user.id,
+      clientId: userId,
       coachId: coach.id,
       type,
       location,
       startsAt: slot.at,
       durationMin,
-      creditCost,
+      packagePurchaseId,
+      intendedPackageId,
       status,
       clientNote: note ?? null,
     });
@@ -204,17 +292,18 @@ export const actions: Actions = {
     if (!locals.user || locals.user.role !== "client") {
       return fail(403, { error: "clients only" });
     }
+    const userId = locals.user.id;
     const coach = await getCoachBySlug(params.slug);
     if (!coach) return fail(404, { error: "coach not found" });
 
     const parsed = rescheduleSchema.safeParse(
       Object.fromEntries(await request.formData()),
     );
-    if (!parsed.success)
+    if (!parsed.success) {
       return fail(400, { error: "check the form and try again" });
-    const { bookingId, durationMin, type, location, note } = parsed.data;
+    }
+    const { bookingId, type, location, note } = parsed.data;
 
-    const userId = locals.user.id;
     const current = await getManagedBooking(bookingId, userId);
     if (!current || current.coachId !== coach.id) {
       return fail(404, { error: "booking not found" });
@@ -227,14 +316,23 @@ export const actions: Actions = {
       coach,
       userId,
       userZone: locals.user.timezone,
-      data: parsed.data,
+      dateISO: parsed.data.dateISO,
+      startMin: parsed.data.startMin,
+      type,
+      clientZone: parsed.data.clientZone,
+      durationMin: current.durationMin,
       excludeBusy: current,
     });
     if ("error" in slot) return fail(400, { error: slot.error });
 
-    const creditCost = creditCostFor(type, durationMin);
-    // A confirmed session goes back for approval; its credit is returned now so
-    // Phase 9's re-approval re-charges cleanly.
+    if (current.purchaseExpiresAt && slot.at > current.purchaseExpiresAt) {
+      return fail(400, {
+        error: "that's after those sessions expire — pick an earlier date",
+      });
+    }
+
+    // A confirmed session goes back for approval; its session is returned now so
+    // Phase 9's re-approval re-draws cleanly.
     const nextStatus =
       current.status === "confirmed" ? "pending_approval" : current.status;
 
@@ -245,20 +343,19 @@ export const actions: Actions = {
           type,
           location,
           startsAt: slot.at,
-          durationMin,
-          creditCost,
           status: nextStatus,
           clientNote: note ?? null,
         })
         .where(eq(booking.id, current.id));
 
-      if (current.status === "confirmed") {
-        await tx.insert(creditLedgerEntry).values({
+      if (current.status === "confirmed" && current.packagePurchaseId) {
+        await tx.insert(sessionLedgerEntry).values({
           clientId: userId,
+          purchaseId: current.packagePurchaseId,
           bookingId: current.id,
-          delta: String(current.creditCost),
-          reason: "refund_in_time",
-          description: `rescheduled · ${type} · credit returned pending re-approval`,
+          delta: 1,
+          reason: "returned_in_time",
+          description: `rescheduled · ${type} · session returned pending re-approval`,
         });
       }
     });

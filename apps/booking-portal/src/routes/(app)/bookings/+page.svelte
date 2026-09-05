@@ -48,7 +48,8 @@
 				return tagOk && (!needle || hay.includes(needle));
 			})
 			.sort((a, b) => {
-				if (sort === 'price') return a.rateFromCents - b.rateFromCents;
+				if (sort === 'price')
+					return (a.cheapestSessionCents ?? Infinity) - (b.cheapestSessionCents ?? Infinity);
 				if (sort === 'name') return a.name.localeCompare(b.name);
 				if (sort === 'openest') return b.openCount - a.openCount;
 				const at = a.nextFreeAt ? +new Date(a.nextFreeAt) : Infinity;
@@ -261,9 +262,11 @@
 									<span class="min-w-0 flex-1">
 										<span class="flex items-baseline justify-between gap-2">
 											<span class="font-headings text-xl">{c.name}</span>
-											<span class="text-primary font-body text-xs"
-												>from <span class="uppercase">{sgd(c.rateFromCents)}</span></span
-											>
+											{#if c.cheapestSessionCents !== null}
+												<span class="text-primary font-body text-xs"
+													>from <span class="uppercase">{sgd(c.cheapestSessionCents)}</span>/session</span
+												>
+											{/if}
 										</span>
 										<span class="text-base-content/60 mt-1 block text-xs leading-snug">{c.tagline}</span>
 										<span class="text-base-content/45 font-body mt-1.5 block text-[11px]">

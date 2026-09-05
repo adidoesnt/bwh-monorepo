@@ -27,7 +27,7 @@ const NAV: Record<Role, NavDef[]> = {
   client: [
     { id: "dashboard", label: "dashboard", href: "/dashboard", enabled: true },
     { id: "bookings", label: "bookings", href: "/bookings", enabled: true, badgeKey: "bookings" },
-    { id: "packages", label: "packages & credits", href: "/packages", enabled: false, badgeKey: "packages" },
+    { id: "packages", label: "packages & sessions", href: "/packages", enabled: false, badgeKey: "packages" },
     { id: "payments", label: "payments", href: "/payments", enabled: false },
     { id: "progress", label: "progress", href: "/progress", enabled: false },
     { id: "intake", label: "health screening", href: "/intake", enabled: false, badgeKey: "intake" },

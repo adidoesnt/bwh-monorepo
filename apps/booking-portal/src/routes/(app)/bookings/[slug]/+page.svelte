@@ -2,9 +2,7 @@
 	import { enhance } from '$app/forms';
 	import { daySlots } from '$lib/availability';
 	import {
-		creditCostFor,
-		durationNote,
-		DURATIONS,
+		CONSULT_MIN,
 		ONLINE_LOCATION,
 		ONLINE_TYPES,
 		PRE_SCREENING_TYPES,
@@ -25,9 +23,9 @@
 	const hhmm = (m: number) =>
 		`${String(Math.floor(m / 60)).padStart(2, '0')}:${String(m % 60).padStart(2, '0')}`;
 	const zoneLabel = (tz: string) => tz.split('/').pop()?.replace(/_/g, ' ') ?? tz;
+	const sgd = (cents: number) => `SG$${Math.round(cents / 100)}`;
 
-	// "what" pickers (type, duration) go dark when chosen; "when" pickers
-	// (date, time) take the clay accent so the two rows read differently.
+	// "what" pickers go dark when chosen; "when" pickers (date, time) take the clay accent.
 	const modeChip = (on: boolean) =>
 		on
 			? 'border-neutral bg-neutral text-neutral-content'
@@ -38,7 +36,6 @@
 			: on
 				? 'border-primary bg-primary text-primary-content'
 				: 'border-transparent bg-base-200 hover:bg-base-300';
-	const creditNote: Record<number, string> = { 45: '0.75 credit', 60: '1 credit', 90: '1.5 credits' };
 
 	const coach = d0.coach;
 	/** Full name is the page title; prose addresses the coach by first name. */
@@ -59,37 +56,103 @@
 		? [ONLINE_LOCATION]
 		: [...coach.locations.filter((l) => l !== 'online'), ONLINE_LOCATION];
 
-	// Bookable range: today through the day the current package's credits expire
-	// (8 weeks out if there's no package). Split into month → day chips.
-	const todayISO = nextDates(1, coach.timezone)[0];
-	const pkgExpiry = d0.activePackage ? new Date(d0.activePackage.expiresAt) : null;
-	const endISO = pkgExpiry
-		? zoneParts(pkgExpiry, coach.timezone).dateISO
-		: addDaysISO(todayISO, 56);
-
-	type MonthGroup = { key: string; label: string; days: { iso: string; dow: string; dom: number }[] };
-	const months: MonthGroup[] = [];
-	for (const iso of datesInRange(todayISO, endISO)) {
-		const [y, mo, d] = iso.split('-').map(Number);
-		const key = `${y}-${mo}`;
-		let m = months.find((x) => x.key === key);
-		if (!m) {
-			const showYear = String(y) !== todayISO.slice(0, 4);
-			m = { key, label: showYear ? `${MONTHS[mo - 1]} ${y % 100}` : MONTHS[mo - 1], days: [] };
-			months.push(m);
-		}
-		m.days.push({ iso, dow: DOW[new Date(Date.UTC(y, mo - 1, d)).getUTCDay()], dom: d });
-	}
-
 	const rb = d0.reschedule;
-	let type = $state(rb && allowedTypes.includes(rb.type) ? rb.type : allowedTypes[0]);
-	let durationMin = $state<number>(rb?.durationMin ?? 60);
-	let selectedMonth = $state(months[0]?.key ?? '');
+	const purchases = d0.purchases;
+	const packages = d0.packages;
+
+	const todayISO = nextDates(1, coach.timezone)[0] ?? '';
+	const isoOf = (d: Date) => zoneParts(d, coach.timezone).dateISO;
+
+	let type = $state<SessionType>(
+		rb && allowedTypes.includes(rb.type) ? rb.type : (allowedTypes[0] ?? 'free consult')
+	);
+	// draw from an owned package, or buy a new one
+	let buying = $state(purchases.length === 0);
+	let purchaseId = $state(purchases[0]?.id ?? '');
+	let packageId = $state(packages[0]?.id ?? '');
+	let selectedMonth = $state('');
 	let dateISO = $state(todayISO);
 	let startMin = $state<number | null>(null);
-	let location = $state(rb && locations.includes(rb.location) ? rb.location : locations[0]);
+	let location = $state(rb && locations.includes(rb.location) ? rb.location : (locations[0] ?? ''));
 	let note = $state(rb?.note ?? '');
 	let submitting = $state(false);
+
+	type Src =
+		| { kind: 'reschedule'; lengthMin: number; endISO: string }
+		| { kind: 'consult'; lengthMin: number; endISO: string }
+		| { kind: 'purchase'; id: string; lengthMin: number; endISO: string; label: string }
+		| { kind: 'package'; id: string; lengthMin: number; endISO: string };
+
+	const src = $derived.by<Src>(() => {
+		if (rb) {
+			return {
+				kind: 'reschedule',
+				lengthMin: rb.durationMin,
+				endISO: rb.purchaseExpiresAt ? isoOf(new Date(rb.purchaseExpiresAt)) : addDaysISO(todayISO, 56)
+			};
+		}
+		if (type === 'free consult') {
+			return { kind: 'consult', lengthMin: CONSULT_MIN, endISO: addDaysISO(todayISO, 56) };
+		}
+		if (!buying) {
+			const p = purchases.find((x) => x.id === purchaseId) ?? purchases[0];
+			if (p) {
+				return {
+					kind: 'purchase',
+					id: p.id,
+					lengthMin: p.sessionLengthMin,
+					endISO: isoOf(new Date(p.expiresAt)),
+					label: p.packageName
+				};
+			}
+		}
+		const pk = packages.find((x) => x.id === packageId) ?? packages[0];
+		if (pk) {
+			return {
+				kind: 'package',
+				id: pk.id,
+				lengthMin: pk.sessionLengthMin,
+				endISO: addDaysISO(todayISO, pk.validityDays)
+			};
+		}
+		return { kind: 'consult', lengthMin: CONSULT_MIN, endISO: addDaysISO(todayISO, 56) };
+	});
+
+	const durationMin = $derived(src.lengthMin);
+	const selectedPkg = $derived(
+		src.kind === 'package' ? (packages.find((p) => p.id === src.id) ?? null) : null
+	);
+
+	type MonthGroup = {
+		key: string;
+		label: string;
+		days: { iso: string; dow: string; dom: number }[];
+	};
+	const months = $derived.by<MonthGroup[]>(() => {
+		const out: MonthGroup[] = [];
+		for (const iso of datesInRange(todayISO, src.endISO)) {
+			const [y, mo, d] = iso.split('-').map(Number);
+			if (y === undefined || mo === undefined || d === undefined) continue;
+			const key = `${y}-${mo}`;
+			let m = out.find((x) => x.key === key);
+			if (!m) {
+				const showYear = String(y) !== todayISO.slice(0, 4);
+				m = { key, label: showYear ? `${MONTHS[mo - 1]} ${y % 100}` : (MONTHS[mo - 1] ?? ''), days: [] };
+				out.push(m);
+			}
+			m.days.push({ iso, dow: DOW[new Date(Date.UTC(y, mo - 1, d)).getUTCDay()] ?? '', dom: d });
+		}
+		return out;
+	});
+
+	// Keep the month + day selection valid as the range changes.
+	$effect(() => {
+		const all = months.flatMap((m) => m.days.map((d) => d.iso));
+		if (all.length === 0) return;
+		if (!all.includes(dateISO)) dateISO = all[0] ?? dateISO;
+		const owning = months.find((m) => m.days.some((d) => d.iso === dateISO));
+		if (owning && owning.key !== selectedMonth) selectedMonth = owning.key;
+	});
 
 	const monthDays = $derived(
 		months.find((m) => m.key === selectedMonth)?.days ?? months[0]?.days ?? []
@@ -118,12 +181,12 @@
 		startMin === null ? null : (slots.find((s) => s.startMin === startMin) ?? null)
 	);
 	const endsAt = $derived(selected ? new Date(selected.at.getTime() + durationMin * 60_000) : null);
-	const cost = $derived(creditCostFor(type, durationMin));
-	const lowOnCredits = $derived(cost !== '0.00' && d0.creditBalance < Number(cost));
 
 	const hours = [
 		...new Map(d0.windows.map((w) => [`${w.startMin}-${w.endMin}`, w])).values()
 	].sort((a, b) => a.startMin - b.startMin);
+
+	const canPickSource = $derived(!rb && type !== 'free consult');
 
 	function copyLink() {
 		navigator.clipboard?.writeText(`https://builtwithhabit.com/book/${coach.slug}`).catch(() => {});
@@ -160,9 +223,13 @@
 
 		<div class="mb-4 grid gap-2.5 sm:grid-cols-2">
 			<div class="border-base-300 bg-base-200/40 rounded-md border p-3">
-				<div class="text-base-content/45 mb-1 text-[11px]">rate</div>
+				<div class="text-base-content/45 mb-1 text-[11px]">packages</div>
 				<div class="text-sm">
-					from <span class="uppercase">SG${Math.round(coach.rateFromCents / 100)}</span> per session
+					{#if coach.cheapestSessionCents !== null}
+						from <span class="uppercase">{sgd(coach.cheapestSessionCents)}</span> per session
+					{:else}
+						none published yet
+					{/if}
 				</div>
 			</div>
 			<div class="border-base-300 bg-base-200/40 rounded-md border p-3">
@@ -172,6 +239,29 @@
 		</div>
 
 		<p class="text-base-content/70 mb-4 text-sm leading-relaxed">{coach.bio}</p>
+
+		{#if packages.length > 0}
+			<div class="border-base-300 mb-4 rounded-md border">
+				<div class="text-base-content/45 border-base-200 border-b px-3 py-2 text-[11px]">
+					{firstName}'s packages
+				</div>
+				<ul class="divide-base-200 divide-y">
+					{#each packages as p (p.id)}
+						<li class="flex items-baseline justify-between gap-3 px-3 py-2 text-sm">
+							<span>
+								<span class="font-medium">{p.name}</span>
+								<span class="text-base-content/55 text-xs">
+									· {p.sessionCount} × {p.sessionLengthMin} min · valid {p.validityDays} days
+								</span>
+							</span>
+							<span class="font-body shrink-0 text-xs">
+								<span class="uppercase">{sgd(p.pricePerSessionCents)}</span>/session
+							</span>
+						</li>
+					{/each}
+				</ul>
+			</div>
+		{/if}
 
 		<div class="bg-base-200/50 mb-4 flex flex-wrap items-center gap-2.5 rounded-md p-3">
 			<span class="text-base-content/60 font-body min-w-40 flex-1 text-xs"
@@ -203,7 +293,8 @@
 						moving your {longDate(new Date(rb.startsAt), clientZone)} · {timeOf(
 							new Date(rb.startsAt),
 							clientZone
-						)} session — pick a new time and {firstName} confirms it again.
+						)} session{rb.packageName ? ` (${rb.packageName})` : ''} — pick a new time and {firstName}
+						confirms it again.
 					</p>
 				{:else}
 					<h2 class="font-headings mb-1 text-xl">book {firstName}</h2>
@@ -222,10 +313,10 @@
 
 				{#if needsScreening}
 					<div class="border-error bg-error/15 mb-4 rounded-md border p-3 text-xs leading-relaxed">
-					    <p class="font-bold">screening incomplete</p>
+						<p class="font-bold">screening incomplete</p>
 						<p>
-							you can only book a <strong>free consult</strong> for now. training sessions unlock once your par-q
-							health screening is done.
+							you can only book a <strong>free consult</strong> for now. training sessions unlock once your
+							par-q health screening is done.
 						</p>
 					</div>
 				{/if}
@@ -247,10 +338,13 @@
 				>
 					{#if rb}
 						<input type="hidden" name="bookingId" value={rb.id} />
+					{:else if src.kind === 'purchase'}
+						<input type="hidden" name="purchaseId" value={src.id} />
+					{:else if src.kind === 'package'}
+						<input type="hidden" name="packageId" value={src.id} />
 					{/if}
 					<input type="hidden" name="dateISO" value={dateISO} />
 					<input type="hidden" name="startMin" value={startMin ?? ''} />
-					<input type="hidden" name="durationMin" value={durationMin} />
 					<input type="hidden" name="type" value={type} />
 					<input type="hidden" name="clientZone" value={clientZone} />
 
@@ -267,20 +361,75 @@
 						{/each}
 					</div>
 
-					<div class="text-base-content/60 mb-2 text-xs">how long? · {durationNote[durationMin]}</div>
-					<div class="mb-5 grid grid-cols-3 gap-2">
-						{#each DURATIONS as n (n)}
+					{#if canPickSource}
+						<div class="text-base-content/60 mb-2 text-xs">
+							{buying ? 'which package?' : 'which of your packages?'}
+						</div>
+						{#if !buying && purchases.length > 0}
+							<div class="mb-2 flex flex-col gap-2">
+								{#each purchases as p (p.id)}
+									<button
+										type="button"
+										onclick={() => (purchaseId = p.id)}
+										class="rounded-field border px-3 py-2 text-left text-sm transition-colors {modeChip(
+											purchaseId === p.id
+										)}"
+									>
+										<span class="font-medium">{p.packageName}</span>
+										<span class="opacity-70">
+											· {p.sessionLengthMin} min · {p.sessionsRemaining} left · expires {longDateNoYear(
+												new Date(p.expiresAt),
+												clientZone
+											)}
+										</span>
+									</button>
+								{/each}
+							</div>
 							<button
 								type="button"
-								onclick={() => (durationMin = n)}
-								class="font-body rounded-field border py-2.5 text-sm transition-colors {modeChip(
-									durationMin === n
-								)}"
+								class="link text-xs"
+								onclick={() => (buying = true)}
 							>
-								{n} min
+								buy another package instead
 							</button>
-						{/each}
-					</div>
+						{:else}
+							<div class="mb-2 flex flex-col gap-2">
+								{#each packages as pk (pk.id)}
+									<button
+										type="button"
+										onclick={() => (packageId = pk.id)}
+										class="rounded-field border px-3 py-2 text-left text-sm transition-colors {modeChip(
+											packageId === pk.id
+										)}"
+									>
+										<span class="font-medium">{pk.name}</span>
+										<span class="opacity-70">
+											· {pk.sessionCount} × {pk.sessionLengthMin} min ·
+											<span class="uppercase">{sgd(pk.pricePerSessionCents * pk.sessionCount)}</span>
+										</span>
+										{#if pk.description}
+											<span class="mt-0.5 block text-xs opacity-60">{pk.description}</span>
+										{/if}
+									</button>
+								{/each}
+								{#if packages.length === 0}
+									<p class="text-base-content/45 text-sm">
+										{firstName} hasn't published any packages yet.
+									</p>
+								{/if}
+							</div>
+							{#if purchases.length > 0}
+								<button
+									type="button"
+									class="link text-xs"
+									onclick={() => (buying = false)}
+								>
+									use one of my packages instead
+								</button>
+							{/if}
+						{/if}
+						<div class="mb-5"></div>
+					{/if}
 
 					<div class="text-base-content/60 mb-2 text-xs">date</div>
 					{#if months.length > 1}
@@ -313,9 +462,9 @@
 						{/each}
 					</div>
 
-					{#if pkgExpiry && d0.activePackage}
+					{#if src.kind === 'purchase'}
 						<p class="text-base-content/45 -mt-3.5 mb-5 text-[11px]">
-							your {d0.activePackage.name} credits expire {longDateNoYear(pkgExpiry, clientZone)}.
+							your {src.label} sessions expire {longDateNoYear(new Date(src.endISO), clientZone)}.
 						</p>
 					{/if}
 
@@ -348,11 +497,7 @@
 
 					<label class="text-base-content/60 mb-4 flex flex-col gap-1.5 text-xs">
 						location
-						<select
-							class="select select-sm border-base-300 w-full"
-							name="location"
-							bind:value={location}
-						>
+						<select class="select select-sm border-base-300 w-full" name="location" bind:value={location}>
 							{#each locations as l (l)}
 								<option value={l}>{l}</option>
 							{/each}
@@ -384,24 +529,37 @@
 								pick a time to continue
 							{/if}
 						</span>
-						<strong class="font-body">{type === 'free consult' ? 'free' : creditNote[durationMin]}</strong>
+						<strong class="font-body">
+							{#if src.kind === 'consult' || src.kind === 'reschedule'}
+								{src.kind === 'consult' ? 'free' : '1 session'}
+							{:else if src.kind === 'purchase'}
+								1 session
+							{:else if selectedPkg}
+								{sgd(selectedPkg.pricePerSessionCents * selectedPkg.sessionCount)}
+							{/if}
+						</strong>
 					</div>
 
-					{#if lowOnCredits}
+					{#if src.kind === 'package' && selectedPkg}
 						<p class="text-base-content/50 mb-3 text-xs">
-							you have {data.creditBalance} credits — you'll be asked to pay to confirm this one.
+							you'll pay for {selectedPkg.name} ({selectedPkg.sessionCount} sessions) to lock this in —
+							the rest stay on your account.
 						</p>
 					{/if}
 
 					<button
 						type="submit"
 						class="btn btn-primary w-full"
-						disabled={startMin === null || submitting}
+						disabled={startMin === null || submitting || (canPickSource && packages.length === 0 && purchases.length === 0)}
 					>
 						{#if submitting}
 							{rb ? 'moving…' : 'sending…'}
+						{:else if rb}
+							confirm new time
+						{:else if src.kind === 'package'}
+							request this slot
 						{:else}
-							{rb ? 'confirm new time' : 'send request'}
+							send request
 						{/if}
 					</button>
 				</form>

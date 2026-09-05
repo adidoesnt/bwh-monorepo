@@ -4,7 +4,10 @@ import { getClientNavBadges } from "$lib/server/queries";
 import type { LayoutServerLoad } from "./$types";
 
 /** Sidebar note shown at the bottom of the nav, per role. */
-function sidebarNote(role: Role, badges: NavBadges): { title: string; body: string } | null {
+function sidebarNote(
+  role: Role,
+  badges: NavBadges,
+): { title: string; body: string } | null {
   if (role === "client" && badges.intake === "!") {
     return {
       title: "screening incomplete",
@@ -24,7 +27,7 @@ export const load: LayoutServerLoad = async ({ locals }) => {
   if (role === "client") {
     const b = await getClientNavBadges(locals.user.id);
     if (b.actionNeeded > 0) badges.bookings = String(b.actionNeeded);
-    if (b.creditBalance > 0) badges.packages = String(b.creditBalance);
+    if (b.sessionsRemaining > 0) badges.packages = String(b.sessionsRemaining);
     if (!b.intakeComplete) badges.intake = "!";
   }
 
