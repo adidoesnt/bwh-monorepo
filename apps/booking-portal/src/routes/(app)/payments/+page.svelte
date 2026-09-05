@@ -58,11 +58,11 @@
 				<table class="table-sm table">
 					<thead>
 						<tr class="text-base-content/50">
-							<th>invoice</th>
-							<th>date</th>
-							<th>for</th>
-							<th>method</th>
-							<th class="text-right">amount</th>
+							<th class="font-normal">invoice</th>
+							<th class="font-normal">date</th>
+							<th class="font-normal">for</th>
+							<th class="font-normal">method</th>
+							<th class="font-normal">amount</th>
 							<th></th>
 						</tr>
 					</thead>
@@ -73,8 +73,8 @@
 								<td class="whitespace-nowrap">{longDateNoYear(new Date(inv.issuedAt), tz)}</td>
 								<td class="min-w-40">{inv.description}</td>
 								<td class="text-base-content/60">{inv.method}</td>
-								<td class="text-right whitespace-nowrap uppercase">{sgd(inv.amountCents)}</td>
-								<td class="whitespace-nowrap text-right">
+								<td class="whitespace-nowrap uppercase">{sgd(inv.amountCents)}</td>
+								<td class="text-right whitespace-nowrap">
 									<span class="badge badge-sm {statusPill[inv.status]} font-body">
 										{statusText[inv.status]}
 									</span>
