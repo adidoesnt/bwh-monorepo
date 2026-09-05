@@ -8,7 +8,7 @@ import {
   getPackageForPurchase,
   getPendingPurchaseInvoices,
   getPurchasesWithLedger,
-  listBuyablePackages,
+  getSuggestedPackages,
   nextInvoiceNumber,
   type PurchaseWithLedger,
   type PendingPurchaseInvoice,
@@ -24,16 +24,16 @@ export const load: PageServerLoad = async ({ parent }) => {
     return {
       packages: [] as PurchaseWithLedger[],
       pending: [] as PendingPurchaseInvoice[],
-      catalogue: [] as PurchasablePackage[],
+      suggested: [] as PurchasablePackage[],
       stripeEnabled: stripeEnabled(),
     };
   }
-  const [packages, pending, catalogue] = await Promise.all([
+  const [packages, pending, suggested] = await Promise.all([
     getPurchasesWithLedger(user.id),
     getPendingPurchaseInvoices(user.id),
-    listBuyablePackages(),
+    getSuggestedPackages(user.id, 3),
   ]);
-  return { packages, pending, catalogue, stripeEnabled: stripeEnabled() };
+  return { packages, pending, suggested, stripeEnabled: stripeEnabled() };
 };
 
 export const actions: Actions = {

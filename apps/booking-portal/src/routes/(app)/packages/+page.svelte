@@ -17,10 +17,10 @@
 	const packages = $derived(data.packages);
 	const pending = $derived(data.pending);
 
-	// catalogue grouped by coach for "get more sessions"
+	// suggested packages, grouped by coach (already in recency order from the server)
 	const byCoach = $derived.by(() => {
 		const groups = new Map<string, { coachName: string; coachSlug: string; items: PurchasablePackage[] }>();
-		for (const p of data.catalogue) {
+		for (const p of data.suggested) {
 			const g = groups.get(p.coachSlug) ?? { coachName: p.coachName, coachSlug: p.coachSlug, items: [] };
 			g.items.push(p);
 			groups.set(p.coachSlug, g);
@@ -128,36 +128,43 @@
 
 		<!-- get more sessions -->
 		<h2 class="font-headings mb-1 text-xl">get more sessions</h2>
-		<p class="text-base-content/60 mb-4 text-sm">
-			buy a package with any coach. <a class="link" href="/bookings">see coach pages →</a>
-		</p>
-		<div class="flex flex-col gap-5">
-			{#each byCoach as g (g.coachSlug)}
-				<div>
-					<div class="mb-2 flex items-baseline gap-2">
-						<a class="font-headings text-lg hover:underline" href="/bookings/{g.coachSlug}">
-							{g.coachName}
-						</a>
-					</div>
-					<div class="grid gap-2 sm:grid-cols-2">
-						{#each g.items as pk (pk.id)}
-							<div class="border-base-300 bg-white flex items-center justify-between gap-3 rounded-sm border p-3">
-								<div class="min-w-0">
-									<div class="text-sm font-medium">{pk.name}</div>
-									<div class="text-base-content/55 text-xs">
-										{pk.sessionCount} × {pk.sessionLengthMin} min ·
-										<span class="uppercase">{sgd(pk.pricePerSessionCents)}</span>/session · {pk.validityDays}d
+		{#if byCoach.length === 0}
+			<p class="text-base-content/60 text-sm">
+				<a class="link" href="/bookings">browse coaches →</a> — packages from the ones you book with show
+				up here.
+			</p>
+		{:else}
+			<p class="text-base-content/60 mb-4 text-sm">
+				from the coaches you've been training with. <a class="link" href="/bookings">all coaches →</a>
+			</p>
+			<div class="flex flex-col gap-5">
+				{#each byCoach as g (g.coachSlug)}
+					<div>
+						<div class="mb-2 flex items-baseline gap-2">
+							<a class="font-headings text-lg hover:underline" href="/bookings/{g.coachSlug}">
+								{g.coachName}
+							</a>
+						</div>
+						<div class="grid gap-2 sm:grid-cols-2">
+							{#each g.items as pk (pk.id)}
+								<div class="border-base-300 bg-white flex items-center justify-between gap-3 rounded-sm border p-3">
+									<div class="min-w-0">
+										<div class="text-sm font-medium">{pk.name}</div>
+										<div class="text-base-content/55 text-xs">
+											{pk.sessionCount} × {pk.sessionLengthMin} min ·
+											<span class="uppercase">{sgd(pk.pricePerSessionCents)}</span>/session · {pk.validityDays}d
+										</div>
 									</div>
+									<button class="btn btn-xs btn-primary shrink-0" onclick={() => buy(pk)}>
+										{sgd(pk.pricePerSessionCents * pk.sessionCount)}
+									</button>
 								</div>
-								<button class="btn btn-xs btn-primary shrink-0" onclick={() => buy(pk)}>
-									{sgd(pk.pricePerSessionCents * pk.sessionCount)}
-								</button>
-							</div>
-						{/each}
+							{/each}
+						</div>
 					</div>
-				</div>
-			{/each}
-		</div>
+				{/each}
+			</div>
+		{/if}
 	{/if}
 
 	{#if buyTarget}

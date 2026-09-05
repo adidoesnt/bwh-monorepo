@@ -183,6 +183,7 @@ export async function getPackageById(
 
 export type PurchasablePackage = PackageSummary & {
   active: boolean;
+  coachId: string;
   coachName: string;
   coachSlug: string;
 };
@@ -195,6 +196,7 @@ export async function getPackageForPurchase(
     .select({
       ...packageColumns,
       active: packageOffering.active,
+      coachId: packageOffering.coachId,
       coachName: user.name,
       coachSlug: coachProfile.slug,
     })
@@ -206,20 +208,73 @@ export async function getPackageForPurchase(
   return row ?? null;
 }
 
-/** Every active coach's active packages, for "get more sessions" browsing. */
-export async function listBuyablePackages(): Promise<PurchasablePackage[]> {
-  return db
+/**
+ * Active packages from the (up to `limit`) coaches this client has engaged with
+ * most recently — booked with or bought from. Ordered by coach recency, then
+ * price. Empty for a client who's done neither (they browse via /bookings).
+ */
+export async function getSuggestedPackages(
+  clientId: string,
+  limit = 3,
+): Promise<PurchasablePackage[]> {
+  const [bookingCoaches, purchaseCoaches] = await Promise.all([
+    db
+      .select({
+        coachId: booking.coachId,
+        at: sql<string>`max(${booking.createdAt})`,
+      })
+      .from(booking)
+      .where(eq(booking.clientId, clientId))
+      .groupBy(booking.coachId),
+    db
+      .select({
+        coachId: packageOffering.coachId,
+        at: sql<string>`max(${packagePurchase.purchasedAt})`,
+      })
+      .from(packagePurchase)
+      .innerJoin(
+        packageOffering,
+        eq(packageOffering.id, packagePurchase.packageId),
+      )
+      .where(eq(packagePurchase.clientId, clientId))
+      .groupBy(packageOffering.coachId),
+  ]);
+
+  const lastByCoach = new Map<string, number>();
+  for (const r of [...bookingCoaches, ...purchaseCoaches]) {
+    const t = new Date(r.at).getTime();
+    lastByCoach.set(r.coachId, Math.max(lastByCoach.get(r.coachId) ?? 0, t));
+  }
+  const rank = [...lastByCoach.entries()]
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, limit)
+    .map(([id], i) => [id, i] as const);
+  if (rank.length === 0) return [];
+  const order = new Map(rank);
+
+  const rows = await db
     .select({
       ...packageColumns,
       active: packageOffering.active,
+      coachId: packageOffering.coachId,
       coachName: user.name,
       coachSlug: coachProfile.slug,
     })
     .from(packageOffering)
     .innerJoin(coachProfile, eq(coachProfile.id, packageOffering.coachId))
     .innerJoin(user, eq(user.id, coachProfile.userId))
-    .where(and(eq(packageOffering.active, true), eq(coachProfile.active, true)))
-    .orderBy(user.name, packageOffering.pricePerSessionCents);
+    .where(
+      and(
+        eq(packageOffering.active, true),
+        eq(coachProfile.active, true),
+        inArray(packageOffering.coachId, [...order.keys()]),
+      ),
+    )
+    .orderBy(packageOffering.pricePerSessionCents);
+
+  return rows.sort(
+    (a, b) => (order.get(a.coachId) ?? 0) - (order.get(b.coachId) ?? 0),
+  );
 }
 
 // ─── /packages · /payments · /activity ──────────────────────────────────────

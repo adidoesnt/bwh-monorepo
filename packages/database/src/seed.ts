@@ -438,6 +438,8 @@ async function seed() {
           status: b.status,
           clientNote: b.clientNote ?? null,
           clientReflection: b.clientReflection ?? null,
+          // requested ~5 days before the session (so "recently booked" ordering is real)
+          createdAt: daysAfter(b.startsAt, -5),
         })
         .returning({ id: booking.id }),
       `booking ${b.clientKey}/${b.coachKey}`,
