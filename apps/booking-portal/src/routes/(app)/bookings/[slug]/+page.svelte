@@ -3,6 +3,7 @@
 	import { daySlots } from '$lib/availability';
 	import {
 		CONSULT_MIN,
+		MAX_ACTIVE_PACKAGES,
 		ONLINE_LOCATION,
 		ONLINE_TYPES,
 		PRE_SCREENING_TYPES,
@@ -75,6 +76,7 @@
 	let buyTarget = $state<PackageSummary | null>(null);
 	let buyOpen = $state(false);
 	function buy(pk: PackageSummary) {
+		if (d0.atPackageCap) return;
 		buyTarget = pk;
 		buyOpen = true;
 	}
@@ -242,7 +244,11 @@
 								</span>
 							</span>
 							{#if canBook}
-								<button class="btn btn-xs btn-ghost border-base-300 shrink-0" onclick={() => buy(p)}>
+								<button
+									class="btn btn-xs btn-ghost border-base-300 shrink-0"
+									disabled={d0.atPackageCap}
+									onclick={() => buy(p)}
+								>
 									buy · <span class="uppercase">{sgd(p.pricePerSessionCents * p.sessionCount)}</span>
 								</button>
 							{:else}
@@ -336,7 +342,12 @@
 						<p class="mb-3">
 							you'll need a package with {firstName} to book a training session. pick one:
 						</p>
-						{#if packages.length === 0}
+						{#if d0.atPackageCap}
+							<p class="text-base-content/55">
+								you're already holding the max of {MAX_ACTIVE_PACKAGES} packages — use some sessions or
+								let one expire first.
+							</p>
+						{:else if packages.length === 0}
 							<p class="text-base-content/45">{firstName} hasn't published any packages yet.</p>
 						{:else}
 							<div class="flex flex-col gap-2">

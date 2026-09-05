@@ -6,6 +6,7 @@ import { daySlots, type Window } from "$lib/availability";
 import {
   canReschedule,
   CONSULT_MIN,
+  MAX_ACTIVE_PACKAGES,
   ONLINE_TYPES,
   PRE_SCREENING_TYPES,
   SESSION_TYPES,
@@ -14,6 +15,7 @@ import { db } from "$lib/server/db";
 import { stripeEnabled } from "$lib/server/payments";
 import {
   coachAvailabilityInputs,
+  countHeldPackages,
   getActivePurchasesForCoach,
   getCoachBySlug,
   getCoachPackages,
@@ -57,7 +59,7 @@ export const load: PageServerLoad = async ({ params, parent, url }) => {
 
   const canBook = user.role === "client";
   const rescheduleId = url.searchParams.get("reschedule");
-  const [{ windows, busy }, badges, purchases, packages, managed] =
+  const [{ windows, busy }, badges, purchases, packages, managed, held] =
     await Promise.all([
       coachAvailabilityInputs([coach.id]),
       canBook ? getClientNavBadges(user.id) : Promise.resolve(null),
@@ -68,6 +70,7 @@ export const load: PageServerLoad = async ({ params, parent, url }) => {
       canBook && rescheduleId
         ? getManagedBooking(rescheduleId, user.id)
         : Promise.resolve(null),
+      canBook ? countHeldPackages(user.id) : Promise.resolve(0),
     ]);
 
   const reschedule =
@@ -95,6 +98,7 @@ export const load: PageServerLoad = async ({ params, parent, url }) => {
     })),
     intakeComplete: badges?.intakeComplete ?? true,
     stripeEnabled: stripeEnabled(),
+    atPackageCap: held >= MAX_ACTIVE_PACKAGES,
     purchases: purchases.map((p) => ({
       id: p.id,
       packageName: p.packageName,

@@ -32,9 +32,12 @@
 		granted > 0 ? Math.round((Math.max(0, left) / granted) * 100) : 0;
 	const barClass = (p: number) => (p > 50 ? 'bg-success' : p > 20 ? 'bg-warning' : 'bg-error');
 
+	const atCap = $derived(data.held >= data.maxPackages);
+
 	let buyTarget = $state<PurchasablePackage | null>(null);
 	let buyOpen = $state(false);
 	function buy(p: PurchasablePackage) {
+		if (atCap) return;
 		buyTarget = p;
 		buyOpen = true;
 	}
@@ -128,6 +131,12 @@
 
 		<!-- get more sessions -->
 		<h2 class="font-headings mb-1 text-xl">get more sessions</h2>
+		{#if atCap}
+			<p class="border-warning bg-warning/10 mb-4 rounded-sm border p-3 text-sm">
+				you're holding {data.held} of {data.maxPackages} packages — use some sessions or let one
+				expire before buying another.
+			</p>
+		{/if}
 		{#if byCoach.length === 0}
 			<p class="text-base-content/60 text-sm">
 				<a class="link" href="/bookings">browse coaches →</a> — packages from the ones you book with show
@@ -155,7 +164,11 @@
 											<span class="uppercase">{sgd(pk.pricePerSessionCents)}</span>/session · {pk.validityDays}d
 										</div>
 									</div>
-									<button class="btn btn-xs btn-primary shrink-0" onclick={() => buy(pk)}>
+									<button
+										class="btn btn-xs btn-primary shrink-0"
+										disabled={atCap}
+										onclick={() => buy(pk)}
+									>
 										{sgd(pk.pricePerSessionCents * pk.sessionCount)}
 									</button>
 								</div>

@@ -348,6 +348,16 @@ export async function getPendingPurchaseInvoices(
     .orderBy(desc(invoice.issuedAt));
 }
 
+/** Packages the client holds toward the `MAX_ACTIVE_PACKAGES` cap:
+ *  active purchases + purchases awaiting verification. */
+export async function countHeldPackages(clientId: string): Promise<number> {
+  const [active, pending] = await Promise.all([
+    getActivePurchases(clientId),
+    getPendingPurchaseInvoices(clientId),
+  ]);
+  return active.length + pending.length;
+}
+
 export type ClientInvoice = {
   id: string;
   number: string;

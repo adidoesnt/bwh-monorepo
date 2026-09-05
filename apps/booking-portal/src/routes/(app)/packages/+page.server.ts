@@ -1,10 +1,11 @@
 import { fail } from "@sveltejs/kit";
 import { invoice } from "@repo/database/schema";
-import { packageTotalCents } from "$lib/booking";
+import { MAX_ACTIVE_PACKAGES, packageTotalCents } from "$lib/booking";
 import { STRIPE_NOT_IMPLEMENTED } from "$lib/payments";
 import { db } from "$lib/server/db";
 import { stripeEnabled } from "$lib/server/payments";
 import {
+  countHeldPackages,
   getPackageForPurchase,
   getPendingPurchaseInvoices,
   getPurchasesWithLedger,
@@ -25,6 +26,8 @@ export const load: PageServerLoad = async ({ parent }) => {
       packages: [] as PurchaseWithLedger[],
       pending: [] as PendingPurchaseInvoice[],
       suggested: [] as PurchasablePackage[],
+      held: 0,
+      maxPackages: MAX_ACTIVE_PACKAGES,
       stripeEnabled: stripeEnabled(),
     };
   }
@@ -33,7 +36,14 @@ export const load: PageServerLoad = async ({ parent }) => {
     getPendingPurchaseInvoices(user.id),
     getSuggestedPackages(user.id, 3),
   ]);
-  return { packages, pending, suggested, stripeEnabled: stripeEnabled() };
+  return {
+    packages,
+    pending,
+    suggested,
+    held: packages.length + pending.length,
+    maxPackages: MAX_ACTIVE_PACKAGES,
+    stripeEnabled: stripeEnabled(),
+  };
 };
 
 export const actions: Actions = {
@@ -43,6 +53,12 @@ export const actions: Actions = {
     }
     if (stripeEnabled()) {
       return fail(501, { error: STRIPE_NOT_IMPLEMENTED });
+    }
+
+    if ((await countHeldPackages(locals.user.id)) >= MAX_ACTIVE_PACKAGES) {
+      return fail(400, {
+        error: `you can hold ${MAX_ACTIVE_PACKAGES} packages at once — use up or let one expire before buying another`,
+      });
     }
 
     const form = await request.formData();

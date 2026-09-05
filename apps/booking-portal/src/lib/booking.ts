@@ -33,11 +33,13 @@ export function packageTotalCents(p: {
 	return p.pricePerSessionCents * p.sessionCount;
 }
 
-// ─── Cancellation & reschedule policy ────────────────────────────────────────
+// ─── Policy limits (hardcoded until Phase 10's admin settings) ───────────────
 
-/** Hours before a session after which cancelling forfeits the session. Hardcoded
- *  until Phase 10's admin settings. */
+/** Hours before a session after which cancelling forfeits the session. */
 export const CANCELLATION_WINDOW_HOURS = 24;
+
+/** Active packages (held + awaiting verification) a client may hold at once. */
+export const MAX_ACTIVE_PACKAGES = 5;
 
 /**
  * What cancelling a booking does to the client's package:

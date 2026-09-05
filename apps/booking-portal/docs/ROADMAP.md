@@ -393,7 +393,8 @@ splits the two — money lives entirely on the purchase side, a booking is only 
 *Design screens: "Admin overview", "Admin users"*
 
 - Overview: revenue by coach, utilization, all-bookings table — *3h*
-- Settings: cancellation-window (the hardcoded 24h rule becomes editable), platform
+- Settings: make the hardcoded policy limits in `src/lib/booking.ts` editable —
+  `CANCELLATION_WINDOW_HOURS` (24) and `MAX_ACTIVE_PACKAGES` (5) — plus the platform
   **commission rate** + payout ledger (Phase 4's payout math). Package pricing/validity is
   **coach-owned** now (Phase 9 editor), not admin — *2h*
 - Users: role management (client/trainer/admin), invite flow, audit log of role changes — *3h*
