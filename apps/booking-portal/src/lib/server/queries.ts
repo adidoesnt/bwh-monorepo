@@ -1,4 +1,4 @@
-import { and, eq, gte, inArray, lt, ne, sql } from "drizzle-orm";
+import { and, desc, eq, gte, inArray, lt, ne, sql } from "drizzle-orm";
 import { alias } from "drizzle-orm/pg-core";
 import {
   availabilitySlot,
@@ -11,6 +11,7 @@ import {
   sessionLedgerEntry,
   user,
   type BookingStatus,
+  type SessionLedgerReason,
   type SessionType,
 } from "@repo/database/schema";
 import { db } from "./db";
@@ -206,10 +207,19 @@ export type DashboardPackage = {
   expiresAt: Date;
 };
 
+export type ActivityEntry = {
+  delta: number;
+  reason: SessionLedgerReason;
+  createdAt: Date;
+  packageName: string;
+  coachName: string;
+};
+
 export type ClientDashboard = {
   sessionsRemaining: number;
   packages: DashboardPackage[];
   upcoming: UpcomingBooking[];
+  activity: ActivityEntry[];
   stats: {
     nextSessionAt: Date | null;
     sessionsDone: number;
@@ -219,6 +229,40 @@ export type ClientDashboard = {
   /** Bookings needing the client to act (pay / awaiting approval). */
   actionNeeded: number;
 };
+
+/** The client's most recent session-ledger movements, newest first. */
+export async function getRecentActivity(
+  clientId: string,
+  limit = 6,
+): Promise<ActivityEntry[]> {
+  return db
+    .select({
+      delta: sessionLedgerEntry.delta,
+      reason: sessionLedgerEntry.reason,
+      createdAt: sessionLedgerEntry.createdAt,
+      packageName: packageOffering.name,
+      coachName: user.name,
+    })
+    .from(sessionLedgerEntry)
+    .innerJoin(
+      packagePurchase,
+      eq(packagePurchase.id, sessionLedgerEntry.purchaseId),
+    )
+    .innerJoin(
+      packageOffering,
+      eq(packageOffering.id, packagePurchase.packageId),
+    )
+    .innerJoin(coachProfile, eq(coachProfile.id, packageOffering.coachId))
+    .innerJoin(user, eq(user.id, coachProfile.userId))
+    .where(
+      and(
+        eq(sessionLedgerEntry.clientId, clientId),
+        lt(sessionLedgerEntry.createdAt, new Date()),
+      ),
+    )
+    .orderBy(desc(sessionLedgerEntry.createdAt))
+    .limit(limit);
+}
 
 async function upcomingBookings(
   clientId: string,
@@ -289,42 +333,50 @@ export async function getClientDashboard(
 ): Promise<ClientDashboard> {
   const { start, end } = weekBounds(new Date());
 
-  const [purchases, upcoming, doneRow, weekRow, intakeRow, actionRow] =
-    await Promise.all([
-      getActivePurchases(clientId),
-      upcomingBookings(clientId, 3),
-      db
-        .select({ n: sql<number>`count(*)::int` })
-        .from(booking)
-        .where(
-          and(eq(booking.clientId, clientId), eq(booking.status, "completed")),
+  const [
+    purchases,
+    upcoming,
+    activity,
+    doneRow,
+    weekRow,
+    intakeRow,
+    actionRow,
+  ] = await Promise.all([
+    getActivePurchases(clientId),
+    upcomingBookings(clientId, 3),
+    getRecentActivity(clientId, 6),
+    db
+      .select({ n: sql<number>`count(*)::int` })
+      .from(booking)
+      .where(
+        and(eq(booking.clientId, clientId), eq(booking.status, "completed")),
+      ),
+    db
+      .select({ n: sql<number>`count(*)::int` })
+      .from(booking)
+      .where(
+        and(
+          eq(booking.clientId, clientId),
+          inArray(booking.status, ["confirmed", "completed"]),
+          gte(booking.startsAt, start),
+          lt(booking.startsAt, end),
         ),
-      db
-        .select({ n: sql<number>`count(*)::int` })
-        .from(booking)
-        .where(
-          and(
-            eq(booking.clientId, clientId),
-            inArray(booking.status, ["confirmed", "completed"]),
-            gte(booking.startsAt, start),
-            lt(booking.startsAt, end),
-          ),
+      ),
+    db
+      .select({ submittedAt: intakeResponse.submittedAt })
+      .from(intakeResponse)
+      .where(eq(intakeResponse.clientId, clientId))
+      .limit(1),
+    db
+      .select({ n: sql<number>`count(*)::int` })
+      .from(booking)
+      .where(
+        and(
+          eq(booking.clientId, clientId),
+          inArray(booking.status, PENDING_STATUSES),
         ),
-      db
-        .select({ submittedAt: intakeResponse.submittedAt })
-        .from(intakeResponse)
-        .where(eq(intakeResponse.clientId, clientId))
-        .limit(1),
-      db
-        .select({ n: sql<number>`count(*)::int` })
-        .from(booking)
-        .where(
-          and(
-            eq(booking.clientId, clientId),
-            inArray(booking.status, PENDING_STATUSES),
-          ),
-        ),
-    ]);
+      ),
+  ]);
 
   return {
     sessionsRemaining: purchases.reduce((n, p) => n + p.sessionsRemaining, 0),
@@ -336,6 +388,7 @@ export async function getClientDashboard(
       expiresAt: p.expiresAt,
     })),
     upcoming,
+    activity,
     stats: {
       nextSessionAt: upcoming[0]?.startsAt ?? null,
       sessionsDone: doneRow[0]?.n ?? 0,

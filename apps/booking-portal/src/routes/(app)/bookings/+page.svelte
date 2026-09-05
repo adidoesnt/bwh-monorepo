@@ -23,8 +23,12 @@
 	let banner = $state<'requested' | 'rescheduled' | null>(
 		untrack(() => (data.requested ? 'requested' : data.rescheduled ? 'rescheduled' : null))
 	);
-	let manageTarget = $state<ClientBooking | null>(null);
-	let manageOpen = $state(false);
+	// Honour ?manage=<id> once — a deep link from the dashboard's "what's next".
+	const deepLinked = untrack(() =>
+		data.manageId ? (data.bookings ?? []).find((b) => b.id === data.manageId) : null
+	);
+	let manageTarget = $state<ClientBooking | null>(deepLinked ?? null);
+	let manageOpen = $state(!!deepLinked);
 
 	function manage(b: ClientBooking) {
 		manageTarget = b;

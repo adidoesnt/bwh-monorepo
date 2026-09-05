@@ -46,6 +46,20 @@
 	const pkgPct = (left: number, granted: number) =>
 		granted > 0 ? Math.round((left / granted) * 100) : 0;
 	const pkgBarClass = (p: number) => (p > 50 ? 'bg-success' : p > 20 ? 'bg-warning' : 'bg-error');
+
+	const firstOf = (name: string) => name.split(' ')[0] ?? name;
+	function activityLabel(a: {
+		reason: string;
+		delta: number;
+		packageName: string;
+		coachName: string;
+	}) {
+		const coach = firstOf(a.coachName);
+		if (a.reason === 'purchase') return `bought ${a.packageName} · ${coach}`;
+		if (a.reason === 'session_consumed') return `session with ${coach}`;
+		if (a.reason === 'returned_in_time') return `session returned · ${coach}`;
+		return `${a.delta > 0 ? '+' : ''}${a.delta} adjustment · ${coach}`;
+	}
 </script>
 
 <div class="mx-auto max-w-5xl p-6 md:p-10">
@@ -93,20 +107,26 @@
 					<ul class="flex flex-col gap-2.5">
 						{#each dash.upcoming as b (b.id)}
 							{@const chip = dateChip(new Date(b.startsAt), tz)}
-							<li class="border-base-200 bg-base-200/40 flex items-center gap-3.5 rounded-field border p-3.5">
-								<div class="bg-base-200 rounded-field w-13 shrink-0 py-1.5 text-center">
-									<div class="text-base-content/60 font-body text-[10px] uppercase">{chip.mon}</div>
-									<div class="font-headings text-xl leading-tight">{chip.day}</div>
-								</div>
-								<div class="min-w-0 flex-1">
-									<div class="text-sm font-medium">{b.type}</div>
-									<div class="text-base-content/60 mt-0.5 text-xs">
-										{timeOf(new Date(b.startsAt), tz)} · {b.coachName} · {b.location}
+							<li>
+								<a
+									href="/bookings?manage={b.id}"
+									class="border-base-200 bg-base-200/40 hover:border-primary flex items-center gap-3.5 rounded-field border p-3.5 transition-colors"
+								>
+									<div class="bg-base-200 rounded-field w-13 shrink-0 py-1.5 text-center">
+										<div class="text-base-content/60 font-body text-[10px] uppercase">{chip.mon}</div>
+										<div class="font-headings text-xl leading-tight">{chip.day}</div>
 									</div>
-								</div>
-								<span class="badge badge-sm {statusPill[b.status]} font-body shrink-0">
-									{statusLabel[b.status]}
-								</span>
+									<div class="min-w-0 flex-1">
+										<div class="text-sm font-medium">{b.type}</div>
+										<div class="text-base-content/60 mt-0.5 text-xs">
+											{timeOf(new Date(b.startsAt), tz)} · {b.coachName} · {b.location}
+										</div>
+									</div>
+									<span class="badge badge-sm {statusPill[b.status]} font-body shrink-0">
+										{statusLabel[b.status]}
+									</span>
+									<span class="text-base-content/30 shrink-0 text-xs">›</span>
+								</a>
 							</li>
 						{/each}
 					</ul>
@@ -152,11 +172,31 @@
 					</a>
 				</section>
 
-				<section class="border-success bg-success/30 flex-1 rounded-sm border p-5">
-					<h3 class="font-headings mb-2 text-lg">this week's focus</h3>
-					<p class="text-base-content/60 text-sm leading-relaxed">
-						your coach sets a weekly focus once programming is wired up.
-					</p>
+				<section class="border-base-300 bg-white flex-1 rounded-sm border p-5">
+					<h3 class="font-headings mb-3 text-lg">recent activity</h3>
+					{#if dash.activity.length === 0}
+						<p class="text-base-content/45 text-sm leading-relaxed">
+							nothing yet — your session history shows up here.
+						</p>
+					{:else}
+						<ul class="flex flex-col gap-2.5">
+							{#each dash.activity as a, i (`${a.createdAt}-${a.reason}-${i}`)}
+								<li class="flex items-baseline gap-2.5 text-sm">
+									<span
+										class="font-body shrink-0 text-xs {a.delta > 0
+											? 'text-success'
+											: 'text-base-content/40'}"
+									>
+										{a.delta > 0 ? `+${a.delta}` : a.delta}
+									</span>
+									<span class="min-w-0 flex-1 truncate">{activityLabel(a)}</span>
+									<span class="text-base-content/40 shrink-0 text-xs">
+										{relativeDay(new Date(a.createdAt), tz, today)}
+									</span>
+								</li>
+							{/each}
+						</ul>
+					{/if}
 				</section>
 			</div>
 		</div>

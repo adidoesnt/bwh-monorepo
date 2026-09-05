@@ -67,6 +67,7 @@ const day = (offset: number, hhmm = "00:00") => {
   const d = new Date(Date.UTC(2026, 7, 31 + offset));
   return new Date(`${d.toISOString().slice(0, 10)}T${hhmm}:00${SGT}`);
 };
+const NOW = new Date();
 /** Date string N days after 15 Jun 2026 (Tessa's week-1 baseline). */
 const weekDate = (daysAfterJun15: number) => {
   const d = new Date("2026-06-15T00:00:00Z");
@@ -449,7 +450,8 @@ async function seed() {
         delta: -1,
         reason: "session_consumed",
         description: `${b.type} · ${b.coachKey}`,
-        createdAt: b.startsAt,
+        // Consumed when the coach approved — for a future session that's ~now, not the session date.
+        createdAt: b.startsAt < NOW ? b.startsAt : day(-1),
       });
     }
   }

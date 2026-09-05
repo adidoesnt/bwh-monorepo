@@ -28,11 +28,13 @@ export const load: PageServerLoad = async ({ parent, url }) => {
   const { user } = await parent();
   const requested = url.searchParams.has("requested");
   const rescheduled = url.searchParams.has("rescheduled");
+  const manageId = url.searchParams.get("manage");
   const empty = {
     coaches: null,
     bookings: [] as ClientBooking[],
     requested,
     rescheduled,
+    manageId,
     stripeEnabled: stripeEnabled(),
   };
   if (user.role !== "client") return empty;
@@ -62,6 +64,7 @@ export const load: PageServerLoad = async ({ parent, url }) => {
     bookings,
     requested,
     rescheduled,
+    manageId,
     stripeEnabled: stripeEnabled(),
   };
 };
