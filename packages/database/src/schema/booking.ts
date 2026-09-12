@@ -12,10 +12,9 @@ export type SessionType =
   | "assessment";
 
 /**
- * `pending_payment` / `pending_verification` existed in Phases 4–5.5 when
- * payment was part of the booking flow. Phase 6 moved money to the
- * package-purchase side, so a booking is only ever approval → confirmed. Those
- * values may still sit on pre-6 rows; they are never written now.
+ * `pending_payment` / `pending_verification` are reserved for a future
+ * in-flow payment step; money currently moves on the package-purchase side,
+ * so a booking only ever goes approval → confirmed.
  */
 export type BookingStatus =
   | "pending_approval"

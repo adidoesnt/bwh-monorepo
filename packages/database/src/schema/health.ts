@@ -12,12 +12,12 @@ import {
 } from "drizzle-orm/pg-core";
 import { createId } from "./id";
 import { user } from "./auth";
-import { coachProfile } from "./coaching";
 
 /**
  * PAR-Q health screening + goals/history + consent. One per client. Visibility
- * is scoped to the client and their assigned coach only — not surfaced to admins
- * by default (PDPA).
+ * is scoped to the client and coaches they currently hold an active package
+ * with — computed at query time, not stored — and not surfaced to admins by
+ * default (PDPA).
  */
 export const intakeResponse = pgTable(
   "intake_response",
@@ -26,10 +26,6 @@ export const intakeResponse = pgTable(
     clientId: text("client_id")
       .notNull()
       .references(() => user.id, { onDelete: "cascade" }),
-    /** Coach allowed to view this screening. */
-    coachId: text("coach_id").references(() => coachProfile.id, {
-      onDelete: "set null",
-    }),
     /** Map of PAR-Q question index → answer, e.g. { "0": false, "3": true }. */
     parqAnswers: jsonb("parq_answers").$type<Record<string, boolean>>().notNull(),
     /** True when any PAR-Q answer is "yes" — gates on doctor's clearance. */
@@ -94,10 +90,6 @@ export const intakeResponseRelations = relations(intakeResponse, ({ one }) => ({
   client: one(user, {
     fields: [intakeResponse.clientId],
     references: [user.id],
-  }),
-  coach: one(coachProfile, {
-    fields: [intakeResponse.coachId],
-    references: [coachProfile.id],
   }),
 }));
 

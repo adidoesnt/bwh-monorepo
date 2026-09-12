@@ -121,8 +121,12 @@ export const invoice = pgTable(
     status: text("status").$type<InvoiceStatus>().notNull(),
     /** S3 object key of the uploaded paynow screenshot, when method is paynow. */
     proofImageKey: text("proof_image_key"),
+    /** Stripe Checkout Session id (`cs_...`), set when `?/buy` creates the session. */
+    stripeCheckoutSessionId: text("stripe_checkout_session_id"),
+    /** Stripe PaymentIntent id (`pi_...`), from `session.payment_intent` — needed for refunds. */
+    stripePaymentIntentId: text("stripe_payment_intent_id"),
     issuedAt: timestamp("issued_at", { withTimezone: true }).defaultNow().notNull(),
-    /** The package a pending PayNow purchase-invoice is for (Phase 9 turns it into a `purchase`). */
+    /** The package a pending purchase-invoice is for; the Stripe webhook turns it into a `purchase`. */
     packageId: text("package_id").references(() => packageOffering.id, {
       onDelete: "set null",
     }),
@@ -136,6 +140,9 @@ export const invoice = pgTable(
   },
   (table) => [
     uniqueIndex("invoice_number_uidx").on(table.number),
+    uniqueIndex("invoice_stripeCheckoutSessionId_uidx").on(
+      table.stripeCheckoutSessionId,
+    ),
     index("invoice_clientId_idx").on(table.clientId),
   ],
 );

@@ -1,1 +1,0 @@
-ALTER TABLE "booking" ADD COLUMN "client_reflection" text;

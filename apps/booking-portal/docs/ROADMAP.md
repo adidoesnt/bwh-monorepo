@@ -1,4 +1,4 @@
-# Booking Portal — Iterative Roadmap
+# Booking Portal — Roadmap
 
 Source of truth for the target product: the Claude Design prototype [**"Booking Portal"**](`https://claude.ai/design/p/785a988f-9a45-490a-9793-bb450e098596`). That file is a static,
 click-through mock covering all three roles (client / trainer / admin) with placeholder data —
@@ -17,9 +17,9 @@ Hours assume **AI-assisted development** (a developer working with Claude Code o
 steering and reviewing rather than hand-typing everything) — not unattended autonomous work and
 not traditional from-scratch estimates. They're focused dev-effort hours, not calendar time.
 Later phases are estimated faster than they'd otherwise be because schema shapes, form patterns,
-and the checkout-modal skeleton get established early and reused. The riskiest line item to
-underestimate is real availability/slot computation in Phase 3 — everything downstream depends
-on it being correct, and it's the one piece with actual scheduling-logic complexity rather than
+and the checkout skeleton get established early and reused. The riskiest line item to underestimate
+is real availability/slot computation in Phase 3 — everything downstream depends on it being
+correct, and it's the one piece with actual scheduling-logic complexity rather than
 CRUD-and-render.
 
 ---
@@ -37,370 +37,155 @@ CRUD-and-render.
   validation). Signup takes first / **optional middle** / last name → stored as one `name`.
 - ✅ Route protection in `src/hooks.server.ts` — unauthenticated → redirected off `/dashboard`,
   authenticated → redirected off `/`
-- ✅ DB schema was **auth-only** at end of Phase 0: `user`, `session`, `account`, `verification`
-  (`packages/database/src/schema/auth.ts`) — no `role` column, no domain tables (all added in Phase 1)
-- ✅ `/dashboard` exists but is a literal placeholder (`<!-- TODO: Update. This is a placeholder
-  dashboard page -->`) — just a welcome message and a logout button
-
-Everything below is ⬜ not started unless marked otherwise.
-
----
+- ✅ `/dashboard` exists as a placeholder welcome page
 
 ## Phase 1 — Data model & roles ✅ done
 **Estimate: ~6h**
 
-Prerequisite for everything else — the prototype has no real backing data, so this phase defines
-the schema the rest of the roadmap fills in.
+The schema the rest of the roadmap fills in — see [`DATA-MODEL.md`](../../../packages/database/docs/DATA-MODEL.md)
+in `@repo/database` for the full reference.
 
 - ✅ `role` (`client` | `trainer` | `admin`, default `client`) + `status` (`active` | `invited`)
   on `user`, wired through better-auth `additionalFields` so they land in the session /
-  `App.Locals` (`packages/database/src/schema/auth.ts`, `auth/server.ts`)
-- ✅ Domain tables in `packages/database/src/schema/` split by concern:
-  `coaching.ts` (`coach_profile`, `availability_slot` — recurring weekly open windows),
-  `booking.ts` (`booking`), `billing.ts` (`package`, `package_purchase`, `credit_ledger_entry`
-  with a signed `numeric` delta, `invoice`), `health.ts` (`intake_response`, `progress_entry`,
-  `measurement`), `messaging.ts` (`chat_message`). Migration `0001_windy_bromley`.
-  `coach_profile` is decoupled from `role` on purpose — Ishita is an admin who also coaches.
-  *(Phase 5.5 reworks the billing tables: global credits → coach-authored packages,
-  `credit_ledger_entry` → `session_ledger_entry`, `coach_profile.rate_from_cents` dropped.)*
+  `App.Locals`
+- ✅ Domain tables in `packages/database/src/schema/`: `coaching.ts` (`coach_profile`,
+  `availability_slot`), `booking.ts` (`booking`), `billing.ts` (`package`, `package_purchase`,
+  `session_ledger_entry`, `invoice`), `health.ts` (`intake_response`, `progress_entry`,
+  `measurement`), `messaging.ts` (`chat_message`). `coach_profile` is decoupled from `role` on
+  purpose — a user can hold a coach profile regardless of which portal their `role` admits them to.
 - ✅ Role-based route guards in `hooks.server.ts`: shared surfaces need any session;
   `/trainer/*` is trainer+admin, `/admin/*` is admin-only; wrong-role access → role's home.
   (`HOME_BY_ROLE` all point at `/dashboard` until the trainer/admin route trees exist.)
-- ✅ Seed script (`bun run db:seed`, `packages/database/src/seed.ts`) — mirrors the prototype:
-  Ishita/Nadia/Jolene coaches, Tessa as the worked-example client (transform package, 6 credits,
-  bookings, progress, measurements, completed PAR-Q), plus Renee/Farah/Declan/Hana/Yasmin.
-  Farah has a `build` package expiring soon and **no** PAR-Q, to exercise Phase 3's date-cap
-  and screening gates. All seed users log in with password `password`. Idempotent (upserts
-  users, wipes+reinserts domain tables). *(Phase 5.5 rewrites the package/purchase/ledger seed
-  data to the coach-packages model.)*
+- ✅ Seed script (`bun run db:seed`, `packages/database/src/seed.ts`) mirrors the prototype:
+  Ishita/Nadia/Jolene coaches, Tessa as the worked-example client (an active package, bookings,
+  progress, measurements, completed PAR-Q), plus Renee/Farah/Declan/Hana/Yasmin. Farah has a
+  package expiring soon and **no** PAR-Q, to exercise Phase 3's date-cap and screening gates. All
+  seed users log in with password `password`. Idempotent (upserts users, wipes+reinserts domain
+  tables).
 
-## Phase 2 — Client dashboard shell & navigation ✅ done
+## Phase 2 — Client dashboard shell & navigation ⬜
 **Estimate: ~5h**
 
 *Design screens: global sidebar, "Client dashboard"*
 
-- ✅ Replace the placeholder `/dashboard` with the real app shell: role-aware sidebar nav
+- Replace the placeholder `/dashboard` with the real app shell: role-aware sidebar nav
   (dashboard / bookings / packages / payments / progress / help), logout — *2h*
-- ✅ Dashboard content: today label, "hey {name}", stat cards, "what's next" (upcoming bookings
-  preview), credits summary card, weekly focus — data read from Phase 1 tables — *3h*
-  *(Phase 5.5: credits card → per-purchase package cards; "weekly focus" (assumed one coach owns
-  programming) → "recent activity" feed from `session_ledger_entry`; "what's next" rows deep-link
-  to `/bookings?manage=<id>`.)*
-- ✅ The whole authenticated app renders lowercase (`lowercase` on the `(app)` layout;
-  explicit `uppercase` on leaf labels still wins) — the prototype's house style. Names show
-  full in identity spots, first-name-only in prose; currency (`SG$…`) stays uppercased.
-- ✅ "request a session" on the dashboard is a live link to `/bookings` (was disabled).
+- Dashboard content: today label, "hey {name}", stat cards, "what's next" (upcoming bookings
+  preview, deep-linking to manage a booking), active-package cards, recent-activity feed from
+  `session_ledger_entry` — *3h*
 
-## Phase 2.5 — Timezone foundation ✅ done
+## Phase 2.5 — Timezone foundation ⬜
 
-Cross-cutting change done between Phase 2 and Phase 3 because Phase 3's slot maths depends on it.
+Cross-cutting change to land between Phase 2 and Phase 3, since Phase 3's slot maths depends on it.
 
-- ✅ Every `timestamp` column → `timestamptz` (migration `0002_high_impossible_man`); the seed
-  writes real instants (SGT wall-clock times carry a `+08:00` offset).
-- ✅ `/dashboard` and `/bookings*` render client-side (`+page.ts` `ssr = false`); `format.ts`
-  helpers take an explicit zone so times show in the **viewer's** zone (their stored
-  `user.timezone` — added in Phase 3 — else the browser's).
+- Every `timestamp` column is already `timestamptz`; the seed writes real instants (SGT
+  wall-clock times carry a `+08:00` offset).
+- `/dashboard` and `/bookings*` render client-side so times can show in the **viewer's** zone
+  (their stored `user.timezone`, else the browser's).
 
-## Phase 3 — Coach directory & booking request (client) ✅ done
+## Phase 3 — Coach directory & booking request (client) ⬜
 **Estimate: ~10h** (highest-risk phase to underestimate)
 
 *Design screens: "Bookings" → choose coach, coach profile / book panel*
 
-- ✅ Coach list (`/bookings`, `+page.svelte`): search, **multi-select** tag filter chips
-  (`all` clears; picking >1 tag matches any of them), sort (soonest / most open slots / price /
-  name), **+ a `show` limit dropdown (5 / 10 / 25, default 10)** applied after filter+sort.
-  Coaches carry multiple tags (`coach_profile.tags` array). Filter/sort/limit are client-side;
-  the server load precomputes each coach's open-slot count and soonest-free for the two
-  availability sorts.
-- ✅ Coach profile panel (`/bookings/[slug]`): bio, rate, trains-at, open-hours chips, tags,
+- Coach list (`/bookings`): search, multi-select tag filter chips, sort (soonest / most open
+  slots / price / name), a `show` limit dropdown (5 / 10 / 25, default 10) applied after
+  filter+sort. Coaches carry multiple tags (`coach_profile.tags` array). Filter/sort/limit are
+  client-side; the server load precomputes each coach's open-slot count and soonest-free for the
+  two availability sorts.
+- Coach profile panel (`/bookings/[slug]`): bio, packages, trains-at, open-hours chips, tags,
   shareable `builtwithhabit.com/book/<slug>` link + copy button.
-- ✅ Booking form: session type / duration (45·60·90 → 0.75·1·1.5 credits) / date / live slot
-  grid; submit → `booking` row, `pending_approval` when the client has the credits else
-  `pending_payment`. Server action re-validates the slot (`?/request` in
-  `[slug]/+page.server.ts`) — never trusts the posted time. *(Phase 5.5 replaces the duration
-  picker with a package picker — length follows the chosen package.)*
-- ✅ Date range: today **through the day the active package's credits expire** (`getActivePackage`;
-  8 weeks out if no package). Picker is month chips → day chips (`datesInRange` in `tz.ts`);
-  month row hides when the range is a single month. Form notes the expiry date; the action
-  rejects a start after `packagePurchase.expiresAt`. Seed: Farah has a `build` package expiring
-  ~12 sep to exercise the near-expiry case. *(Phase 5.5: the cap becomes the selected purchase's
-  `expires_at`.)*
-- ✅ Real availability (`src/lib/availability.ts` `daySlots` / `openness`): generates 30-min
-  starts from `availability_slot` windows on the coach-local weekday, blocks starts that overlap
-  a `pending_approval | pending_payment | confirmed` booking or are in the past.
-- ✅ **Coach timezone.** `coach_profile.timezone` + `user.timezone` added (migration
-  `0003_common_marvel_apes`, wired through better-auth `additionalFields`). Availability windows
-  are wall-clock in the coach's zone; `src/lib/tz.ts` converts via `Intl` (DST-safe,
-  isomorphic). If client and coach zones differ, only online session types are offered (form +
-  server both enforce). Seed: ishita/nadia `Asia/Singapore`, jolene `Asia/Dubai` to exercise it.
-- ✅ **Session-type gates** compose in `allowedTypes` (form) and the `?/request` action:
-  cross-timezone → online types only; **PAR-Q not submitted → free consult only**
-  (`PRE_SCREENING_TYPES`, `getIntakeComplete`); both → free consult. Phase 7 builds the PAR-Q
-  form itself; this is the booking-side gate the roadmap's Phase 7 line refers to.
-- ✅ **Read-only bookings list** with `upcoming / awaiting action / past` tabs landed here on
-  `/bookings` (left column). Row actions (pay / reschedule / cancel / notes) + the 24h
-  cancellation policy are still **Phase 5**.
+- Booking form: session type / package picker (length follows the chosen package) / date / live
+  slot grid; submit → `booking` row at `pending_approval` if the client holds a session with this
+  coach, else the form is replaced by "get a {coach} package to book" (see Phase 6). Server action
+  re-validates the slot — never trusts the posted time.
+- Date range: today through the active purchase's `expires_at` (8 weeks out if no active
+  purchase). Picker is month chips → day chips; month row hides when the range is a single month.
+  Form notes the expiry date; the action rejects a start after it.
+- Real availability: generates 30-min starts from `availability_slot` windows on the coach-local
+  weekday, blocks starts that overlap an existing `pending_approval | confirmed` booking or are
+  in the past.
+- Coach timezone: availability windows are wall-clock in the coach's zone, converted via `Intl`
+  (DST-safe). If client and coach zones differ, only online session types are offered (form +
+  server both enforce).
+- Session-type gates compose: cross-timezone → online types only; PAR-Q not submitted → free
+  consult only (Phase 7 builds the PAR-Q form itself; this is the booking-side gate).
+- Read-only bookings list with `upcoming / awaiting action / past` tabs on `/bookings` (left
+  column). Row actions (reschedule / cancel / notes) + the 24h cancellation policy are Phase 5.
 
-## Phase 4 — Checkout & payments (client) 🚧 partial
-**Estimate: ~6h** (PayNow + flag + object storage, done — **being scrapped by Phase 6.5**)
+## Phase 4 — Package checkout & Stripe payments (client) ⬜
+**Estimate: ~9.5h**
 
-*Design screen: checkout modal (review → pay → waiting/confirmed)*
+*Design screen: checkout modal (review → pay → processing/confirmed)*
 
-- ✅ **`ENABLE_STRIPE_PAYMENTS` feature flag** (`apps/booking-portal/src/lib/server/payments.ts`,
-  default `false`). `false` → the paynow flow below runs; `true` → the `pay` action
-  short-circuits with a descriptive "not implemented yet" error instead of touching
-  Stripe (`STRIPE_NOT_IMPLEMENTED` in `src/lib/payments.ts`, shared with the client so
-  the checkout modal can render the same message) — Stripe itself is still deferred.
-- ✅ Checkout modal shell (`src/lib/components/checkoutModal.svelte`): review → pay →
-  **waiting** steps, triggered from a "pay" button on `pending_payment` rows in the
-  bookings list.
-- ✅ PayNow flow: review step shows a mock QR placeholder + amount (no real PayNow
-  integration exists, so this is explicitly a stand-in); pay step uploads a screenshot
-  to object storage (with a live preview) and inserts an `invoice` row (`status: "pending"`,
-  `method: "paynow · awaiting verification"`); booking flips to the new
-  **`pending_verification`** status ("waiting"). Amount = coach's `rateFromCents`
-  treated as hourly, scaled to the booking's duration. *(Phase 5.5: checkout sells a whole
-  **package**, not a single session. Phase 6: the checkout is no longer tied to a booking at
-  all — `?/buy` on `/packages` writes a pending package-invoice; `package_purchase` + sessions
-  land at Phase 9 verification. **Phase 6.5 scraps PayNow entirely** — no screenshot, no manual
-  verification; `?/buy` is a Stripe Checkout redirect and a webhook does the rest.)*
-- ⬜ **Real payment QR: Ishita's PayNow QR.** All client payments land in one account
-  (Ishita's) rather than per-coach. Coaches then get paid out by Ishita when they
-  request a payout (Phase 9's "my payouts"), net of a **per-booking/session platform
-  commission** — so payout = Σ(session price − commission) for verified, completed
-  sessions not yet paid out. The commission rate + payout ledger are Phase 10 admin
-  settings; the QR image itself just replaces the placeholder in `checkoutModal.svelte`.
-- ✅ **Object storage**: new `@repo/storage` package (thin S3 wrapper, works
-  unchanged against dev and prod). Dev runs [floci](https://floci.io) in
-  `docker-compose.yml` (S3-compatible, no docker.sock needed since only S3 — an
-  in-process service — is used); prod points the same client at real S3.
-- ⬜ **Payment verification is NOT built here, by design.** A submitted PayNow proof
-  (post-6: a pending package-invoice) is a dead end until Phase 9 ships the trainer's
-  payments-to-verify queue — that's where the `package_purchase` is created, the
-  `+N` session-ledger entry written, and the invoice flipped to `paid`.
-  No temporary admin/trainer UI was added for this on purpose, to avoid throwaway
-  code once Phase 9 lands.
-- ⬜ Stripe card flow — deferred here; **built in Phase 6.5**, once there's a package purchase
-  to actually charge for.
+Money lives entirely on the package-purchase side — a booking never carries a price or a payment
+state. See [`BOOKING-LIFECYCLE.md`](BOOKING-LIFECYCLE.md) for both state machines.
 
-## Phase 5 — Bookings management (client) ✅ done
+```
+buy → Stripe Checkout → processing (webhook in flight) → purchased
+                                                        → failed (no charge, retry)
+```
+
+- `?/buy` (`/packages`, and from `/bookings/[slug]` when the client has no active package with a
+  coach) creates a Stripe Checkout Session for the package total (metadata: client + package id),
+  writes an `invoice` row (`status: pending`, `stripe_checkout_session_id`), and redirects the
+  client to Stripe's hosted checkout — *2h*
+- Webhook (`src/routes/webhooks/stripe/+server.ts`): verifies the Stripe signature, handles
+  `checkout.session.completed` — creates the `package_purchase` (snapshotting `sessionsGranted`,
+  `sessionLengthMin`, `expiresAt`), writes the `+N` `purchase` ledger entry, flips the invoice to
+  `paid`. A failed/expired session flips the invoice to a failed state instead — *2.5h*
+- `BuyPackageModal`: review (package, total) → redirect to Stripe (no upload step); on return,
+  `/packages` reads a `?purchase=success|cancelled` query param and shows the right banner while
+  the webhook (usually seconds) lands — *1.5h*
+- `/packages`: "your packages" (card per active `package_purchase` with an expandable
+  `session_ledger_entry` log) · "processing" (pending purchase-invoices, webhook in flight) ·
+  "get more sessions" — one card per coach, showing packages from the ≤3 coaches the client
+  engaged with most recently, full browsing stays on `/bookings` — *2h*
+- `/packages` enforces `MAX_ACTIVE_PACKAGES = 5` (hardcoded until Phase 10): held = active
+  purchases + pending purchase-invoices; `?/buy` rejects at the cap and the buy buttons disable
+  with a reason — *0.5h*
+- `/payments` — invoice table (number, date, description, amount, status) + stats (total paid /
+  count / processing) + cancellation-policy blurb. No saved payment methods — *0.5h*
+- `/activity` — full `session_ledger_entry` log, chronological, per-purchase running balance on
+  each row, coach filter chips, 20/page client-side pagination — *0.5h*
+
+## Phase 5 — Bookings management (client) ⬜
 **Estimate: ~5.5h**
 
 *Design screen: "Bookings" list, upcoming/past/all tabs*
 
-State machine (all of Phases 3–5, plus the Phase 9 gaps): [`BOOKING-LIFECYCLE.md`](BOOKING-LIFECYCLE.md).
+State machine: [`BOOKING-LIFECYCLE.md`](BOOKING-LIFECYCLE.md).
 
-- ✅ List stays on `/bookings` (combined with the coach directory, not split). Every booking row
-  now opens one **manage-session modal** (`ManageBookingModal.svelte`, refactored from the old
-  `CheckoutModal`) that shows the actions valid for that booking's state and branches into the
-  matching flow.
-- ✅ Per-row actions:
-  - **pay to confirm** — the Phase 4 PayNow review → upload → waiting steps, now a branch of the
-    manage modal *(removed in Phase 6 — bookings have no payment step)*
+- List stays on `/bookings` (combined with the coach directory, not split). Every booking row
+  opens one manage-session modal showing the actions valid for that booking's state.
+- Per-row actions:
   - **reschedule** — reuses the coach page's live slot grid via
-    `/bookings/[slug]?reschedule=<id>` (same coach only). `?/reschedule` re-validates the slot
-    (excluding the booking's own slot), re-applies the cross-zone / PAR-Q / package-expiry gates,
-    then sets the booking back to `pending_approval` for the coach to re-confirm. A `confirmed`
-    booking also gets a `refund_in_time` credit return so Phase 9's re-approval re-charges
-    cleanly; rescheduling a `confirmed` booking is blocked inside the 24h window.
-  - **cancel** — `?/cancel` → `cancelBooking()` in `src/lib/server/cancellation.ts`
-  - **your notes** — client-authored post-session reflection (`booking.client_reflection`,
-    migration `0005_naive_tyger_tiger`), `?/reflect` action, past / `completed` bookings only,
-    shown inline on the row
-- ✅ Cancellation policy (`cancelOutcome` / `canReschedule` in `src/lib/booking.ts`,
-  `CANCELLATION_WINDOW_HOURS = 24` hardcoded until Phase 10):
-  - `pending_approval` / `pending_payment` → plain cancel, no ledger movement (no credit was taken)
-  - `pending_verification` → the in-flight PayNow invoice is voided to `no_charge`; the modal tells
-    the client to contact the coach about the transfer
-  - `confirmed`, ≥24h out → `refund_in_time` credit returned to the ledger
-  - `confirmed`, <24h out → credit forfeited, recorded as a `no_charge` "late cancellation" invoice
-    (mirrors the seed's `bwh-0118`)
-  - **Phase 5.5 simplifies this** — no cash/credit refunds, just session-returned (≥24h) vs
-    session-forfeited (<24h); the `<24h` no-charge invoice is dropped. **Phase 6** further drops
-    the `pending_verification` / `void` case (no such booking state any more). See Phase 6.
+    `/bookings/[slug]?reschedule=<id>` (same coach only). Re-validates the slot (excluding the
+    booking's own slot), re-applies the cross-zone / PAR-Q / package-expiry gates, then sets the
+    booking back to `pending_approval` for the coach to re-confirm. A `confirmed` booking also
+    gets a `returned_in_time` session credit so re-approval re-consumes cleanly; rescheduling a
+    `confirmed` booking is blocked inside the 24h window.
+  - **cancel** — voids the booking; no cash refunds since a package is bought as a block.
+  - **your notes** — client-authored post-session reflection (`booking.client_reflection`),
+    past / `completed` bookings only, shown inline on the row.
+- Cancellation policy (`CANCELLATION_WINDOW_HOURS = 24`, hardcoded until Phase 10):
 
-## Phase 5.5 — Coach packages (replaces credits) ✅ done
-**Estimate: ~14.5h** (+ ~2.5h for the Phase 9 package editor)
-
-Migrations `0006_coach_packages`. Cross-cutting model change, like Phase 2.5 — inserted mid-stream
-because everything downstream depends on it. *(Phase 6 then decoupled package-buying from the
-booking flow — the `pending_payment` / `pending_verification` booking states and
-`booking.intended_package_id` described below were removed. See Phase 6 + `BOOKING-LIFECYCLE.md`.)* The credit model assumed one platform-wide session price; that breaks the moment
-a second coach prices differently. Replaced with **coach-authored packages**. Phases 6, 9 and 10
-build on this shape. The prototype's "Packages & credits" screen (credit pips) is no longer
-source-of-truth for this area.
-
-**The model**
-
-- A **package** belongs to a coach and specifies: number of sessions, length of each session
-  (minutes), cost per session, validity window (days). Total price = count × per-session cost
-  (computed, not stored). Coaches author their own — seeded until Phase 9 ships the editor.
-- Buying a package creates a `package_purchase` granting N sessions of that length, expiring
-  `purchased_at + validity_days`. Balance is tracked **per purchase** (append-only
-  `session_ledger_entry`, whole-session deltas), drawn down FIFO by soonest expiry.
-- `coach_profile.rate_from_cents` is **removed** — pricing lives entirely in packages. A coach
-  who wants one-offs publishes a 1-session package. Directory / profile show "packages from
-  SG$X / session" (cheapest package, subquery); the price sort keys on that.
-- "Credits" is gone from schema and UI — everything is "sessions" tied to a named package
-  with a coach.
-
-**Booking**
-
-- The 45/60/90 duration picker is replaced by a **package picker** — length follows the chosen
-  package. Session *type* (in-person / online / consult / assessment) stays an independent
-  booking-time choice, still gated by timezone / PAR-Q. Free consult is unchanged: free, no
-  package, fixed 30 min.
-- Active package with this coach + a session in hand (balance − pending holds ≥ 1) → request
-  lands `pending_approval`; the session is consumed at Phase 9 approval, as credits were.
-- No package with this coach → pick one of their packages → `pending_payment` booking carrying
-  `intended_package_id` and the package's length. The Phase 4 checkout modal now sells the
-  **whole package**: PayNow QR for the full price, upload proof, an `invoice` (pending, linked to
-  the intended package) is written, booking → `pending_verification`. The `package_purchase` +
-  session grant + first consume happen at Phase 9 verification — so it stays a clean dead end
-  until then.
-
-**Cancel / reschedule** (supersedes Phase 5's credit policy)
-
-No cash refunds — a package is bought as a block. The only question is whether the session goes
-back to the pack or is burned:
-
-| Booking state | Notice | Result |
-| :-- | :-- | :-- |
-| `pending_approval` / `pending_payment` | — | plain cancel — no session consumed yet |
-| `pending_verification` | — | void the pending package invoice (purchase never happened) |
-| `confirmed` | ≥ 24h | session returned to the purchase (`+1` ledger entry) |
-| `confirmed` | < 24h | session forfeited — the `−1` stands, nothing else |
-
-Reschedule ≥ 24h: session returned, booking → `pending_approval`, re-approval re-consumes.
-Reschedule < 24h: blocked. The `< 24h` cancel no longer writes a `no_charge` invoice.
-`cancelOutcome`'s `refund` outcome is renamed `return`.
-
-**Schema** — migration `0006`, no prod data:
-
-- `package` + `coach_id`, `session_length_min`, `price_per_session_cents`, `validity_days`
-  (was `credit_expiry_months`); `session_count` kept
-- `package_purchase` — `credits_granted` → `sessions_granted`, + `session_length_min` snapshot,
-  `expires_at` derived from `validity_days`
-- `credit_ledger_entry` → `session_ledger_entry`; `purchase_id` NOT NULL; `delta` whole sessions;
-  reasons `purchase` / `session_consumed` / `returned_in_time` / `adjustment`
-- `booking` — drop `credit_cost`; add `package_purchase_id` (draws from) + `intended_package_id`
-  (set while `pending_payment`)
-- `coach_profile` — drop `rate_from_cents`
-
-**Code** (~10 files): `src/lib/booking.ts` (drop `creditCostFor` / `sessionAmountCents` /
-`DURATIONS`; `cancelOutcome` `refund`→`return`, drop the forfeit invoice); `queries.ts`
-(per-purchase balance, active-purchase pick, dashboard list, coach cheapest-price);
-`cancellation.ts`; `bookings/[slug]/+page.server.ts` + `.svelte` (package picker, buy branch);
-`ManageBookingModal.svelte` (sell a package); `dashboard/+page.svelte`; `seed.ts`
-(per-coach packages); `BOOKING-LIFECYCLE.md`.
-
-| Line item | Estimate |
-| :-- | :-- |
-| Schema + migration + seed | ~2h |
-| `queries.ts` rework | ~2h |
-| Booking form — package picker, buy-a-package path | ~3h |
-| Booking gate / reschedule / cancel against packages | ~2h |
-| Checkout modal — sell a package | ~2h |
-| Dashboard + modal + copy | ~2h |
-| Docs (ROADMAP, BOOKING-LIFECYCLE) | ~1.5h |
-| **Total** | **~14.5h** |
-
-## Phase 6 — Decouple purchases + packages/payments/activity pages (client) ✅ done
-**Estimate: ~10h**
-
-*Design screens: "Packages & credits" (re-scoped), "Payments"*
-
-Phase 5.5 bundled "buy a package" into `?/request`, producing a `pending_payment` booking with a
-"pay" step — wrong, because **a session must come from a package that's already paid for**.
-Phase 6 split the two: money lives entirely on the purchase side, a booking is only ever
-`pending_approval` → `confirmed`. See `BOOKING-LIFECYCLE.md` for the two state machines.
-
-### Part A — decouple buying from booking
-
-- ✅ **Schema** (migration `0007_decouple_purchases`, no prod data): dropped
-  `booking.intended_package_id`; added `invoice.package_id` (the package a pending
-  purchase-invoice is for). `pending_payment` / `pending_verification` stay in the
-  `BookingStatus` type for pre-6 rows but are never written; `ACTIVE_BOOKING_STATUSES` /
-  `PENDING_STATUSES` trimmed to what's live.
-- ✅ **`?/request`** (`bookings/[slug]`): no active package with this coach → the form is
-  replaced by "get a {coach} package to book" + that coach's packages + a **buy** button
-  (`BuyPackageModal`). Free consult still books with no package.
-- ✅ **`ManageBookingModal`**: `pay-*` steps + the `pending_payment` menu entry gone.
-- ✅ **`cancelOutcome`**: `void` case dropped — `none` / `return` / `forfeit` / `blocked`.
-- ✅ `getPayableBooking` + the checkout modal's booking-linked path deleted.
-- ✅ **Seed**: no `pending_payment` bookings; two unverified purchase-invoices for the new pages.
-
-### Part B — the pages
-
-- ✅ **`BuyPackageModal` + `/packages` `?/buy`** — review (package, total, PayNow QR) → upload
-  proof → writes a pending `invoice` (`package_id`, `proof_image_key`, amount = package total).
-  No `package_purchase`, no sessions — **Phase 9 verifies**. Stripe short-circuits via the flag.
-  *(**Phase 6.5 replaces this whole mechanism** — PayNow proof + manual verification are scrapped
-  for real Stripe Checkout + a webhook.)*
-- ✅ **`/packages`** — "your packages" (card per active `package_purchase` with an expandable
-  `session_ledger_entry` log) · "awaiting verification" (pending purchase-invoices) · "get more
-  sessions" as **one card per coach**, showing packages from the **≤3 coaches the client engaged
-  with most recently** (`getSuggestedPackages`, booked-or-bought, recency-ordered) — full
-  browsing stays on `/bookings`.
-- ✅ **`/packages`** also enforces **`MAX_ACTIVE_PACKAGES = 5`** (`src/lib/booking.ts`, hardcoded
-  until Phase 10): held = active purchases + pending purchase-invoices; `?/buy` rejects at the
-  cap and the buy buttons (here + on `[slug]`) disable with a reason.
-- ✅ **`/payments`** — invoice table (number, date, description, amount, status, presigned
-  PayNow-proof link) + stats (total paid / count / awaiting verification) + cancellation-policy
-  blurb. No saved payment methods.
-- ✅ **`/activity`** — full `session_ledger_entry` log, chronological, **per-purchase running
-  balance** on each row, coach filter chips, **20/page** client-side pagination. Sidebar item
-  `activity` + the dashboard "recent activity" "view all" now enabled. Shared `ledgerLabel`
-  helper (`src/lib/activity.ts`).
-
-## Phase 6.5 — Stripe payments (replaces PayNow) ⬜
-**Estimate: ~7.5h**
-
-Decided after Phase 6 shipped: drop the mock PayNow-proof-and-manual-verify flow entirely and
-pay with **Stripe** instead. Nothing about the booking/package model changes — a booking still
-only ever needs a session already in hand (Phase 6); this is purely how buying a package's
-sessions gets paid for. New flow for a package purchase:
-
-```
-buy → Stripe Checkout → processing (webhook in flight) → succeeded → purchased
-                                                        → failed    → nothing charged, retry
-```
-
-- **`?/buy`** (`/packages`) creates a Stripe Checkout Session for the package total (metadata:
-  client + package id), writes an `invoice` (`status: pending`, `stripe_checkout_session_id`,
-  no `proof_image_key` — that field goes unused for packages from here on), and redirects the
-  client to Stripe's hosted checkout. No screenshot, no QR placeholder — *2h*
-- **Webhook** (`src/routes/webhooks/stripe/+server.ts`): verifies the Stripe signature, handles
-  `checkout.session.completed` — creates the `package_purchase`, writes the `+N` `purchase`
-  ledger entry, flips the invoice to `paid`. A failed/expired session flips the invoice to a
-  failed state instead (schema: either a new `InvoiceStatus` value or reuse `no_charge` — decide
-  at implementation time) — *2.5h*
-- **`BuyPackageModal`**: review → redirect to Stripe (no upload step); on return, `/packages`
-  reads the `?purchase=success|cancelled` query param and shows the right banner while the
-  webhook (usually seconds) lands — *1.5h*
-- **`/packages`**: "awaiting verification" section → **"processing"** — same pending-invoice
-  list, different framing (nothing for a human to verify any more) — *0.5h*
-- Remove the PayNow-specific code written in Phase 6: screenshot validation, the proof upload
-  to `@repo/storage` for payments (storage itself stays — Phase 8's check-in photos still use
-  it), the mock QR markup — *0.5h*
-- Docs (ROADMAP, BOOKING-LIFECYCLE) — *0.5h*
-
-**Downstream:** Phase 9's "payments-to-verify queue" bullet is removed — there's nothing left to
-verify by hand. Phase 10's commission/payout settings are unaffected (Stripe payments still land
-in one platform account, same payout model). `ENABLE_STRIPE_PAYMENTS` — currently a "not
-implemented" short-circuit flag — needs revisiting once Stripe is the *only* path; decide at
-implementation time whether it becomes a dev-mode bypass or goes away.
+  | Booking state | Notice | Result |
+  | :-- | :-- | :-- |
+  | `pending_approval` | — | plain cancel — no session was consumed yet |
+  | `confirmed` | ≥ 24h | session returned to the purchase (`+1` ledger entry) |
+  | `confirmed` | < 24h | session forfeited — the `−1` stands, nothing else |
 
 ## Phase 7 — Intake / PAR-Q health screening ⬜
 **Estimate: ~4.5h**
 
 *Design screen: "Intake PAR-Q"*
 
-- Multi-step form (progress bar, PAR-Q questions) — *2.5h*
-- 🚧 Gate booking on completion — **done in Phase 3**: without a submitted PAR-Q only a free
-  consult can be booked (form + `?/request`). This phase just adds the form that flips
-  `intake_response.submitted_at`. Still to do: scope visibility to client + assigned coach only
-  (PDPA — don't surface to admin by default) — *1.5h*
+- Multi-step form (progress bar, PAR-Q questions), writes `intake_response` and flips
+  `submitted_at` — *2.5h*
+- Booking-side gate (only a free consult bookable without a submitted PAR-Q) is Phase 3's
+  concern; this phase scopes visibility to client + assigned coach only (PDPA — don't surface to
+  admin by default) — *1.5h*
 
 ## Phase 8 — Progress tracking (client) ⬜
 **Estimate: ~7.5h**
@@ -417,16 +202,14 @@ implementation time whether it becomes a dev-mode bypass or goes away.
 *Design screens: "Trainer dashboard", "Trainer clients"*
 
 - Dashboard: today's schedule, pending requests (approve / suggest another time — approve flips
-  booking to `confirmed` **and consumes a session** `−1` from the client's purchase) — *2h*
-  *(the payments-to-verify queue this bullet used to include is gone — Phase 6.5's Stripe webhook
-  verifies package purchases automatically, nothing left for a trainer to review by hand)*
+  booking to `confirmed` and consumes a session `−1` from the client's purchase) — *2h*
 - Weekly availability grid: tap to toggle open/closed; booked cells derived from real bookings,
   not manually set — *3h*
 - Clients table: roster with sessions remaining, next session, attendance %, flags — derived
   (package running low / no screening / etc.), not manually set — *2.5h*
-- **Package editor** (from Phase 5.5): CRUD the packages clients buy from this coach — session
-  count, length, per-session price, validity days; deactivate without deleting (past purchases
-  keep their snapshot) — *2.5h*
+- Package editor: CRUD the packages clients buy from this coach — session count, length,
+  per-session price, validity days; deactivate without deleting (past purchases keep their
+  snapshot) — *2.5h*
 
 ## Phase 10 — Admin portal ⬜
 **Estimate: ~8h** **+ ~2h** ("preview as", deferred)
@@ -434,10 +217,9 @@ implementation time whether it becomes a dev-mode bypass or goes away.
 *Design screens: "Admin overview", "Admin users"*
 
 - Overview: revenue by coach, utilization, all-bookings table — *3h*
-- Settings: make the hardcoded policy limits in `src/lib/booking.ts` editable —
-  `CANCELLATION_WINDOW_HOURS` (24) and `MAX_ACTIVE_PACKAGES` (5) — plus the platform
-  **commission rate** + payout ledger (Phase 4's payout math). Package pricing/validity is
-  **coach-owned** now (Phase 9 editor), not admin — *2h*
+- Settings: make the hardcoded policy limits editable — `CANCELLATION_WINDOW_HOURS` (24) and
+  `MAX_ACTIVE_PACKAGES` (5) — plus the platform commission rate + payout ledger. Package
+  pricing/validity is coach-owned (Phase 9 editor), not admin — *2h*
 - Users: role management (client/trainer/admin), invite flow, audit log of role changes — *3h*
 - "Preview as" mode (admin viewing the app as a client/trainer) — *2h, defer until the client and
   trainer surfaces are stable, since it just re-renders them with a banner*
@@ -456,50 +238,40 @@ implementation time whether it becomes a dev-mode bypass or goes away.
 **Estimate: ~14h**, spread across the project rather than a single sprint
 
 - Email/SMS reminders for upcoming sessions and pending approvals — *3h*
-- Notifications/toasts wired to real events (booking confirmed, payment verified, etc.) — *2h*
+- Notifications/toasts wired to real events (booking confirmed, payment received, etc.) — *2h*
 - Accessibility and responsive pass against the prototype's breakpoints — *3h*
-- Test coverage for booking / session-ledger / cancellation logic and the Phase 6.5 Stripe
-  webhook (real money and scheduling correctness at stake) — *4h*
+- Test coverage for booking / session-ledger / cancellation logic and the Stripe webhook (real
+  money and scheduling correctness at stake) — *4h*
 - Production deploy pipeline: pick a concrete SvelteKit adapter (adapter-auto can't detect one),
   and set the prod env — `BETTER_AUTH_SECRET` is **required** (dev + `vite build` fall back to a
-  throwaway value; real prod runtime throws without it — see `src/lib/server/config.ts`),
-  plus `STRIPE_SECRET_KEY` / `STRIPE_WEBHOOK_SECRET` from Phase 6.5 — *2h*
+  throwaway value; real prod runtime throws without it — see `src/lib/server/config.ts`), plus
+  `STRIPE_SECRET_KEY` / `STRIPE_WEBHOOK_SECRET` from Phase 4 — *2h*
 
 ---
 
 ## Progress
 
-**Done:** Phases 0, 1, 2, 2.5, 3, 5, 5.5, 6. **Phase 4 partial:** the mock PayNow flow is what's
-live today, but it's being scrapped for real Stripe payments — see Phase 6.5.
+**Done:** Phases 0, 1.
 
-**Next on the critical path:** Phase 6.5 (Stripe payments) — swaps the payment rail before
-Phase 9 builds a manual "verify a PayNow screenshot" queue that would become throwaway code the
-moment Stripe lands. After that, Phase 9 (trainer portal) is the remaining unblock:
-`pending_approval` bookings can't be confirmed until a coach can approve them.
+**Next on the critical path:** Phase 2 (dashboard shell), then Phase 3 (booking request) — the
+riskiest single phase, since everything downstream depends on availability being computed
+correctly.
 
 ## Suggested near-term order
 
-Phases 1 → 5 built the client booking loop; Phase 5.5 rebased billing onto coach packages;
-Phase 6 split buying from booking and shipped the packages/payments/activity pages. **Phase 6.5
-(Stripe) goes next** — same package-purchase flow, real payment processing instead of a PayNow
-screenshot. **Phase 9 (trainer portal) is then the real unblock** — until it lands,
-`pending_approval` bookings sit idle with no one to approve them. Phases 7–11 otherwise proceed
-in roughly the listed order.
+Phases 2 → 5 build the client booking loop (dashboard, timezones, coach directory + request,
+Stripe checkout, bookings management). Phase 9 (trainer portal) is the first hard unblock after
+that — until it lands, `pending_approval` bookings sit idle with no one to approve them. Phases
+7, 8, 10, 11 otherwise proceed in roughly the listed order.
 
 ## Total estimated effort
 
 | Scope | Estimate |
 | :-- | :-- |
-| Critical path (Phases 1–5) | ~33h |
-| Phase 5.5 (coach packages — replaces credits) | ~14.5h |
-| Phase 6 (decouple purchases + packages/payments/activity pages) | ~10h |
-| Phase 6.5 (Stripe payments — replaces PayNow) | ~7.5h |
-| Full client + trainer + admin core (Phases 1–11, excluding deferred items) | ~97h |
+| Critical path (Phases 1–5) | ~38.5h |
+| Full client + trainer + admin core (Phases 1–11, excluding deferred items) | ~90h |
 | Deferred items (real AI assistant, "preview as") | ~6-8h |
 | Polish & hardening (Phase 12) | ~14h |
-| **End-to-end** | **~117-119h**, i.e. roughly 3-3.5 weeks of focused solo AI-assisted work |
+| **End-to-end** | **~110-112h**, i.e. roughly 3 weeks of focused solo AI-assisted work |
 
-Treat these as planning inputs, not commitments. Phases 1–6 came in roughly on estimate
-(~57.5h). The Phase 9/10 estimates are still provisional — they inherit whatever shape the
-Phase 9 trainer portal settles on, and Phase 9's payments-to-verify queue is now gone entirely
-(Phase 6.5 automates it).
+Treat these as planning inputs, not commitments.

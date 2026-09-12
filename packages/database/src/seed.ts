@@ -463,7 +463,6 @@ async function seed() {
   console.log("seeding tessa's intake…");
   await db.insert(intakeResponse).values({
     clientId: pick(uid, "tessa"),
-    coachId: pick(coachIds, "ishita"),
     parqAnswers: { "0": false, "1": false, "2": false, "3": true, "4": false, "5": false },
     parqFlag: true,
     goals: ["build strength", "move pain-free"],
