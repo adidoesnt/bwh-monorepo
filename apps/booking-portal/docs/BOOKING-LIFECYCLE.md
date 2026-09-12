@@ -6,15 +6,18 @@ booking never has a payment state.
 
 > **Model note.** Phases 3–5 shipped a global *credit* model; Phase 5.5 replaced it with
 > coach-authored *packages*; **Phase 6** split package-buying out of the booking flow (dropping
-> `pending_payment` / `pending_verification` from `booking`). Transitions marked **Phase 9** are
-> trainer-portal actions that aren't built — so `pending_approval` bookings and unverified
-> purchases are currently dead ends.
+> `pending_payment` / `pending_verification` from `booking`); **Phase 6.5** (planned) replaces the
+> mock PayNow-proof-and-manual-verify purchase flow with real **Stripe** payments — the
+> booking/package model itself doesn't change, only how a package gets paid for. Transitions
+> marked **Phase 9** are trainer-portal actions that aren't built — so `pending_approval` bookings
+> are currently a dead end (package purchases will resolve on their own once Phase 6.5 ships,
+> without needing Phase 9).
 
 Source of truth: `booking.status` (`packages/database/src/schema/booking.ts`), `src/lib/booking.ts`
 (`cancelOutcome`, `canReschedule`), the `?/request` / `?/reschedule` actions in
 `src/routes/(app)/bookings/[slug]/+page.server.ts`, `?/cancel` / `?/reflect` +
-`src/lib/server/cancellation.ts` under `src/routes/(app)/bookings/`, and the `?/buy` action
-(`src/routes/(app)/packages/`).
+`src/lib/server/cancellation.ts` under `src/routes/(app)/bookings/`, and (once Phase 6.5 lands)
+the `?/buy` action + Stripe webhook under `src/routes/(app)/packages/`.
 
 ## Booking state machine
 
@@ -57,25 +60,40 @@ time for other bookings. (`pending_payment` / `pending_verification` still exist
 
 ## Package purchase state machine
 
+**Live today (Phase 6):** PayNow — client uploads a screenshot, a human verifies it. **Planned
+(Phase 6.5, not yet built):** the same shape, but Stripe does the paying and the verifying —
+nobody reviews anything by hand. The diagram below is the Phase 6.5 target; see below for how it
+differs from what's actually running right now.
+
 ```mermaid
 stateDiagram-v2
     direction LR
-    [*] --> invoice_pending: buy a package + upload PayNow proof
-    invoice_pending --> purchased: coach/admin verifies [Phase 9]<br/>package_purchase created, +N sessions
-    invoice_pending --> voided: client cancels the pending purchase
+    [*] --> checkout: buy a package<br/>Stripe Checkout Session created
+    checkout --> processing: client pays on Stripe
+    processing --> purchased: webhook: checkout.session.completed [Phase 6.5]<br/>package_purchase created, +N sessions
+    processing --> failed: webhook: payment failed / session expired [Phase 6.5]<br/>no purchase, client can retry
     purchased --> [*]
-    voided --> [*]
+    failed --> [*]
 ```
 
-- **`invoice_pending`** — an `invoice` row (`status: pending`, `package_id`, `proof_image_key`,
-  `method: "paynow · awaiting verification"`, `amount_cents` = package total). No
-  `package_purchase`, no sessions yet.
-- **`purchased`** — Phase 9 verification creates the `package_purchase`
-  (`sessions_granted`, `session_length_min` snapshot, `expires_at` = now + `validity_days`),
-  writes the `+N` `purchase` ledger entry, and flips the invoice to `paid`.
+- **`checkout`** — `?/buy` creates a Stripe Checkout Session for the package total and an
+  `invoice` row (`status: pending`, `package_id`, `stripe_checkout_session_id`), then redirects
+  the client to Stripe's hosted page. No screenshot, no manual proof.
+- **`processing`** — client is on/has left Stripe's page; the webhook hasn't landed yet (usually
+  seconds). `/packages` shows this purchase under "processing," not "awaiting verification" —
+  there's nothing left for a human to check.
+- **`purchased`** — the Stripe webhook creates the `package_purchase` (`sessions_granted`,
+  `session_length_min` snapshot, `expires_at` = now + `validity_days`), writes the `+N`
+  `purchase` ledger entry, and flips the invoice to `paid`. Fully automatic.
+- **`failed`** — payment declined or the checkout session expired unused. Invoice reflects the
+  failure (exact status TBD at implementation — either a new `InvoiceStatus` value or reusing
+  `no_charge`); no sessions granted; the client can start a new checkout.
 
-Until Phase 9 ships, buying a package is a dead end — the pending invoice just sits in the
-"awaiting verification" list on `/packages`.
+**What's actually live right now (Phase 6, until 6.5 ships):** `?/buy` uploads a PayNow
+screenshot to object storage and writes a `pending` invoice with `proof_image_key` instead of a
+Stripe session; there is no `processing` / `failed` distinction — it's just `pending` until a
+human (Phase 9, unbuilt) verifies it into `purchased` or a client voids it. That whole path goes
+away once Phase 6.5 ships.
 
 ## Packages & sessions
 
@@ -122,12 +140,15 @@ No ledger entry at request time — the session is spent when the coach approves
 
 ## `?/buy` (`/packages`) — standalone package purchase
 
-Review (package, total, PayNow QR) → upload proof → insert an `invoice`
-(`status: pending`, `package_id`, `proof_image_key`, `method: "paynow · awaiting verification"`,
-`amount_cents` = total). Nothing else — no `package_purchase`, no sessions. Phase 9 verifies.
+**Planned (Phase 6.5):** review (package, total) → redirect to Stripe Checkout → client pays →
+webhook creates the `package_purchase` + grants sessions, no human in the loop. **Live today
+(Phase 6):** review (package, total, PayNow QR placeholder) → upload a screenshot → insert an
+`invoice` (`status: pending`, `package_id`, `proof_image_key`,
+`method: "paynow · awaiting verification"`, `amount_cents` = total). Nothing else — no
+`package_purchase`, no sessions until Phase 9 verifies by hand.
 
 Triggered from `/packages` ("get more sessions") and from `/bookings/[slug]` when the client has
-no package with that coach.
+no package with that coach — unaffected by the Phase 6.5 payment-rail swap.
 
 ## `?/reschedule` (`bookings/[slug]?reschedule=<id>`)
 
@@ -161,9 +182,10 @@ Writes `booking.client_reflection` (client's post-session note). Allowed when th
 
 ## What's built vs. pending
 
-- **Phase 6:** booking / purchase decoupled; `/packages`, `/payments`, `/activity` pages;
-  standalone `?/buy`.
-- **Phase 9:** approve (`pending_approval → confirmed`, consume a session), verify a package
-  purchase (create `package_purchase` + grant + flip invoice to `paid`), mark complete, and
-  trainer-initiated cancel / decline.
-- **Phase 12:** Stripe as an alternative to the PayNow-proof purchase flow.
+- **Phase 6 (done):** booking / purchase decoupled; `/packages`, `/payments`, `/activity` pages;
+  standalone `?/buy` — currently paid via PayNow proof + manual verification.
+- **Phase 6.5 (next, not built):** scraps PayNow — `?/buy` becomes a Stripe Checkout redirect, a
+  webhook does what Phase 9 verification below used to have to do for package purchases.
+- **Phase 9:** approve (`pending_approval → confirmed`, consume a session), mark complete, and
+  trainer-initiated cancel / decline. (Verifying a package purchase — previously listed here — is
+  gone from Phase 9's scope once Phase 6.5 ships; Stripe's webhook does it instead.)

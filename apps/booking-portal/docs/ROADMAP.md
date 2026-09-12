@@ -142,7 +142,7 @@ Cross-cutting change done between Phase 2 and Phase 3 because Phase 3's slot mat
   cancellation policy are still **Phase 5**.
 
 ## Phase 4 — Checkout & payments (client) 🚧 partial
-**Estimate: ~6h** (PayNow + flag + object storage, done) **+ ~2h** (Stripe, still deferred)
+**Estimate: ~6h** (PayNow + flag + object storage, done — **being scrapped by Phase 6.5**)
 
 *Design screen: checkout modal (review → pay → waiting/confirmed)*
 
@@ -162,7 +162,8 @@ Cross-cutting change done between Phase 2 and Phase 3 because Phase 3's slot mat
   treated as hourly, scaled to the booking's duration. *(Phase 5.5: checkout sells a whole
   **package**, not a single session. Phase 6: the checkout is no longer tied to a booking at
   all — `?/buy` on `/packages` writes a pending package-invoice; `package_purchase` + sessions
-  land at Phase 9 verification.)*
+  land at Phase 9 verification. **Phase 6.5 scraps PayNow entirely** — no screenshot, no manual
+  verification; `?/buy` is a Stripe Checkout redirect and a webhook does the rest.)*
 - ⬜ **Real payment QR: Ishita's PayNow QR.** All client payments land in one account
   (Ishita's) rather than per-coach. Coaches then get paid out by Ishita when they
   request a payout (Phase 9's "my payouts"), net of a **per-booking/session platform
@@ -179,8 +180,8 @@ Cross-cutting change done between Phase 2 and Phase 3 because Phase 3's slot mat
   `+N` session-ledger entry written, and the invoice flipped to `paid`.
   No temporary admin/trainer UI was added for this on purpose, to avoid throwaway
   code once Phase 9 lands.
-- ⬜ Stripe card flow — deferred; the flag above is the only Stripe-shaped code that
-  exists today.
+- ⬜ Stripe card flow — deferred here; **built in Phase 6.5**, once there's a package purchase
+  to actually charge for.
 
 ## Phase 5 — Bookings management (client) ✅ done
 **Estimate: ~5.5h**
@@ -334,6 +335,8 @@ Phase 6 split the two: money lives entirely on the purchase side, a booking is o
 - ✅ **`BuyPackageModal` + `/packages` `?/buy`** — review (package, total, PayNow QR) → upload
   proof → writes a pending `invoice` (`package_id`, `proof_image_key`, amount = package total).
   No `package_purchase`, no sessions — **Phase 9 verifies**. Stripe short-circuits via the flag.
+  *(**Phase 6.5 replaces this whole mechanism** — PayNow proof + manual verification are scrapped
+  for real Stripe Checkout + a webhook.)*
 - ✅ **`/packages`** — "your packages" (card per active `package_purchase` with an expandable
   `session_ledger_entry` log) · "awaiting verification" (pending purchase-invoices) · "get more
   sessions" as **one card per coach**, showing packages from the **≤3 coaches the client engaged
@@ -349,6 +352,44 @@ Phase 6 split the two: money lives entirely on the purchase side, a booking is o
   balance** on each row, coach filter chips, **20/page** client-side pagination. Sidebar item
   `activity` + the dashboard "recent activity" "view all" now enabled. Shared `ledgerLabel`
   helper (`src/lib/activity.ts`).
+
+## Phase 6.5 — Stripe payments (replaces PayNow) ⬜
+**Estimate: ~7.5h**
+
+Decided after Phase 6 shipped: drop the mock PayNow-proof-and-manual-verify flow entirely and
+pay with **Stripe** instead. Nothing about the booking/package model changes — a booking still
+only ever needs a session already in hand (Phase 6); this is purely how buying a package's
+sessions gets paid for. New flow for a package purchase:
+
+```
+buy → Stripe Checkout → processing (webhook in flight) → succeeded → purchased
+                                                        → failed    → nothing charged, retry
+```
+
+- **`?/buy`** (`/packages`) creates a Stripe Checkout Session for the package total (metadata:
+  client + package id), writes an `invoice` (`status: pending`, `stripe_checkout_session_id`,
+  no `proof_image_key` — that field goes unused for packages from here on), and redirects the
+  client to Stripe's hosted checkout. No screenshot, no QR placeholder — *2h*
+- **Webhook** (`src/routes/webhooks/stripe/+server.ts`): verifies the Stripe signature, handles
+  `checkout.session.completed` — creates the `package_purchase`, writes the `+N` `purchase`
+  ledger entry, flips the invoice to `paid`. A failed/expired session flips the invoice to a
+  failed state instead (schema: either a new `InvoiceStatus` value or reuse `no_charge` — decide
+  at implementation time) — *2.5h*
+- **`BuyPackageModal`**: review → redirect to Stripe (no upload step); on return, `/packages`
+  reads the `?purchase=success|cancelled` query param and shows the right banner while the
+  webhook (usually seconds) lands — *1.5h*
+- **`/packages`**: "awaiting verification" section → **"processing"** — same pending-invoice
+  list, different framing (nothing for a human to verify any more) — *0.5h*
+- Remove the PayNow-specific code written in Phase 6: screenshot validation, the proof upload
+  to `@repo/storage` for payments (storage itself stays — Phase 8's check-in photos still use
+  it), the mock QR markup — *0.5h*
+- Docs (ROADMAP, BOOKING-LIFECYCLE) — *0.5h*
+
+**Downstream:** Phase 9's "payments-to-verify queue" bullet is removed — there's nothing left to
+verify by hand. Phase 10's commission/payout settings are unaffected (Stripe payments still land
+in one platform account, same payout model). `ENABLE_STRIPE_PAYMENTS` — currently a "not
+implemented" short-circuit flag — needs revisiting once Stripe is the *only* path; decide at
+implementation time whether it becomes a dev-mode bypass or goes away.
 
 ## Phase 7 — Intake / PAR-Q health screening ⬜
 **Estimate: ~4.5h**
@@ -371,15 +412,14 @@ Phase 6 split the two: money lives entirely on the purchase side, a booking is o
 - Check-in photos — private storage (client + assigned coach only) — *3h*
 
 ## Phase 9 — Trainer (coach) portal ⬜
-**Estimate: ~11.5h**
+**Estimate: ~10h**
 
 *Design screens: "Trainer dashboard", "Trainer clients"*
 
 - Dashboard: today's schedule, pending requests (approve / suggest another time — approve flips
-  booking to `confirmed` **and consumes a session** `−1` from the client's purchase),
-  payments-to-verify queue (pending package-invoices with PayNow proofs — verify creates the
-  `package_purchase`, writes the `+N` `purchase` ledger entry, flips the invoice to `paid`;
-  bookings are unaffected) — *3.5h*
+  booking to `confirmed` **and consumes a session** `−1` from the client's purchase) — *2h*
+  *(the payments-to-verify queue this bullet used to include is gone — Phase 6.5's Stripe webhook
+  verifies package purchases automatically, nothing left for a trainer to review by hand)*
 - Weekly availability grid: tap to toggle open/closed; booked cells derived from real bookings,
   not manually set — *3h*
 - Clients table: roster with sessions remaining, next session, attendance %, flags — derived
@@ -413,36 +453,38 @@ Phase 6 split the two: money lives entirely on the purchase side, a booking is o
   of the mock, defer*
 
 ## Phase 12 — Polish & hardening ⬜
-**Estimate: ~16h**, spread across the project rather than a single sprint
+**Estimate: ~14h**, spread across the project rather than a single sprint
 
-- Complete Stripe integration (builds on the Phase 4 stub) — *2h*
 - Email/SMS reminders for upcoming sessions and pending approvals — *3h*
 - Notifications/toasts wired to real events (booking confirmed, payment verified, etc.) — *2h*
 - Accessibility and responsive pass against the prototype's breakpoints — *3h*
-- Test coverage for booking / session-ledger / cancellation logic (real money and scheduling
-  correctness at stake) — *4h*
+- Test coverage for booking / session-ledger / cancellation logic and the Phase 6.5 Stripe
+  webhook (real money and scheduling correctness at stake) — *4h*
 - Production deploy pipeline: pick a concrete SvelteKit adapter (adapter-auto can't detect one),
   and set the prod env — `BETTER_AUTH_SECRET` is **required** (dev + `vite build` fall back to a
-  throwaway value; real prod runtime throws without it — see `src/lib/server/config.ts`) — *2h*
+  throwaway value; real prod runtime throws without it — see `src/lib/server/config.ts`),
+  plus `STRIPE_SECRET_KEY` / `STRIPE_WEBHOOK_SECRET` from Phase 6.5 — *2h*
 
 ---
 
 ## Progress
 
-**Done:** Phases 0, 1, 2, 2.5, 3, 5, 5.5, 6. **Phase 4 partial:** the PayNow-proof flow exists but
-every path through it (buy a package, get a booking confirmed) is a dead end until Phase 9.
+**Done:** Phases 0, 1, 2, 2.5, 3, 5, 5.5, 6. **Phase 4 partial:** the mock PayNow flow is what's
+live today, but it's being scrapped for real Stripe payments — see Phase 6.5.
 
-**Next on the critical path:** Phase 9 (trainer portal) — nothing the client does completes
-without it: `pending_approval` bookings can't be confirmed, pending package-invoices can't be
-verified into real sessions. Phase 6 built every client-facing surface around that gap, so the
-client side is feature-complete pending Phase 9 + Phase 7 (PAR-Q form) + Phase 8 (progress).
+**Next on the critical path:** Phase 6.5 (Stripe payments) — swaps the payment rail before
+Phase 9 builds a manual "verify a PayNow screenshot" queue that would become throwaway code the
+moment Stripe lands. After that, Phase 9 (trainer portal) is the remaining unblock:
+`pending_approval` bookings can't be confirmed until a coach can approve them.
 
 ## Suggested near-term order
 
 Phases 1 → 5 built the client booking loop; Phase 5.5 rebased billing onto coach packages;
-Phase 6 split buying from booking and shipped the packages/payments/activity pages. **Phase 9
-(trainer portal) is the real unblock** — until it lands, `pending_approval` bookings and pending
-package-invoices both sit idle. Phases 7–11 otherwise proceed in roughly the listed order.
+Phase 6 split buying from booking and shipped the packages/payments/activity pages. **Phase 6.5
+(Stripe) goes next** — same package-purchase flow, real payment processing instead of a PayNow
+screenshot. **Phase 9 (trainer portal) is then the real unblock** — until it lands,
+`pending_approval` bookings sit idle with no one to approve them. Phases 7–11 otherwise proceed
+in roughly the listed order.
 
 ## Total estimated effort
 
@@ -451,11 +493,13 @@ package-invoices both sit idle. Phases 7–11 otherwise proceed in roughly the l
 | Critical path (Phases 1–5) | ~33h |
 | Phase 5.5 (coach packages — replaces credits) | ~14.5h |
 | Phase 6 (decouple purchases + packages/payments/activity pages) | ~10h |
-| Full client + trainer + admin core (Phases 1–11, excluding deferred items) | ~91h |
-| Deferred items (Stripe, real AI assistant, "preview as") | ~8-10h |
-| Polish & hardening (Phase 12) | ~16h |
-| **End-to-end** | **~116-126h**, i.e. roughly 3-3.5 weeks of focused solo AI-assisted work |
+| Phase 6.5 (Stripe payments — replaces PayNow) | ~7.5h |
+| Full client + trainer + admin core (Phases 1–11, excluding deferred items) | ~97h |
+| Deferred items (real AI assistant, "preview as") | ~6-8h |
+| Polish & hardening (Phase 12) | ~14h |
+| **End-to-end** | **~117-119h**, i.e. roughly 3-3.5 weeks of focused solo AI-assisted work |
 
 Treat these as planning inputs, not commitments. Phases 1–6 came in roughly on estimate
 (~57.5h). The Phase 9/10 estimates are still provisional — they inherit whatever shape the
-Phase 9 trainer portal settles on.
+Phase 9 trainer portal settles on, and Phase 9's payments-to-verify queue is now gone entirely
+(Phase 6.5 automates it).
