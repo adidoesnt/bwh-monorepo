@@ -77,38 +77,43 @@ in `@repo/database` for the full reference.
 - ✅ Render dates in the viewer's timezone: `/dashboard` renders client-side (`ssr = false`) so
   times show in the viewer's stored `user.timezone`, else the browser's — *1h*
 
-## Phase 3 — Coach directory & booking request (client) ⬜
+## Phase 3 — Coach directory & booking request (client) 🚧 partial
 **Estimate: ~10h** (highest-risk phase to underestimate)
 
 *Design screens: "Bookings" → choose coach, coach profile / book panel*
 
-- Coach list (`/bookings`): search, multi-select tag filter chips, sort, a `show` limit dropdown
-  (5 / 10 / 25, default 10) — all **server-side**, driven by URL search params
-  (`?q=&tags=&sort=&page=`) for shareable/bookmarkable views. Coaches carry multiple tags
-  (`coach_profile.tags` array, matched via Postgres array-overlap). Sort starts with `name` /
-  `price` (cheapest active package); the `soonest` / `most open slots` sorts need real
-  availability computed in a way that's still sortable/paginated at the DB level, which is a
-  bigger lift than the rest of this bullet — land those two after real slot computation exists
-  (see the availability bullet below), not with the initial directory.
-- Coach profile panel (`/bookings/[slug]`): bio, packages, trains-at, open-hours chips, tags,
+- ✅ Coach list (`/bookings`): search, multi-select tag filter chips (horizontally scrollable, an
+  "all" chip clears them), sort, a `show` limit dropdown (5 / 10 / 25, default 10) — all
+  **server-side**, driven by URL search params (`?q=&tags=&sort=&page=`) for shareable/bookmarkable
+  views. Coaches carry multiple tags (`coach_profile.tags` array, matched via Postgres
+  array-overlap). Sort is `name` / `price` (cheapest active package) via a custom daisyUI dropdown
+  (not a native `<select>`, so the popup itself can be styled). Each card shows an avatar, tagline,
+  tags, and price; the `soonest` / `most open slots` sorts and a real "next free" line are still
+  ⬜ — they need availability computed in a way that's sortable/paginated at the DB level, a bigger
+  lift than the rest of this bullet (see the availability bullet below). Tag chips currently list
+  every distinct tag across active coaches (`getAllCoachTags`), alphabetically, uncapped — capping
+  to the top N most-used once the vocabulary grows is a known follow-up, not yet done.
+- ⬜ Coach profile panel (`/bookings/[slug]`): bio, packages, trains-at, open-hours chips, tags,
   shareable `builtwithhabit.com/book/<slug>` link + copy button.
-- Booking form: session type / package picker (length follows the chosen package) / date / live
+- ⬜ Booking form: session type / package picker (length follows the chosen package) / date / live
   slot grid; submit → `booking` row at `pending_approval` if the client holds a session with this
   coach, else the form is replaced by "get a {coach} package to book" (see Phase 4). Server action
   re-validates the slot — never trusts the posted time.
-- Date range: today through the active purchase's `expires_at` (8 weeks out if no active
+- ⬜ Date range: today through the active purchase's `expires_at` (8 weeks out if no active
   purchase). Picker is month chips → day chips; month row hides when the range is a single month.
   Form notes the expiry date; the action rejects a start after it.
-- Real availability: generates 30-min starts from `availability_slot` windows on the coach-local
+- ⬜ Real availability: generates 30-min starts from `availability_slot` windows on the coach-local
   weekday, blocks starts that overlap an existing `pending_approval | confirmed` booking or are
   in the past.
-- Coach timezone: availability windows are wall-clock in the coach's zone, converted via `Intl`
+- ⬜ Coach timezone: availability windows are wall-clock in the coach's zone, converted via `Intl`
   (DST-safe). If client and coach zones differ, only online session types are offered (form +
   server both enforce).
-- Session-type gates compose: cross-timezone → online types only; PAR-Q not submitted → free
+- ⬜ Session-type gates compose: cross-timezone → online types only; PAR-Q not submitted → free
   consult only (Phase 6 builds the PAR-Q form itself; this is the booking-side gate).
-- Read-only bookings list with `upcoming / awaiting action / past` tabs on `/bookings` (left
-  column). Row actions (reschedule / cancel / notes) + the 24h cancellation policy are Phase 5.
+- ✅ Read-only bookings list with `upcoming / awaiting action / past` tabs on `/bookings`, each a
+  server-side paginated bucket (date-first, status-second — see `BOOKING-LIFECYCLE.md`) with its
+  own count badge. Row actions (reschedule / cancel) render as disabled placeholders; making them
+  real, plus the 24h cancellation policy, is Phase 5.
 
 ## Phase 4 — Package checkout & Stripe payments (client) ⬜
 **Estimate: ~9.5h**
@@ -248,10 +253,13 @@ State machine: [`BOOKING-LIFECYCLE.md`](BOOKING-LIFECYCLE.md).
 
 ## Progress
 
-**Done:** Phases 0, 1, 2.
+**Done:** Phases 0, 1, 2. **Phase 3 partial:** the coach directory (search/tags/sort/pagination)
+and the bookings list (upcoming/awaiting action/past tabs) are done; the coach profile page,
+booking form, and real availability computation are not started.
 
-**Next on the critical path:** Phase 3 (booking request) — the riskiest single phase, since
-everything downstream depends on availability being computed correctly.
+**Next on the critical path:** finishing Phase 3 — real availability computation is the riskiest
+piece, since the booking form, the coach directory's remaining sorts, and the "next free" display
+all depend on it being correct.
 
 ## Suggested near-term order
 
