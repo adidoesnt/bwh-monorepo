@@ -8,7 +8,13 @@ import {
 } from "$lib/server/queries";
 
 const getClientData = async (clientId: string) => {
-  const [upcomingBookings, activePackages, recentActivity, completedSessionStats, weeklySessionCounts] = await Promise.all([
+  const [
+    upcomingBookings,
+    activePackages,
+    recentActivity,
+    completedSessionStats,
+    weeklySessionCounts,
+  ] = await Promise.all([
     getClientUpcomingBookings(clientId),
     getClientActivePackages(clientId),
     getClientRecentActivity(clientId),
@@ -33,7 +39,11 @@ const EMPTY_DASHBOARD_DATA = {
   weeklySessionCounts: { thisWeek: 0, lastWeek: 0 },
 };
 
-export const load: PageServerLoad = async ({ locals }) => {
+export const load: PageServerLoad = async ({
+  locals,
+}: {
+  locals: App.Locals;
+}) => {
   const { user } = locals;
 
   switch (user?.role) {
