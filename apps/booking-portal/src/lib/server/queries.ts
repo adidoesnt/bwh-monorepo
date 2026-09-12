@@ -103,7 +103,7 @@ export const getClientCompletedSessionStats = async (clientId: string) => {
   const [row] = await db
     .select({
       count: sql<number>`count(*)`.mapWith(Number),
-      since: sql<Date | null>`min(${booking.startsAt})`,
+      since: sql<Date | null>`min(${booking.startsAt})`.mapWith((v) => (v === null ? null : new Date(v))),
     })
     .from(booking)
     .where(and(eq(booking.clientId, clientId), eq(booking.status, "completed")));

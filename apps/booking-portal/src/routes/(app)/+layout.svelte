@@ -21,7 +21,7 @@
 			<span class="font-headings text-lg">builtwithhabit</span>
 		</header>
 
-		<main class="flex-1 overflow-y-auto">
+		<main class="bg-base-200 flex-1 overflow-y-auto">
 			{@render children()}
 		</main>
 	</div>

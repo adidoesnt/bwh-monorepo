@@ -25,6 +25,14 @@ const getClientData = async (clientId: string) => {
   };
 };
 
+const EMPTY_DASHBOARD_DATA = {
+  upcomingBookings: [],
+  activePackages: [],
+  recentActivity: [],
+  completedSessionStats: { count: 0, since: null },
+  weeklySessionCounts: { thisWeek: 0, lastWeek: 0 },
+};
+
 export const load: PageServerLoad = async ({ locals }) => {
   const { user } = locals;
 
@@ -33,10 +41,10 @@ export const load: PageServerLoad = async ({ locals }) => {
       return await getClientData(user.id);
     case "admin":
       console.warn("Admin dashboard not implemented yet!");
-      return {};
+      return EMPTY_DASHBOARD_DATA;
     case "trainer":
       console.warn("Trainer dashboard not implemented yet!");
-      return {};
+      return EMPTY_DASHBOARD_DATA;
     default:
       throw new Error("Invalid role");
   }

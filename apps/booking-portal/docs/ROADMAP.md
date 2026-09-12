@@ -64,7 +64,7 @@ in `@repo/database` for the full reference.
   tables).
 
 ## Phase 2 — Client dashboard shell & navigation ⬜
-**Estimate: ~5h**
+**Estimate: ~6h**
 
 *Design screens: global sidebar, "Client dashboard"*
 
@@ -73,15 +73,9 @@ in `@repo/database` for the full reference.
 - Dashboard content: today label, "hey {name}", stat cards, "what's next" (upcoming bookings
   preview, deep-linking to manage a booking), active-package cards, recent-activity feed from
   `session_ledger_entry` — *3h*
-
-## Phase 2.5 — Timezone foundation ⬜
-
-Cross-cutting change to land between Phase 2 and Phase 3, since Phase 3's slot maths depends on it.
-
-- Every `timestamp` column is already `timestamptz`; the seed writes real instants (SGT
-  wall-clock times carry a `+08:00` offset).
-- `/dashboard` and `/bookings*` render client-side so times can show in the **viewer's** zone
-  (their stored `user.timezone`, else the browser's).
+- Render dates in the viewer's timezone: `/dashboard` (and `/bookings*` once Phase 3 lands)
+  render client-side so times show in the viewer's stored `user.timezone`, else the browser's —
+  *1h*
 
 ## Phase 3 — Coach directory & booking request (client) ⬜
 **Estimate: ~10h** (highest-risk phase to underestimate)
@@ -97,7 +91,7 @@ Cross-cutting change to land between Phase 2 and Phase 3, since Phase 3's slot m
   shareable `builtwithhabit.com/book/<slug>` link + copy button.
 - Booking form: session type / package picker (length follows the chosen package) / date / live
   slot grid; submit → `booking` row at `pending_approval` if the client holds a session with this
-  coach, else the form is replaced by "get a {coach} package to book" (see Phase 6). Server action
+  coach, else the form is replaced by "get a {coach} package to book" (see Phase 4). Server action
   re-validates the slot — never trusts the posted time.
 - Date range: today through the active purchase's `expires_at` (8 weeks out if no active
   purchase). Picker is month chips → day chips; month row hides when the range is a single month.
@@ -109,7 +103,7 @@ Cross-cutting change to land between Phase 2 and Phase 3, since Phase 3's slot m
   (DST-safe). If client and coach zones differ, only online session types are offered (form +
   server both enforce).
 - Session-type gates compose: cross-timezone → online types only; PAR-Q not submitted → free
-  consult only (Phase 7 builds the PAR-Q form itself; this is the booking-side gate).
+  consult only (Phase 6 builds the PAR-Q form itself; this is the booking-side gate).
 - Read-only bookings list with `upcoming / awaiting action / past` tabs on `/bookings` (left
   column). Row actions (reschedule / cancel / notes) + the 24h cancellation policy are Phase 5.
 
@@ -141,7 +135,7 @@ buy → Stripe Checkout → processing (webhook in flight) → purchased
   `session_ledger_entry` log) · "processing" (pending purchase-invoices, webhook in flight) ·
   "get more sessions" — one card per coach, showing packages from the ≤3 coaches the client
   engaged with most recently, full browsing stays on `/bookings` — *2h*
-- `/packages` enforces `MAX_ACTIVE_PACKAGES = 5` (hardcoded until Phase 10): held = active
+- `/packages` enforces `MAX_ACTIVE_PACKAGES = 5` (hardcoded until Phase 9): held = active
   purchases + pending purchase-invoices; `?/buy` rejects at the cap and the buy buttons disable
   with a reason — *0.5h*
 - `/payments` — invoice table (number, date, description, amount, status) + stats (total paid /
@@ -168,7 +162,7 @@ State machine: [`BOOKING-LIFECYCLE.md`](BOOKING-LIFECYCLE.md).
   - **cancel** — voids the booking; no cash refunds since a package is bought as a block.
   - **your notes** — client-authored post-session reflection (`booking.client_reflection`),
     past / `completed` bookings only, shown inline on the row.
-- Cancellation policy (`CANCELLATION_WINDOW_HOURS = 24`, hardcoded until Phase 10):
+- Cancellation policy (`CANCELLATION_WINDOW_HOURS = 24`, hardcoded until Phase 9):
 
   | Booking state | Notice | Result |
   | :-- | :-- | :-- |
@@ -176,7 +170,7 @@ State machine: [`BOOKING-LIFECYCLE.md`](BOOKING-LIFECYCLE.md).
   | `confirmed` | ≥ 24h | session returned to the purchase (`+1` ledger entry) |
   | `confirmed` | < 24h | session forfeited — the `−1` stands, nothing else |
 
-## Phase 7 — Intake / PAR-Q health screening ⬜
+## Phase 6 — Intake / PAR-Q health screening ⬜
 **Estimate: ~4.5h**
 
 *Design screen: "Intake PAR-Q"*
@@ -187,7 +181,7 @@ State machine: [`BOOKING-LIFECYCLE.md`](BOOKING-LIFECYCLE.md).
   concern; this phase scopes visibility to client + assigned coach only (PDPA — don't surface to
   admin by default) — *1.5h*
 
-## Phase 8 — Progress tracking (client) ⬜
+## Phase 7 — Progress tracking (client) ⬜
 **Estimate: ~7.5h**
 
 *Design screen: "Progress"*
@@ -196,7 +190,7 @@ State machine: [`BOOKING-LIFECYCLE.md`](BOOKING-LIFECYCLE.md).
 - Measurements list, "log this week's numbers" entry form — *2h*
 - Check-in photos — private storage (client + assigned coach only) — *3h*
 
-## Phase 9 — Trainer (coach) portal ⬜
+## Phase 8 — Trainer (coach) portal ⬜
 **Estimate: ~10h**
 
 *Design screens: "Trainer dashboard", "Trainer clients"*
@@ -211,7 +205,7 @@ State machine: [`BOOKING-LIFECYCLE.md`](BOOKING-LIFECYCLE.md).
   per-session price, validity days; deactivate without deleting (past purchases keep their
   snapshot) — *2.5h*
 
-## Phase 10 — Admin portal ⬜
+## Phase 9 — Admin portal ⬜
 **Estimate: ~8h** **+ ~2h** ("preview as", deferred)
 
 *Design screens: "Admin overview", "Admin users"*
@@ -219,12 +213,12 @@ State machine: [`BOOKING-LIFECYCLE.md`](BOOKING-LIFECYCLE.md).
 - Overview: revenue by coach, utilization, all-bookings table — *3h*
 - Settings: make the hardcoded policy limits editable — `CANCELLATION_WINDOW_HOURS` (24) and
   `MAX_ACTIVE_PACKAGES` (5) — plus the platform commission rate + payout ledger. Package
-  pricing/validity is coach-owned (Phase 9 editor), not admin — *2h*
+  pricing/validity is coach-owned (Phase 8 editor), not admin — *2h*
 - Users: role management (client/trainer/admin), invite flow, audit log of role changes — *3h*
 - "Preview as" mode (admin viewing the app as a client/trainer) — *2h, defer until the client and
   trainer surfaces are stable, since it just re-renders them with a banner*
 
-## Phase 11 — Help / support ⬜
+## Phase 10 — Help / support ⬜
 **Estimate: ~3h** (canned) **+ ~4-6h** (real AI assistant, deferred)
 
 *Design screen: "Help and support"*
@@ -234,7 +228,7 @@ State machine: [`BOOKING-LIFECYCLE.md`](BOOKING-LIFECYCLE.md).
 - Real AI assistant grounded on FAQs + account data — *4-6h, highest-effort/lowest-priority piece
   of the mock, defer*
 
-## Phase 12 — Polish & hardening ⬜
+## Phase 11 — Polish & hardening ⬜
 **Estimate: ~14h**, spread across the project rather than a single sprint
 
 - Email/SMS reminders for upcoming sessions and pending approvals — *3h*
@@ -260,18 +254,18 @@ correctly.
 ## Suggested near-term order
 
 Phases 2 → 5 build the client booking loop (dashboard, timezones, coach directory + request,
-Stripe checkout, bookings management). Phase 9 (trainer portal) is the first hard unblock after
+Stripe checkout, bookings management). Phase 8 (trainer portal) is the first hard unblock after
 that — until it lands, `pending_approval` bookings sit idle with no one to approve them. Phases
-7, 8, 10, 11 otherwise proceed in roughly the listed order.
+6, 7, 9, 10 otherwise proceed in roughly the listed order.
 
 ## Total estimated effort
 
 | Scope | Estimate |
 | :-- | :-- |
 | Critical path (Phases 1–5) | ~38.5h |
-| Full client + trainer + admin core (Phases 1–11, excluding deferred items) | ~90h |
+| Full client + trainer + admin core (Phases 1–10, excluding deferred items) | ~90h |
 | Deferred items (real AI assistant, "preview as") | ~6-8h |
-| Polish & hardening (Phase 12) | ~14h |
+| Polish & hardening (Phase 11) | ~14h |
 | **End-to-end** | **~110-112h**, i.e. roughly 3 weeks of focused solo AI-assisted work |
 
 Treat these as planning inputs, not commitments.
