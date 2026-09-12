@@ -1,26 +1,15 @@
 <script lang="ts">
 	import { ChevronLeftIcon, ChevronRightIcon } from '@repo/ui';
+	import { dayNumber, formatFullDate, formatTime, monthAbbrev, statusBadgeClass, statusLabel, viewerZone } from '$lib/format';
 	import type { PageProps } from './$types';
-	import {
-		balanceProgressClass,
-		dayNumber,
-		formatFullDate,
-		formatTime,
-		getPackageSlides,
-		getStats,
-		isClient,
-		monthAbbrev,
-		statusBadgeClass,
-		statusLabel,
-		viewerZone
-	} from './dashboard';
+	import { balanceProgressClass, getPackageSlides, getStats, isClient } from './dashboard';
 
 	let { data }: PageProps = $props();
 
 	const firstName = $derived(data.user.name.split(' ')[0] ?? data.user.name);
 
 	const clientView = $derived(isClient(data));
-	const zone = $derived(viewerZone(data));
+	const zone = $derived(viewerZone(data.user));
 	const stats = $derived(getStats(data, zone));
 	const packageSlides = $derived(getPackageSlides(data));
 </script>

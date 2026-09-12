@@ -1,4 +1,4 @@
-import { and, arrayOverlaps, asc, desc, eq, gt, gte, ilike, inArray, ne, or, sql } from "drizzle-orm";
+import { and, arrayOverlaps, asc, desc, eq, gt, gte, ilike, inArray, lt, ne, or, sql } from "drizzle-orm";
 import {
   booking,
   coachProfile,
@@ -152,11 +152,34 @@ export const getClientWeeklySessionCounts = async (clientId: string) => {
 
 /* Client Bookings Page Queries */
 
-/** Every non-cancelled booking for a client. Bucketing into upcoming / awaiting
- * action / past (date-first, status-second) happens where this is consumed —
- * see BOOKING-LIFECYCLE.md. */
-export const getClientBookings = async (clientId: string) => {
-  return db
+export type BookingBucket = "upcoming" | "awaiting_action" | "past";
+
+/** Date-first, status-second bucketing — see BOOKING-LIFECYCLE.md. */
+const bucketCondition = (bucket: BookingBucket) => {
+  switch (bucket) {
+    case "past":
+      return and(ne(booking.status, "cancelled"), lt(booking.startsAt, new Date()));
+    case "awaiting_action":
+      return and(eq(booking.status, "pending_approval"), gte(booking.startsAt, new Date()));
+    case "upcoming":
+      return and(eq(booking.status, "confirmed"), gte(booking.startsAt, new Date()));
+  }
+};
+
+/** One page of a client's bookings within a single tab bucket. `past` sorts
+ * most-recent-first; `upcoming` / `awaiting_action` sort soonest-first. */
+export const getClientBookingsPage = async ({
+  clientId,
+  bucket,
+  page = 1,
+  pageSize = 10,
+}: {
+  clientId: string;
+  bucket: BookingBucket;
+  page?: number;
+  pageSize?: number;
+}) => {
+  const rows = await db
     .select({
       id: booking.id,
       type: booking.type,
@@ -165,12 +188,42 @@ export const getClientBookings = async (clientId: string) => {
       durationMin: booking.durationMin,
       status: booking.status,
       coachName: user.name,
+      totalCount: sql<number>`count(*) over()`.mapWith(Number),
     })
     .from(booking)
     .innerJoin(coachProfile, eq(booking.coachId, coachProfile.id))
     .innerJoin(user, eq(coachProfile.userId, user.id))
-    .where(and(eq(booking.clientId, clientId), ne(booking.status, "cancelled")))
-    .orderBy(asc(booking.startsAt));
+    .where(and(eq(booking.clientId, clientId), bucketCondition(bucket)))
+    .orderBy(bucket === "past" ? desc(booking.startsAt) : asc(booking.startsAt))
+    .limit(pageSize)
+    .offset((page - 1) * pageSize);
+
+  return {
+    bookings: rows.map(({ totalCount: _totalCount, ...b }) => b),
+    totalCount: rows[0]?.totalCount ?? 0,
+  };
+};
+
+/** Counts per tab bucket, for the tab labels (e.g. "awaiting action (2)") —
+ * can't be derived from `getClientBookingsPage` since that only ever holds
+ * one bucket's page at a time. */
+export const getClientBookingBucketCounts = async (clientId: string) => {
+  const [row] = await db
+    .select({
+      upcoming: sql<number>`count(*) filter (where ${booking.status} = 'confirmed' and ${booking.startsAt} >= now())`.mapWith(
+        Number,
+      ),
+      awaitingAction: sql<number>`count(*) filter (where ${booking.status} = 'pending_approval' and ${booking.startsAt} >= now())`.mapWith(
+        Number,
+      ),
+      past: sql<number>`count(*) filter (where ${booking.status} <> 'cancelled' and ${booking.startsAt} < now())`.mapWith(
+        Number,
+      ),
+    })
+    .from(booking)
+    .where(eq(booking.clientId, clientId));
+
+  return row;
 };
 
 /** Count for the `bookings` nav badge — non-cancelled bookings that aren't in
@@ -269,4 +322,16 @@ export const getCoachDirectoryPage = async ({
     coaches: rows.map(({ totalCount: _totalCount, ...coach }) => coach),
     totalCount: rows[0]?.totalCount ?? 0,
   };
+};
+
+/** Every distinct tag across active coaches, for the directory's filter chips. */
+export const getAllCoachTags = async () => {
+  const rows = await db
+    .select({ tag: sql<string>`unnest(${coachProfile.tags})` })
+    .from(coachProfile)
+    .where(eq(coachProfile.active, true))
+    .groupBy(sql`1`)
+    .orderBy(sql`1`);
+
+  return rows.map((r) => r.tag);
 };
