@@ -63,19 +63,19 @@ in `@repo/database` for the full reference.
   seed users log in with password `password`. Idempotent (upserts users, wipes+reinserts domain
   tables).
 
-## Phase 2 — Client dashboard shell & navigation ⬜
+## Phase 2 — Client dashboard shell & navigation ✅ done
 **Estimate: ~6h**
 
 *Design screens: global sidebar, "Client dashboard"*
 
-- Replace the placeholder `/dashboard` with the real app shell: role-aware sidebar nav
+- ✅ Replace the placeholder `/dashboard` with the real app shell: role-aware sidebar nav
   (dashboard / bookings / packages / payments / progress / help), logout — *2h*
-- Dashboard content: today label, "hey {name}", stat cards, "what's next" (upcoming bookings
-  preview, deep-linking to manage a booking), active-package cards, recent-activity feed from
+- ✅ Dashboard content: "hey {name}", stat cards (next session, active packages, sessions done,
+  this week), "what's next" (upcoming bookings preview — row actions land once Phase 3/5 ship the
+  routes to deep-link to), package carousel with per-purchase balance, recent-activity feed from
   `session_ledger_entry` — *3h*
-- Render dates in the viewer's timezone: `/dashboard` (and `/bookings*` once Phase 3 lands)
-  render client-side so times show in the viewer's stored `user.timezone`, else the browser's —
-  *1h*
+- ✅ Render dates in the viewer's timezone: `/dashboard` renders client-side (`ssr = false`) so
+  times show in the viewer's stored `user.timezone`, else the browser's — *1h*
 
 ## Phase 3 — Coach directory & booking request (client) ⬜
 **Estimate: ~10h** (highest-risk phase to underestimate)
@@ -245,11 +245,10 @@ State machine: [`BOOKING-LIFECYCLE.md`](BOOKING-LIFECYCLE.md).
 
 ## Progress
 
-**Done:** Phases 0, 1.
+**Done:** Phases 0, 1, 2.
 
-**Next on the critical path:** Phase 2 (dashboard shell), then Phase 3 (booking request) — the
-riskiest single phase, since everything downstream depends on availability being computed
-correctly.
+**Next on the critical path:** Phase 3 (booking request) — the riskiest single phase, since
+everything downstream depends on availability being computed correctly.
 
 ## Suggested near-term order
 
