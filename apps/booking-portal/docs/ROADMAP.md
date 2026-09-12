@@ -82,11 +82,14 @@ in `@repo/database` for the full reference.
 
 *Design screens: "Bookings" → choose coach, coach profile / book panel*
 
-- Coach list (`/bookings`): search, multi-select tag filter chips, sort (soonest / most open
-  slots / price / name), a `show` limit dropdown (5 / 10 / 25, default 10) applied after
-  filter+sort. Coaches carry multiple tags (`coach_profile.tags` array). Filter/sort/limit are
-  client-side; the server load precomputes each coach's open-slot count and soonest-free for the
-  two availability sorts.
+- Coach list (`/bookings`): search, multi-select tag filter chips, sort, a `show` limit dropdown
+  (5 / 10 / 25, default 10) — all **server-side**, driven by URL search params
+  (`?q=&tags=&sort=&page=`) for shareable/bookmarkable views. Coaches carry multiple tags
+  (`coach_profile.tags` array, matched via Postgres array-overlap). Sort starts with `name` /
+  `price` (cheapest active package); the `soonest` / `most open slots` sorts need real
+  availability computed in a way that's still sortable/paginated at the DB level, which is a
+  bigger lift than the rest of this bullet — land those two after real slot computation exists
+  (see the availability bullet below), not with the initial directory.
 - Coach profile panel (`/bookings/[slug]`): bio, packages, trains-at, open-hours chips, tags,
   shareable `builtwithhabit.com/book/<slug>` link + copy button.
 - Booking form: session type / package picker (length follows the chosen package) / date / live

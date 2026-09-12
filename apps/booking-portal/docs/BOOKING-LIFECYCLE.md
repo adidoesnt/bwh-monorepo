@@ -48,6 +48,25 @@ stateDiagram-v2
 "Occupies a slot" = the status is in `ACTIVE_BOOKING_STATUSES`, so `availability.ts` blocks that
 time for other bookings.
 
+**`/bookings`'s three tabs (upcoming / awaiting action / past) are a display grouping, not a 1:1
+read of `status`.** A `confirmed` booking whose `startsAt` has already gone by doesn't
+auto-transition to `completed` — nothing does that except a coach explicitly marking the session
+complete (trainer portal). Completion is deliberately a coach action, not just the clock running
+out, since it may eventually need to distinguish a no-show from a session that happened.
+
+So a booking's tab is resolved **date first, status second**, checked in this order, so every
+booking lands in exactly one tab:
+
+1. `startsAt` is in the past → **past** (any non-cancelled status — this is what puts a
+   past-due-but-still-`confirmed` booking here, and also catches a `pending_approval` request
+   whose slot came and went without the coach ever approving it)
+2. else `status === 'pending_approval'` → **awaiting action**
+3. else (`confirmed`, future) → **upcoming**
+
+Because the tabs are mutually exclusive by construction, the nav badge count
+(`upcoming.length + awaitingAction.length`) can't double-count a booking that would otherwise
+qualify for two buckets.
+
 ## Package purchase state machine
 
 ```mermaid
