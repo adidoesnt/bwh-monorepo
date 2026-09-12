@@ -47,3 +47,16 @@ export const statusLabel = (status: string) =>
 
 export const statusBadgeClass = (status: string) =>
 	status === 'confirmed' ? 'badge-success' : 'badge-warning';
+
+export const formatPriceCents = (cents: number | null) =>
+	cents === null ? null : `SG$${(cents / 100).toFixed(0)}`;
+
+const formatClockMinutes = (minutes: number) => {
+	const hour = Math.floor(minutes / 60);
+	const minute = minutes % 60;
+	return `${String(hour).padStart(2, '0')}:${String(minute).padStart(2, '0')}`;
+};
+
+/** `startMin`/`endMin` (minutes from midnight) as `"07:00 - 09:00"`. */
+export const formatMinuteRange = (startMin: number, endMin: number) =>
+	`${formatClockMinutes(startMin)} - ${formatClockMinutes(endMin)}`;

@@ -8,6 +8,9 @@ export const DATABASE_URL =
 
 export const AUTH_BASE_URL = env.AUTH_BASE_URL || "http://localhost:4322/";
 
+// The public-facing host shown on a coach's shareable booking link.
+export const BOOKING_SHARE_HOST = new URL(env.BOOKING_SHARE_HOST || "http://localhost:4322");
+
 /**
  * Signs session tokens. **Required in production** — the app throws on boot
  * without it. In dev and during `vite build` a throwaway value is used so a

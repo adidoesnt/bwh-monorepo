@@ -15,9 +15,6 @@ export const BUCKET_TABS: {
 export const bucketCount = (data: PageData, bucket: 'upcoming' | 'awaiting_action' | 'past') =>
 	bucket === 'awaiting_action' ? data.bucketCounts.awaitingAction : data.bucketCounts[bucket];
 
-export const formatPriceCents = (cents: number | null) =>
-	cents === null ? null : `SG$${(cents / 100).toFixed(0)}`;
-
 export const SORT_OPTIONS = [
 	{ value: 'name', label: 'name' },
 	{ value: 'price', label: 'price' }

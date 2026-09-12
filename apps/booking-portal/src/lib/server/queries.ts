@@ -409,3 +409,57 @@ export const getCoachAvailableStarts = async ({
 
   return starts;
 };
+
+/* Coach Profile Page Queries */
+
+/** An active coach's profile fields by slug, or `null` if no such active coach exists. */
+export const getCoachBySlug = async (slug: string) => {
+  const [coach] = await db
+    .select({
+      id: coachProfile.id,
+      slug: coachProfile.slug,
+      name: user.name,
+      speciality: coachProfile.speciality,
+      tagline: coachProfile.tagline,
+      bio: coachProfile.bio,
+      tags: coachProfile.tags,
+      locations: coachProfile.locations,
+      timezone: coachProfile.timezone,
+    })
+    .from(coachProfile)
+    .innerJoin(user, eq(coachProfile.userId, user.id))
+    .where(and(eq(coachProfile.slug, slug), eq(coachProfile.active, true)))
+    .limit(1);
+
+  return coach ?? null;
+};
+
+/** A coach's active packages, cheapest first. */
+export const getCoachPackages = async (coachId: string) => {
+  return db
+    .select({
+      id: packageOffering.id,
+      name: packageOffering.name,
+      description: packageOffering.description,
+      sessionCount: packageOffering.sessionCount,
+      sessionLengthMin: packageOffering.sessionLengthMin,
+      pricePerSessionCents: packageOffering.pricePerSessionCents,
+      validityDays: packageOffering.validityDays,
+    })
+    .from(packageOffering)
+    .where(and(eq(packageOffering.coachId, coachId), eq(packageOffering.active, true)))
+    .orderBy(asc(packageOffering.pricePerSessionCents));
+};
+
+/** A coach's distinct weekly windows, deduplicated across weekdays — the
+ * profile page's "open hours" summary chips, not tied to any specific date. */
+export const getCoachOpenHours = async (coachId: string) => {
+  return db
+    .selectDistinct({
+      startMin: availabilitySlot.startMin,
+      endMin: availabilitySlot.endMin,
+    })
+    .from(availabilitySlot)
+    .where(eq(availabilitySlot.coachId, coachId))
+    .orderBy(asc(availabilitySlot.startMin));
+};

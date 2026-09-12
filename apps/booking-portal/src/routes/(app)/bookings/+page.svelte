@@ -2,17 +2,17 @@
 	import { goto } from '$app/navigation';
 	import { page } from '$app/state';
 	import { ChevronsDownIcon, CircleCheckIcon } from '@repo/ui';
-	import { dayNumber, formatTime, monthAbbrev, statusBadgeClass, statusLabel, viewerZone } from '$lib/utils/format';
-	import type { PageProps } from './$types';
 	import {
-		BUCKET_TABS,
-		PAGE_SIZE_OPTIONS,
-		SORT_OPTIONS,
-		bucketCount,
+		dayNumber,
 		formatPriceCents,
-		isClient,
-		totalPages
-	} from './bookings';
+		formatTime,
+		monthAbbrev,
+		statusBadgeClass,
+		statusLabel,
+		viewerZone
+	} from '$lib/utils/format';
+	import type { PageProps } from './$types';
+	import { BUCKET_TABS, PAGE_SIZE_OPTIONS, SORT_OPTIONS, bucketCount, isClient, totalPages } from './bookings';
 
 	let { data }: PageProps = $props();
 
@@ -256,26 +256,28 @@
 		{:else}
 			<div class="flex flex-col gap-2">
 				{#each data.coachDirectoryPage.coaches as coach (coach.id)}
-					<div class="bg-base-200 border-base-300 flex items-center gap-3 rounded-field border p-3">
-						<div
-							class="bg-neutral text-neutral-content grid h-10 w-10 shrink-0 place-items-center rounded-full font-headings text-sm"
-						>
-							{coach.name[0]}
-						</div>
-						<div class="flex min-w-0 flex-1 flex-col gap-1">
-							<div class="flex items-center justify-between gap-2">
-								<div class="truncate text-sm font-medium">{coach.name}</div>
-								{#if coach.cheapestPriceCents !== null}
-									<span class="text-accent shrink-0 text-sm whitespace-nowrap"
-										>from {formatPriceCents(coach.cheapestPriceCents)}</span
-									>
-								{/if}
-							</div>
-							<div class="text-base-content/70 truncate text-xs">{coach.tagline}</div>
-							<div class="text-base-content/50 truncate text-xs">{coach.tags.join(' · ')}</div>
-							<div class="text-base-content/40 text-xs italic">availability — coming soon</div>
-						</div>
-					</div>
+    				<a href={`/bookings/${coach.slug}`} class="block">
+    					<div class="bg-base-200 border-base-300 flex items-center gap-3 rounded-field border p-3">
+    						<div
+    							class="bg-neutral text-neutral-content grid h-10 w-10 shrink-0 place-items-center rounded-full font-headings text-sm"
+    						>
+    							{coach.name[0]}
+    						</div>
+    						<div class="flex min-w-0 flex-1 flex-col gap-1">
+    							<div class="flex items-center justify-between gap-2">
+    								<div class="truncate text-sm font-medium">{coach.name}</div>
+    								{#if coach.cheapestPriceCents !== null}
+    									<span class="text-accent shrink-0 text-sm whitespace-nowrap"
+    										>from {formatPriceCents(coach.cheapestPriceCents)}</span
+    									>
+    								{/if}
+    							</div>
+    							<div class="text-base-content/70 truncate text-xs">{coach.tagline}</div>
+    							<div class="text-base-content/50 truncate text-xs">{coach.tags.join(' · ')}</div>
+    							<div class="text-base-content/40 text-xs italic">availability — coming soon</div>
+    						</div>
+    					</div>
+    				</a>
 				{/each}
 			</div>
 
