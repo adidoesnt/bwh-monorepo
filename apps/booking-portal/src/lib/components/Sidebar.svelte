@@ -16,7 +16,7 @@
 		page.url.pathname === href || page.url.pathname.startsWith(href + '/');
 </script>
 
-<div class="bg-base-200 border-base-300 flex h-full w-64 flex-col gap-8 border-r p-4">
+<div class="bg-base-100 border-base-300 flex h-full w-64 flex-col gap-8 border-r p-4">
 	<div class="flex items-center gap-3 px-2 pt-2">
 		<div
 			class="bg-neutral text-neutral-content grid h-8 w-8 place-items-center rounded-field font-headings text-sm"
@@ -41,7 +41,7 @@
 				>
 					<span>{item.label}</span>
 					{#if item.badge}
-						<span class="badge badge-sm badge-ghost font-body">{item.badge}</span>
+						<span class="badge badge-sm badge-primary font-body">{item.badge}</span>
 					{/if}
 				</a>
 			{:else}

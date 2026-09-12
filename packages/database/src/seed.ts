@@ -63,12 +63,12 @@ const pick = (rec: Record<string, string>, key: string): string => {
 
 /** Singapore is a fixed UTC+8 (no DST) — seed wall-clock times are SGT. */
 const SGT = "+08:00";
-/** `offset` days from 2026-08-31 (the prototype's "today"), at SGT wall-clock `hhmm`. */
+const NOW = new Date();
+/** `offset` days from today (seed run time), at SGT wall-clock `hhmm`. */
 const day = (offset: number, hhmm = "00:00") => {
-  const d = new Date(Date.UTC(2026, 7, 31 + offset));
+  const d = new Date(NOW.getTime() + offset * 86_400_000);
   return new Date(`${d.toISOString().slice(0, 10)}T${hhmm}:00${SGT}`);
 };
-const NOW = new Date();
 /** Date string N days after 15 Jun 2026 (Tessa's week-1 baseline). */
 const weekDate = (daysAfterJun15: number) => {
   const d = new Date("2026-06-15T00:00:00Z");

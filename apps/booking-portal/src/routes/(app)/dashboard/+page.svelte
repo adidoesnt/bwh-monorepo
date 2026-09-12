@@ -37,7 +37,7 @@
 	<div class="bg-base-100 border-base-300 flex flex-col gap-4 rounded-2xl border p-5">
 		<div class="flex items-center justify-between">
 			<h2 class="font-headings text-xl">what's next</h2>
-			<span class="text-accent text-sm" title="coming soon">all bookings</span>
+			<a class="text-accent text-sm hover:underline" title="bookings" href="/bookings">all bookings</a>
 		</div>
 		{#if data.upcomingBookings.length === 0}
 			<p class="text-base-content/60 text-sm">no upcoming sessions yet.</p>
@@ -147,7 +147,7 @@
 <div class="mx-auto flex max-w-6xl flex-col gap-8 p-6 md:p-10">
 	<div class="flex items-center justify-between">
 		<h1 class="font-headings text-3xl">hey {firstName}!</h1>
-		<button type="button" class="btn btn-accent" disabled title="coming soon">request a session</button>
+		<a href="/bookings" class="btn btn-accent" title="request a session">request a session</a>
 	</div>
 
 	{#if clientView}
