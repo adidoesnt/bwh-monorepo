@@ -1,4 +1,4 @@
-import { and, asc, desc, eq, gt, inArray, sql } from "drizzle-orm";
+import { and, asc, desc, eq, gt, gte, inArray, sql } from "drizzle-orm";
 import {
   booking,
   coachProfile,
@@ -97,5 +97,48 @@ export const getClientRecentActivity = async (clientId: string, limit = 5) => {
     .where(eq(sessionLedgerEntry.clientId, clientId))
     .orderBy(desc(sessionLedgerEntry.createdAt))
     .limit(limit);
+};
+
+export const getClientCompletedSessionStats = async (clientId: string) => {
+  const [row] = await db
+    .select({
+      count: sql<number>`count(*)`.mapWith(Number),
+      since: sql<Date | null>`min(${booking.startsAt})`,
+    })
+    .from(booking)
+    .where(and(eq(booking.clientId, clientId), eq(booking.status, "completed")));
+
+  return row;
+};
+
+/** Monday 00:00 UTC of the week `weeksAgo` weeks before `date`. */
+const startOfWeek = (date: Date, weeksAgo = 0) => {
+  const start = new Date(date);
+  const daysSinceMonday = (start.getUTCDay() + 6) % 7;
+  start.setUTCDate(start.getUTCDate() - daysSinceMonday - weeksAgo * 7);
+  start.setUTCHours(0, 0, 0, 0);
+  return start;
+};
+
+export const getClientWeeklySessionCounts = async (clientId: string) => {
+  const now = new Date();
+  const thisWeekStart = startOfWeek(now, 0);
+  const lastWeekStart = startOfWeek(now, 1);
+
+  const rows = await db
+    .select({ startsAt: booking.startsAt })
+    .from(booking)
+    .where(
+      and(
+        eq(booking.clientId, clientId),
+        eq(booking.status, "completed"),
+        gte(booking.startsAt, lastWeekStart),
+      ),
+    );
+
+  const thisWeek = rows.filter((r) => r.startsAt >= thisWeekStart).length;
+  const lastWeek = rows.length - thisWeek;
+
+  return { thisWeek, lastWeek };
 };
 

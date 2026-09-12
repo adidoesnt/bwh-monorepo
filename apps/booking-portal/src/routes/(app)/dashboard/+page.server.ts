@@ -3,19 +3,25 @@ import {
   getClientUpcomingBookings,
   getClientActivePackages,
   getClientRecentActivity,
+  getClientCompletedSessionStats,
+  getClientWeeklySessionCounts,
 } from "$lib/server/queries";
 
 const getClientData = async (clientId: string) => {
-  const [upcomingBookings, activePackages, recentActivity] = await Promise.all([
+  const [upcomingBookings, activePackages, recentActivity, completedSessionStats, weeklySessionCounts] = await Promise.all([
     getClientUpcomingBookings(clientId),
     getClientActivePackages(clientId),
     getClientRecentActivity(clientId),
+    getClientCompletedSessionStats(clientId),
+    getClientWeeklySessionCounts(clientId),
   ]);
 
   return {
     upcomingBookings,
     activePackages,
     recentActivity,
+    completedSessionStats,
+    weeklySessionCounts,
   };
 };
 
