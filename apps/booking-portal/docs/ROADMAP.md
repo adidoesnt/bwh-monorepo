@@ -93,7 +93,7 @@ in `@repo/database` for the full reference.
   lift than the rest of this bullet (see the availability bullet below). Tag chips currently list
   every distinct tag across active coaches (`getAllCoachTags`), alphabetically, uncapped — capping
   to the top N most-used once the vocabulary grows is a known follow-up, not yet done.
-- ⬜ Coach profile panel (`/bookings/[slug]`): "← all coaches" back link, header (name, tagline,
+- 🚧 (static content done) Coach profile panel (`/bookings/[slug]`): "← all coaches" back link, header (name, tagline,
   tags), bio, rate ("from SG$X per session"), trains-at (locations), open-hours chips (the coach's
   *distinct* weekly windows, deduplicated — a quick-glance summary, not tied to whichever date is
   selected further down), shareable `builtwithhabit.com/book/<slug>` link + copy button. Opened
@@ -279,8 +279,7 @@ State machine: [`BOOKING-LIFECYCLE.md`](BOOKING-LIFECYCLE.md).
 ## Progress
 
 **Done:** Phases 0, 1, 2. **Phase 3 partial:** the coach directory (search/tags/sort/pagination)
-and the bookings list (upcoming/awaiting action/past tabs) are done; the coach profile page,
-booking form, and real availability computation are not started.
+and the bookings list (upcoming/awaiting action/past tabs) and the static parts of the coach booking page (bio, packages, rate, open hours) are done; the dynamic parts, i.e the booking form and real availability computation are in progress.
 
 **Next on the critical path:** finishing Phase 3 — real availability computation is the riskiest
 piece, since the booking form, the coach directory's remaining sorts, and the "next free" display
