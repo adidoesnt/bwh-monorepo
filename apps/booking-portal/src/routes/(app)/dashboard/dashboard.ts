@@ -1,42 +1,48 @@
 import type { PageData } from './$types';
 
-// Dates render in UTC on both server and client until the dashboard renders
-// in the viewer's timezone (Phase 2) — pinning locale + zone here avoids a
-// hydration mismatch in the meantime.
 const LOCALE = 'en-GB';
-const ZONE = 'UTC';
 
-export const dayLabel = (date: Date) => {
-	const startOfDay = (d: Date) => Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate());
-	const diffDays = Math.round((startOfDay(date) - startOfDay(new Date())) / 86_400_000);
-	if (diffDays === 0) return 'today';
-	if (diffDays === 1) return 'tomorrow';
-	return new Intl.DateTimeFormat(LOCALE, { day: 'numeric', month: 'short', timeZone: ZONE }).format(
+/** The viewer's stored timezone, else whatever the browser reports. */
+export const viewerZone = (data: PageData) =>
+	data.user.timezone ?? Intl.DateTimeFormat().resolvedOptions().timeZone;
+
+const zonedDateKey = (date: Date, zone: string) =>
+	new Intl.DateTimeFormat('en-CA', { timeZone: zone }).format(date);
+
+export const dayLabel = (date: Date, zone: string) => {
+	const today = zonedDateKey(new Date(), zone);
+	if (zonedDateKey(date, zone) === today) return 'today';
+
+	const tomorrow = new Date();
+	tomorrow.setUTCDate(tomorrow.getUTCDate() + 1);
+	if (zonedDateKey(date, zone) === zonedDateKey(tomorrow, zone)) return 'tomorrow';
+
+	return new Intl.DateTimeFormat(LOCALE, { day: 'numeric', month: 'short', timeZone: zone }).format(
 		date
 	);
 };
 
-export const formatTime = (date: Date) =>
+export const formatTime = (date: Date, zone: string) =>
 	new Intl.DateTimeFormat(LOCALE, {
 		hour: '2-digit',
 		minute: '2-digit',
 		hour12: false,
-		timeZone: ZONE
+		timeZone: zone
 	}).format(date);
 
-export const formatFullDate = (date: Date) =>
+export const formatFullDate = (date: Date, zone: string) =>
 	new Intl.DateTimeFormat(LOCALE, {
 		day: 'numeric',
 		month: 'short',
 		year: 'numeric',
-		timeZone: ZONE
+		timeZone: zone
 	}).format(date);
 
-export const monthAbbrev = (date: Date) =>
-	new Intl.DateTimeFormat(LOCALE, { month: 'short', timeZone: ZONE }).format(date).toUpperCase();
+export const monthAbbrev = (date: Date, zone: string) =>
+	new Intl.DateTimeFormat(LOCALE, { month: 'short', timeZone: zone }).format(date).toUpperCase();
 
-export const dayNumber = (date: Date) =>
-	new Intl.DateTimeFormat(LOCALE, { day: 'numeric', timeZone: ZONE }).format(date);
+export const dayNumber = (date: Date, zone: string) =>
+	new Intl.DateTimeFormat(LOCALE, { day: 'numeric', timeZone: zone }).format(date);
 
 export const statusLabel = (status: string) =>
 	status === 'pending_approval' ? 'awaiting approval' : status;
@@ -52,15 +58,15 @@ const weeklyTrendLabel = (thisWeek: number, lastWeek: number) => {
 
 export const isClient = (data: PageData) => data.user.role === 'client';
 
-export const getStats = (data: PageData) => {
+export const getStats = (data: PageData, zone: string) => {
 	const nextBooking = data.upcomingBookings[0] ?? null;
 
 	return [
 		{
 			label: 'next session',
-			value: nextBooking ? dayLabel(nextBooking.startsAt) : '—',
+			value: nextBooking ? dayLabel(nextBooking.startsAt, zone) : '—',
 			sub: nextBooking
-				? `${formatTime(nextBooking.startsAt)} · ${nextBooking.coachName}`
+				? `${formatTime(nextBooking.startsAt, zone)} · ${nextBooking.coachName}`
 				: 'nothing booked'
 		},
 		{
@@ -75,7 +81,7 @@ export const getStats = (data: PageData) => {
 			label: 'sessions done',
 			value: String(data.completedSessionStats.count),
 			sub: data.completedSessionStats.since
-				? `since ${formatFullDate(data.completedSessionStats.since)}`
+				? `since ${formatFullDate(data.completedSessionStats.since, zone)}`
 				: 'no sessions yet'
 		},
 		{

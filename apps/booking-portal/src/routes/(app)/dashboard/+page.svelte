@@ -11,7 +11,8 @@
 		isClient,
 		monthAbbrev,
 		statusBadgeClass,
-		statusLabel
+		statusLabel,
+		viewerZone
 	} from './dashboard';
 
 	let { data }: PageProps = $props();
@@ -19,7 +20,8 @@
 	const firstName = $derived(data.user.name.split(' ')[0] ?? data.user.name);
 
 	const clientView = $derived(isClient(data));
-	const stats = $derived(getStats(data));
+	const zone = $derived(viewerZone(data));
+	const stats = $derived(getStats(data, zone));
 	const packageSlides = $derived(getPackageSlides(data));
 </script>
 
@@ -46,13 +48,13 @@
 						<div
 							class="bg-base-300 flex w-12 flex-col items-center rounded-field py-1.5 text-center leading-tight"
 						>
-							<span class="text-base-content/50 text-[10px]">{monthAbbrev(b.startsAt)}</span>
-							<span class="font-headings text-lg">{dayNumber(b.startsAt)}</span>
+							<span class="text-base-content/50 text-[10px]">{monthAbbrev(b.startsAt, zone)}</span>
+							<span class="font-headings text-lg">{dayNumber(b.startsAt, zone)}</span>
 						</div>
 						<div class="min-w-0 flex-1">
 							<div class="truncate text-sm font-medium">{b.type}</div>
 							<div class="text-base-content/60 truncate text-xs">
-								{formatTime(b.startsAt)} · {b.coachName} · {b.location}
+								{formatTime(b.startsAt, zone)} · {b.coachName} · {b.location}
 							</div>
 						</div>
 						<span class="badge badge-sm {statusBadgeClass(b.status)} font-body shrink-0"
@@ -90,7 +92,7 @@
 							max={pkg.sessionCount}
 						></progress>
 						<div class="flex items-center justify-between text-sm opacity-70">
-							<span>expires {formatFullDate(pkg.expiresAt)}</span>
+							<span>expires {formatFullDate(pkg.expiresAt, zone)}</span>
 							{#if packageSlides.length > 1}
 								<span class="flex gap-1">
 									<a href="#{pkg.prevId}" class="btn btn-circle btn-xs btn-ghost">
