@@ -2,7 +2,7 @@
 	import { goto } from '$app/navigation';
 	import { page } from '$app/state';
 	import { ChevronsDownIcon, CircleCheckIcon } from '@repo/ui';
-	import { dayNumber, formatTime, monthAbbrev, statusBadgeClass, statusLabel, viewerZone } from '$lib/format';
+	import { dayNumber, formatTime, monthAbbrev, statusBadgeClass, statusLabel, viewerZone } from '$lib/utils/format';
 	import type { PageProps } from './$types';
 	import {
 		BUCKET_TABS,

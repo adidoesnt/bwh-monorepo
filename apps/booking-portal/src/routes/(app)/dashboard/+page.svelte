@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { ChevronLeftIcon, ChevronRightIcon } from '@repo/ui';
-	import { dayNumber, formatFullDate, formatTime, monthAbbrev, statusBadgeClass, statusLabel, viewerZone } from '$lib/format';
+	import { dayNumber, formatFullDate, formatTime, monthAbbrev, statusBadgeClass, statusLabel, viewerZone } from '$lib/utils/format';
 	import type { PageProps } from './$types';
 	import { balanceProgressClass, getPackageSlides, getStats, isClient } from './dashboard';
 

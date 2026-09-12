@@ -1,4 +1,4 @@
-import { dayLabel, formatFullDate, formatTime } from '$lib/format';
+import { dayLabel, formatFullDate, formatTime } from '$lib/utils/format';
 import type { PageData } from './$types';
 
 export const isClient = (data: PageData) => data.user.role === 'client';

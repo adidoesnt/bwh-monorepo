@@ -1,5 +1,6 @@
 import { and, arrayOverlaps, asc, desc, eq, gt, gte, ilike, inArray, lt, ne, or, sql } from "drizzle-orm";
 import {
+  availabilitySlot,
   booking,
   coachProfile,
   packageOffering,
@@ -7,6 +8,7 @@ import {
   sessionLedgerEntry,
   user,
 } from "@repo/database/schema";
+import { availableStartsForDay, zonedDateParts } from "$lib/utils/availability";
 import { db } from "./db";
 
 /* Client Dashboard Queries */
@@ -334,4 +336,76 @@ export const getAllCoachTags = async () => {
     .orderBy(sql`1`);
 
   return rows.map((r) => r.tag);
+};
+
+/* Availability */
+
+/** A coach's recurring weekly open windows, every weekday. */
+export const getCoachAvailabilitySlots = async (coachId: string) => {
+  return db
+    .select({
+      weekday: availabilitySlot.weekday,
+      startMin: availabilitySlot.startMin,
+      endMin: availabilitySlot.endMin,
+    })
+    .from(availabilitySlot)
+    .where(eq(availabilitySlot.coachId, coachId));
+};
+
+/** A coach's non-cancelled, non-completed bookings starting in `[from, to)` —
+ * the sessions that occupy a calendar slot and block others from being offered. */
+export const getCoachActiveBookings = async (coachId: string, from: Date, to: Date) => {
+  return db
+    .select({ startsAt: booking.startsAt, durationMin: booking.durationMin })
+    .from(booking)
+    .where(
+      and(
+        eq(booking.coachId, coachId),
+        inArray(booking.status, UPCOMING_BOOKING_STATUSES),
+        gte(booking.startsAt, from),
+        lt(booking.startsAt, to),
+      ),
+    );
+};
+
+/** Bookable starts for a coach across `[from, to)`, at `durationMin` each —
+ * combines their weekly windows with their existing bookings in range, then
+ * walks each coach-local calendar day applying `availableStartsForDay`. */
+export const getCoachAvailableStarts = async ({
+  coachId,
+  zone,
+  from,
+  to,
+  durationMin,
+}: {
+  coachId: string;
+  zone: string;
+  from: Date;
+  to: Date;
+  durationMin: number;
+}) => {
+  const [slots, existingBookings] = await Promise.all([
+    getCoachAvailabilitySlots(coachId),
+    getCoachActiveBookings(coachId, from, to),
+  ]);
+
+  const slotsByWeekday = new Map<number, { startMin: number; endMin: number }[]>();
+  for (const s of slots) {
+    const windows = slotsByWeekday.get(s.weekday) ?? [];
+    windows.push({ startMin: s.startMin, endMin: s.endMin });
+    slotsByWeekday.set(s.weekday, windows);
+  }
+
+  const starts: Date[] = [];
+  for (let cursor = new Date(from); cursor < to; cursor = new Date(cursor.getTime() + 86_400_000)) {
+    const { year, month, day, weekday } = zonedDateParts(cursor, zone);
+    const windows = slotsByWeekday.get(weekday) ?? [];
+    if (windows.length === 0) continue;
+
+    starts.push(
+      ...availableStartsForDay({ year, month, day, zone, windows, existingBookings, durationMin }),
+    );
+  }
+
+  return starts;
 };
