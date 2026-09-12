@@ -131,6 +131,12 @@ Gates (form **and** re-checked server-side):
 - **Package expiry** — the start must be ≤ the chosen purchase's `expires_at`.
 - **Slot** — recomputed from the coach's weekly windows; stale / taken / past → rejected.
 
+The slot check has no concept of travel time between in-person locations — a coach whose two
+back-to-back windows are at different addresses can still have both fill up. That's intentional:
+nothing here auto-blocks a buffer, so a coach who can't make a request work declines or
+counter-offers a different time at the approval step rather than the system silently
+double-booking them (see "Trainer actions" below).
+
 No ledger entry at request time — the session is spent when the coach approves.
 "Holds" = the client's other `pending_approval` bookings against the same purchase.
 
