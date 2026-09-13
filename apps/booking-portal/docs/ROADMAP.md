@@ -313,11 +313,17 @@ State machine: [`BOOKING-LIFECYCLE.md`](BOOKING-LIFECYCLE.md).
 
 **Done:** Phases 0, 1, 2. **Phase 3 mostly done:** the coach directory, the bookings list, the
 coach profile panel, real availability, the timezone/screening gates, and the booking form + its
-`?/request` action are all built and verified end-to-end against real data.
+`?/request` action are all built and verified end-to-end against real data. **Phase 4 partially done:**
+packages page has been enabled with an active packages count badge in the nav; active packages and recent activity widgets
+are visible.
 
 **What's left in Phase 3:** opening the coach profile inline (shallow routing) instead of only as
 a full page; the coach directory's "next free" line and `soonest`/`most open slots` sort (the
 single-coach availability function they'd need already exists, just not wired to them).
+
+**What's left in Phase 4:** placeholder panels for suggested packages for purchase and the coach directory 
+(the packages version, not session) are visible and need to replaced with actual implementations. This will
+involve one of the critical flows of the app; the Stripe checkout flow.
 
 **Next on the critical path:** Phase 8 (trainer portal) is the real unblock now — every
 `pending_approval` booking the form can now create sits idle with no one to approve it until a
