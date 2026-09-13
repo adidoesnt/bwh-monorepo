@@ -8,7 +8,7 @@ import {
   sessionLedgerEntry,
   user,
 } from "@repo/database/schema";
-import { availableStartsForDay, zonedDateParts } from "$lib/utils/availability";
+import { availableStartsForDay, zonedDateParts, zonedTimeToUtc } from "$lib/utils/availability";
 import { db } from "./db";
 
 /* Client Dashboard Queries */
@@ -411,6 +411,24 @@ export const getCoachAvailableStarts = async ({
   }
 
   return starts;
+};
+
+/** Convenience wrapper around `getCoachAvailableStarts` for a single
+ * coach-local calendar day, given `zonedDateParts`-shaped `date`. */
+export const getCoachAvailableStartsForDate = async ({
+  coachId,
+  zone,
+  date,
+  durationMin,
+}: {
+  coachId: string;
+  zone: string;
+  date: { year: number; month: number; day: number };
+  durationMin: number;
+}) => {
+  const dayStart = zonedTimeToUtc(date.year, date.month, date.day, 0, 0, zone);
+  const dayEnd = new Date(dayStart.getTime() + 86_400_000);
+  return getCoachAvailableStarts({ coachId, zone, from: dayStart, to: dayEnd, durationMin });
 };
 
 /* Coach Profile Page Queries */
