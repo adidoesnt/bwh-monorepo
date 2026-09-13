@@ -71,8 +71,9 @@ in `@repo/database` for the full reference.
 - ✅ Replace the placeholder `/dashboard` with the real app shell: role-aware sidebar nav
   (dashboard / bookings / packages / payments / progress / help), logout — *2h*
 - ✅ Dashboard content: "hey {name}", stat cards (next session, active packages, sessions done,
-  this week), "what's next" (upcoming bookings preview — row actions land once Phase 3/5 ship the
-  routes to deep-link to), package carousel with per-purchase balance, recent-activity feed from
+  this week), "what's next" (upcoming bookings preview, capped to the soonest 3 with a "+N more"
+  link to `/bookings` when there are more — row actions land once Phase 3/5 ship the routes to
+  deep-link to), package carousel with per-purchase balance, recent-activity feed from
   `session_ledger_entry` — *3h*
 - ✅ Render dates in the viewer's timezone: `/dashboard` renders client-side (`ssr = false`) so
   times show in the viewer's stored `user.timezone`, else the browser's — *1h*
@@ -104,8 +105,8 @@ in `@repo/database` for the full reference.
   `free consult` / `assessment`, gated — see below) → **package picker** (which active package with
   this coach to draw from, ordered soonest-expiring first/FIFO; length follows the package, no free
   duration choice; shows `bookable` = balance − holds, with an info icon + tooltip breakdown when
-  holds > 0 — see "holds" below) → date chips (horizontal scroll — flat day chips, not the
-  originally-sketched month-then-day two-level picker, see the date range bullet) → time chips for
+  holds > 0 — see "holds" below) → date picker (month header with prev/next navigation, day chips
+  scoped to the viewed month — see the date range bullet) → time chips for
   the selected date + package length, unavailable starts shown struck-through rather than hidden →
   location (a picker if the coach trains in-person at more than one place) → client note textarea →
   summary bar → "send request". Package/date/time/type are **URL-driven**
@@ -117,10 +118,13 @@ in `@repo/database` for the full reference.
   — no ledger write, per `BOOKING-LIFECYCLE.md` (the session is only spent on coach approval).
   Verified end-to-end against real data: a real submission produced a real row with the right
   fields, no ledger entry; resubmitting the same now-taken slot correctly failed with 409.
-- 🚧 Date range: the *range itself* (today through the active purchase's `expires_at`, 8 weeks out
-  if free consult/no package) is done and correct. What's simplified vs. the original sketch: a
-  flat horizontally-scrollable row of day chips, not a two-level month-chips-then-day-chips picker
-  — fine for now, worth revisiting if the range gets long enough that flat scrolling feels bad.
+- ✅ Date range: the range (today through the active purchase's `expires_at`, 8 weeks out if free
+  consult/no package) is computed once (`enumerateDateRange`) and split per-month (`daysInMonth`)
+  for the picker — a month header (`monthYearLabel`) with prev/next navigation (`adjacentMonth`,
+  disabled via `hasDayInMonth` at either end of the range) and day chips scoped to the viewed
+  month. Simplified vs. the original sketch: navigation is adjacent-month only (no jump-to-a-
+  specific-month control). Verified against real data (Ishita's 97-day range split 18/31/30/18
+  days across Sep–Dec) and a live `?date=` round-trip, not just typechecked.
 - ✅ Real availability: `$lib/utils/availability.ts` (pure logic, DST-safe coach-local ↔ UTC
   conversion) + `getCoachSlots`/`getCoachSlotsForDate` (`queries.ts`) generate every 30-min
   candidate from `availability_slot` windows on the coach-local weekday, each tagged
@@ -292,7 +296,9 @@ State machine: [`BOOKING-LIFECYCLE.md`](BOOKING-LIFECYCLE.md).
 **Estimate: ~14h**, spread across the project rather than a single sprint
 
 - Email/SMS reminders for upcoming sessions and pending approvals — *3h*
-- Notifications/toasts wired to real events (booking confirmed, payment received, etc.) — *2h*
+- Notifications/toasts wired to real events (payment received, etc.) — the pattern's first
+  instance already exists (a "request sent" toast after `/bookings/[slug]`'s `?/request` redirect,
+  via a `?booked=1` flag stripped from the URL after showing) — *1.5h remaining*
 - Accessibility and responsive pass against the prototype's breakpoints — *3h*
 - Test coverage for booking / session-ledger / cancellation logic and the Stripe webhook (real
   money and scheduling correctness at stake) — *4h*
@@ -310,8 +316,7 @@ coach profile panel, real availability, the timezone/screening gates, and the bo
 `?/request` action are all built and verified end-to-end against real data.
 
 **What's left in Phase 3:** opening the coach profile inline (shallow routing) instead of only as
-a full page; the month-grouped date picker (currently a flat day-chip row, which works fine for
-now); the coach directory's "next free" line and `soonest`/`most open slots` sort (the
+a full page; the coach directory's "next free" line and `soonest`/`most open slots` sort (the
 single-coach availability function they'd need already exists, just not wired to them).
 
 **Next on the critical path:** Phase 8 (trainer portal) is the real unblock now — every
