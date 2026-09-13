@@ -1,4 +1,18 @@
-import { and, arrayOverlaps, asc, desc, eq, gt, gte, ilike, inArray, lt, ne, or, sql } from "drizzle-orm";
+import {
+  and,
+  arrayOverlaps,
+  asc,
+  desc,
+  eq,
+  gt,
+  gte,
+  ilike,
+  inArray,
+  lt,
+  ne,
+  or,
+  sql,
+} from "drizzle-orm";
 import {
   availabilitySlot,
   booking,
@@ -10,7 +24,12 @@ import {
   user,
   type SessionType,
 } from "@repo/database/schema";
-import { slotsForDay, zonedDateParts, zonedTimeToUtc, type Slot } from "$lib/utils/availability";
+import {
+  slotsForDay,
+  zonedDateParts,
+  zonedTimeToUtc,
+  type Slot,
+} from "$lib/utils/availability";
 import { db } from "./db";
 
 /* Client Dashboard Queries */
@@ -18,7 +37,10 @@ import { db } from "./db";
 const UPCOMING_BOOKING_STATUSES = ["pending_approval", "confirmed"] as const;
 
 /** A client's next few sessions, soonest first — the dashboard's "what's next" preview. */
-export const getClientUpcomingBookings = async (clientId: string, limit = 5) => {
+export const getClientUpcomingBookings = async (
+  clientId: string,
+  limit = 5,
+) => {
   return db
     .select({
       id: booking.id,
@@ -67,7 +89,10 @@ export const getClientUpcomingBookingsCount = async (clientId: string) => {
  * `balance`, the booking form's package picker uses `bookable`. Pass
  * `coachId` to scope to purchases with one coach, otherwise every coach's
  * purchases come back. */
-export const getClientActivePackages = async (clientId: string, coachId?: string) => {
+export const getClientActivePackages = async (
+  clientId: string,
+  coachId?: string,
+) => {
   const conditions = [
     eq(packagePurchase.clientId, clientId),
     gt(packagePurchase.expiresAt, new Date()),
@@ -85,7 +110,10 @@ export const getClientActivePackages = async (clientId: string, coachId?: string
       coachName: user.name,
     })
     .from(packagePurchase)
-    .innerJoin(packageOffering, eq(packagePurchase.packageId, packageOffering.id))
+    .innerJoin(
+      packageOffering,
+      eq(packagePurchase.packageId, packageOffering.id),
+    )
     .innerJoin(coachProfile, eq(packageOffering.coachId, coachProfile.id))
     .innerJoin(user, eq(coachProfile.userId, user.id))
     .where(and(...conditions))
@@ -116,12 +144,17 @@ export const getClientActivePackages = async (clientId: string, coachId?: string
       })
       .from(booking)
       .where(
-        and(inArray(booking.packagePurchaseId, purchaseIds), eq(booking.status, "pending_approval")),
+        and(
+          inArray(booking.packagePurchaseId, purchaseIds),
+          eq(booking.status, "pending_approval"),
+        ),
       )
       .groupBy(booking.packagePurchaseId),
   ]);
 
-  const balanceByPurchaseId = new Map(balances.map((b) => [b.purchaseId, b.balance]));
+  const balanceByPurchaseId = new Map(
+    balances.map((b) => [b.purchaseId, b.balance]),
+  );
   const holdsByPurchaseId = new Map(holds.map((h) => [h.purchaseId, h.holds]));
 
   return purchases.map((p) => {
@@ -129,6 +162,16 @@ export const getClientActivePackages = async (clientId: string, coachId?: string
     const holdsCount = holdsByPurchaseId.get(p.purchaseId) ?? 0;
     return { ...p, balance, holds: holdsCount, bookable: balance - holdsCount };
   });
+};
+
+/** Type declaration for return type of `getClientActivePackages` */
+export type ActivePackage = Awaited<
+  ReturnType<typeof getClientActivePackages>
+>[number];
+export type PackageSlide = ActivePackage & {
+  slideId: string;
+  prevId: string;
+  nextId: string;
 };
 
 /** A client's most recent session-ledger movements — the dashboard's activity feed. */
@@ -147,16 +190,25 @@ export const getClientRecentActivity = async (clientId: string, limit = 5) => {
     .limit(limit);
 };
 
+/* Type declaration for return type of `getClientRecentActivity` */
+export type RecentActivity = Awaited<
+  ReturnType<typeof getClientRecentActivity>
+>;
+
 /** Total completed sessions for a client, plus the date of the earliest one
  * — the dashboard's "sessions done · since X" stat card. */
 export const getClientCompletedSessionStats = async (clientId: string) => {
   const [row] = await db
     .select({
       count: sql<number>`count(*)`.mapWith(Number),
-      since: sql<Date | null>`min(${booking.startsAt})`.mapWith((v) => (v === null ? null : new Date(v))),
+      since: sql<Date | null>`min(${booking.startsAt})`.mapWith((v) =>
+        v === null ? null : new Date(v),
+      ),
     })
     .from(booking)
-    .where(and(eq(booking.clientId, clientId), eq(booking.status, "completed")));
+    .where(
+      and(eq(booking.clientId, clientId), eq(booking.status, "completed")),
+    );
 
   return row;
 };
@@ -202,11 +254,20 @@ export type BookingBucket = "upcoming" | "awaiting_action" | "past";
 const bucketCondition = (bucket: BookingBucket) => {
   switch (bucket) {
     case "past":
-      return and(ne(booking.status, "cancelled"), lt(booking.startsAt, new Date()));
+      return and(
+        ne(booking.status, "cancelled"),
+        lt(booking.startsAt, new Date()),
+      );
     case "awaiting_action":
-      return and(eq(booking.status, "pending_approval"), gte(booking.startsAt, new Date()));
+      return and(
+        eq(booking.status, "pending_approval"),
+        gte(booking.startsAt, new Date()),
+      );
     case "upcoming":
-      return and(eq(booking.status, "confirmed"), gte(booking.startsAt, new Date()));
+      return and(
+        eq(booking.status, "confirmed"),
+        gte(booking.startsAt, new Date()),
+      );
   }
 };
 
@@ -254,12 +315,14 @@ export const getClientBookingsPage = async ({
 export const getClientBookingBucketCounts = async (clientId: string) => {
   const [row] = await db
     .select({
-      upcoming: sql<number>`count(*) filter (where ${booking.status} = 'confirmed' and ${booking.startsAt} >= now())`.mapWith(
-        Number,
-      ),
-      awaitingAction: sql<number>`count(*) filter (where ${booking.status} = 'pending_approval' and ${booking.startsAt} >= now())`.mapWith(
-        Number,
-      ),
+      upcoming:
+        sql<number>`count(*) filter (where ${booking.status} = 'confirmed' and ${booking.startsAt} >= now())`.mapWith(
+          Number,
+        ),
+      awaitingAction:
+        sql<number>`count(*) filter (where ${booking.status} = 'pending_approval' and ${booking.startsAt} >= now())`.mapWith(
+          Number,
+        ),
       past: sql<number>`count(*) filter (where ${booking.status} <> 'cancelled' and ${booking.startsAt} < now())`.mapWith(
         Number,
       ),
@@ -352,11 +415,17 @@ export const getCoachDirectoryPage = async ({
     })
     .from(coachProfile)
     .innerJoin(user, eq(coachProfile.userId, user.id))
-    .leftJoin(cheapestPackagePrice, eq(cheapestPackagePrice.coachId, coachProfile.id))
+    .leftJoin(
+      cheapestPackagePrice,
+      eq(cheapestPackagePrice.coachId, coachProfile.id),
+    )
     .where(and(...conditions))
     .orderBy(
       ...(sort === "price"
-        ? [sql`${cheapestPackagePrice.priceCents} asc nulls last`, asc(user.name)]
+        ? [
+            sql`${cheapestPackagePrice.priceCents} asc nulls last`,
+            asc(user.name),
+          ]
         : [asc(user.name)]),
     )
     .limit(pageSize)
@@ -396,7 +465,11 @@ export const getCoachAvailabilitySlots = async (coachId: string) => {
 
 /** A coach's non-cancelled, non-completed bookings starting in `[from, to)` —
  * the sessions that occupy a calendar slot and block others from being offered. */
-export const getCoachActiveBookings = async (coachId: string, from: Date, to: Date) => {
+export const getCoachActiveBookings = async (
+  coachId: string,
+  from: Date,
+  to: Date,
+) => {
   return db
     .select({ startsAt: booking.startsAt, durationMin: booking.durationMin })
     .from(booking)
@@ -432,7 +505,10 @@ export const getCoachSlots = async ({
     getCoachActiveBookings(coachId, from, to),
   ]);
 
-  const windowsByWeekday = new Map<number, { startMin: number; endMin: number }[]>();
+  const windowsByWeekday = new Map<
+    number,
+    { startMin: number; endMin: number }[]
+  >();
   for (const s of availabilitySlots) {
     const windows = windowsByWeekday.get(s.weekday) ?? [];
     windows.push({ startMin: s.startMin, endMin: s.endMin });
@@ -440,12 +516,26 @@ export const getCoachSlots = async ({
   }
 
   const slots: Slot[] = [];
-  for (let cursor = new Date(from); cursor < to; cursor = new Date(cursor.getTime() + 86_400_000)) {
+  for (
+    let cursor = new Date(from);
+    cursor < to;
+    cursor = new Date(cursor.getTime() + 86_400_000)
+  ) {
     const { year, month, day, weekday } = zonedDateParts(cursor, zone);
     const windows = windowsByWeekday.get(weekday) ?? [];
     if (windows.length === 0) continue;
 
-    slots.push(...slotsForDay({ year, month, day, zone, windows, existingBookings, durationMin }));
+    slots.push(
+      ...slotsForDay({
+        year,
+        month,
+        day,
+        zone,
+        windows,
+        existingBookings,
+        durationMin,
+      }),
+    );
   }
 
   return slots;
@@ -466,7 +556,13 @@ export const getCoachSlotsForDate = async ({
 }) => {
   const dayStart = zonedTimeToUtc(date.year, date.month, date.day, 0, 0, zone);
   const dayEnd = new Date(dayStart.getTime() + 86_400_000);
-  return getCoachSlots({ coachId, zone, from: dayStart, to: dayEnd, durationMin });
+  return getCoachSlots({
+    coachId,
+    zone,
+    from: dayStart,
+    to: dayEnd,
+    durationMin,
+  });
 };
 
 /* Coach Profile Page Queries */
@@ -506,7 +602,12 @@ export const getCoachPackages = async (coachId: string) => {
       validityDays: packageOffering.validityDays,
     })
     .from(packageOffering)
-    .where(and(eq(packageOffering.coachId, coachId), eq(packageOffering.active, true)))
+    .where(
+      and(
+        eq(packageOffering.coachId, coachId),
+        eq(packageOffering.active, true),
+      ),
+    )
     .orderBy(asc(packageOffering.pricePerSessionCents));
 };
 

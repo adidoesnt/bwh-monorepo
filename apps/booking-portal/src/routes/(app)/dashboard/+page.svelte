@@ -2,7 +2,8 @@
 	import { ChevronLeftIcon, ChevronRightIcon } from '@repo/ui';
 	import { dayNumber, formatFullDate, formatTime, monthAbbrev, statusBadgeClass, statusLabel, viewerZone } from '$lib/utils/format';
 	import type { PageProps } from './$types';
-	import { balanceProgressClass, getPackageSlides, getStats, isClient } from './dashboard';
+	import { getStats, isClient } from './dashboard';
+    import { PackagesCarousel, RecentActivity } from '$lib/components';
 
 	let { data }: PageProps = $props();
 
@@ -11,7 +12,6 @@
 	const clientView = $derived(isClient(data));
 	const zone = $derived(viewerZone(data.user));
 	const stats = $derived(getStats(data, zone));
-	const packageSlides = $derived(getPackageSlides(data));
 </script>
 
 {#snippet statCard(stat: { label: string; value: string; sub: string })}
@@ -61,50 +61,6 @@
 	</div>
 {/snippet}
 
-{#snippet packageCarousel()}
-	<div class="bg-neutral text-neutral-content flex flex-col gap-4 rounded-2xl p-5">
-		<div class="flex items-center justify-between">
-			<h2 class="font-headings text-xl">your packages</h2>
-			<span class="text-neutral-content/60 text-sm">{data.activePackages.length} active</span>
-		</div>
-		{#if packageSlides.length === 0}
-			<p class="text-neutral-content/60 text-sm">no active packages — get one to start booking.</p>
-		{:else}
-			<!-- TODO: auto-scroll this carousel (pause on hover/touch, respect prefers-reduced-motion) -->
-			<div class="carousel carousel-center w-full gap-4">
-				{#each packageSlides as pkg (pkg.purchaseId)}
-					<div id={pkg.slideId} class="carousel-item w-full flex-col gap-3">
-						<div>
-							<div class="text-sm opacity-70">{pkg.packageName} · {pkg.coachName}</div>
-							<div class="font-headings text-3xl">
-								{pkg.balance} <span class="text-lg opacity-60">of {pkg.sessionCount} left</span>
-							</div>
-						</div>
-						<progress
-							class="progress {balanceProgressClass(pkg.balance, pkg.sessionCount)} w-full"
-							value={pkg.balance}
-							max={pkg.sessionCount}
-						></progress>
-						<div class="flex items-center justify-between text-sm opacity-70">
-							<span>expires {formatFullDate(pkg.expiresAt, zone)}</span>
-							{#if packageSlides.length > 1}
-								<span class="flex gap-1">
-									<a href="#{pkg.prevId}" class="btn btn-circle btn-xs btn-ghost">
-										<ChevronLeftIcon className="h-3 w-3" />
-									</a>
-									<a href="#{pkg.nextId}" class="btn btn-circle btn-xs btn-ghost">
-										<ChevronRightIcon className="h-3 w-3" />
-									</a>
-								</span>
-							{/if}
-						</div>
-					</div>
-				{/each}
-			</div>
-		{/if}
-	</div>
-{/snippet}
-
 {#snippet weeklyFocus()}
 	<div class="bg-success/30 text-success-content flex flex-col gap-3 rounded-2xl p-5">
 		<h2 class="font-headings text-xl">this week's focus</h2>
@@ -112,29 +68,6 @@
 		<p class="text-success-content/70 text-sm">
 			your coaches' focus for the week will show up here once programming is wired up.
 		</p>
-	</div>
-{/snippet}
-
-{#snippet recentActivity()}
-	<div class="bg-base-100 border-base-300 flex flex-col gap-4 rounded-2xl border p-5">
-		<div class="flex items-center justify-between">
-			<h2 class="font-headings text-xl">recent activity</h2>
-			<span class="text-accent text-sm" title="coming soon">view all</span>
-		</div>
-		{#if data.recentActivity.length === 0}
-			<p class="text-base-content/60 text-sm">nothing here yet.</p>
-		{:else}
-			<div class="flex flex-col gap-2">
-				{#each data.recentActivity as entry (entry.id)}
-					<div class="flex items-center justify-between gap-3 text-sm">
-						<span class="min-w-0 truncate">{entry.description}</span>
-						<span class="shrink-0 {entry.delta >= 0 ? 'text-success' : 'text-error'}">
-							{entry.delta >= 0 ? '+' : ''}{entry.delta}
-						</span>
-					</div>
-				{/each}
-			</div>
-		{/if}
 	</div>
 {/snippet}
 
@@ -153,9 +86,9 @@
 
 		<div class="grid grid-cols-1 gap-6 lg:grid-cols-2">
 			{@render whatsNext()}
-			{@render packageCarousel()}
+			<PackagesCarousel activePackages={data.activePackages} {zone} />
 			{@render weeklyFocus()}
-			{@render recentActivity()}
+			<RecentActivity recentActivity={data.recentActivity} />
 		</div>
 	{:else}
 		<p class="text-base-content/60 max-w-sm">

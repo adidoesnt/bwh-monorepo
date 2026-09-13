@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { MenuIcon } from '@repo/ui';
-	import Sidebar from '$lib/components/Sidebar.svelte';
+	import { Sidebar } from '$lib/components';
 	import type { LayoutProps } from './$types';
 
 	let { data, children }: LayoutProps = $props();
