@@ -44,7 +44,17 @@ export const parseDateParam = (value: string | null) => {
 	return { year, month, day };
 };
 
-type ActivePackage = { purchaseId: string; sessionLengthMin: number; expiresAt: Date };
+// Can't derive this from `PageData` (circular: `load` calls
+// `resolveBookingSelection`) — kept in sync with `getClientActivePackages`'s
+// return shape (`$lib/server/queries.ts`) by hand instead.
+type ActivePackage = {
+	purchaseId: string;
+	sessionLengthMin: number;
+	expiresAt: Date;
+	balance: number;
+	holds: number;
+	bookable: number;
+};
 
 /** Resolve which purchase a session draws from, its length, and how far out
  * the date picker should range, from the session type + `?package=` param. */
@@ -101,3 +111,20 @@ export const dateForParts = (date: DateParts, zone: string) =>
 
 export const sameDate = (a: DateParts, b: DateParts) =>
 	a.year === b.year && a.month === b.month && a.day === b.day;
+
+/** Just `dates` that fall in `year`/`month` — the day chips for the currently
+ * viewed month. */
+export const daysInMonth = (dates: DateParts[], year: number, month: number) =>
+	dates.filter((d) => d.year === year && d.month === month);
+
+/** `{ year, month }` `delta` months from `year`/`month` (`delta` can be
+ * negative), handling year rollover. */
+export const adjacentMonth = (year: number, month: number, delta: number) => {
+	const total = year * 12 + (month - 1) + delta;
+	return { year: Math.floor(total / 12), month: (((total % 12) + 12) % 12) + 1 };
+};
+
+/** Whether `year`/`month` has any day in `dates` — whether the month-nav
+ * button for it should be enabled. */
+export const hasDayInMonth = (dates: DateParts[], year: number, month: number) =>
+	dates.some((d) => d.year === year && d.month === month);

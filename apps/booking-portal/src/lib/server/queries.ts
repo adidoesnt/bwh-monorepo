@@ -8,6 +8,7 @@ import {
   packagePurchase,
   sessionLedgerEntry,
   user,
+  type SessionType,
 } from "@repo/database/schema";
 import { slotsForDay, zonedDateParts, zonedTimeToUtc, type Slot } from "$lib/utils/availability";
 import { db } from "./db";
@@ -70,7 +71,10 @@ export const getClientActivePackages = async (clientId: string, coachId?: string
     .innerJoin(packageOffering, eq(packagePurchase.packageId, packageOffering.id))
     .innerJoin(coachProfile, eq(packageOffering.coachId, coachProfile.id))
     .innerJoin(user, eq(coachProfile.userId, user.id))
-    .where(and(...conditions));
+    .where(and(...conditions))
+    // Soonest-expiring first — this is the FIFO order a booking draws from
+    // when the client doesn't explicitly pick a purchase (see BOOKING-LIFECYCLE.md).
+    .orderBy(asc(packagePurchase.expiresAt));
 
   if (purchases.length === 0) return [];
 
@@ -512,4 +516,24 @@ export const getClientIntakeSubmitted = async (clientId: string) => {
     .limit(1);
 
   return row?.submittedAt != null;
+};
+
+/** Inserts a `pending_approval` booking. No ledger entry here — the session
+ * is only spent when a coach approves (see `BOOKING-LIFECYCLE.md`). */
+export const createBooking = async (values: {
+  clientId: string;
+  coachId: string;
+  type: SessionType;
+  location: string;
+  startsAt: Date;
+  durationMin: number;
+  packagePurchaseId: string | null;
+  clientNote: string | null;
+}) => {
+  const [row] = await db
+    .insert(booking)
+    .values({ ...values, status: "pending_approval" })
+    .returning({ id: booking.id });
+
+  return row;
 };

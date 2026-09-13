@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { goto } from '$app/navigation';
 	import { page } from '$app/state';
+	import { untrack } from 'svelte';
 	import { ChevronsDownIcon, CircleCheckIcon } from '@repo/ui';
 	import {
 		dayNumber,
@@ -18,6 +19,24 @@
 
 	const clientView = $derived(isClient(data));
 	const zone = $derived(viewerZone(data.user));
+
+	// `?booked=1` after a successful request (see [slug]/+page.server.ts's
+	// redirect) — shown once, then stripped from the URL so a refresh or
+	// share doesn't re-trigger it.
+	let showBookedToast = $state(page.url.searchParams.get('booked') === '1');
+
+	$effect(() => {
+		if (!showBookedToast) return;
+
+		untrack(() => {
+			const url = new URL(page.url);
+			url.searchParams.delete('booked');
+			goto(url, { replaceState: true, keepFocus: true, noScroll: true });
+		});
+
+		const timer = setTimeout(() => (showBookedToast = false), 3000);
+		return () => clearTimeout(timer);
+	});
 
 	let search = $state(page.url.searchParams.get('q') ?? '');
 	let searchDebounceTimer: ReturnType<typeof setTimeout> | undefined;
@@ -302,3 +321,11 @@
 		</p>
 	{/if}
 </div>
+
+{#if showBookedToast}
+	<div class="toast toast-top toast-center z-50">
+		<div class="alert alert-success">
+			<span>request sent — your coach will approve it soon.</span>
+		</div>
+	</div>
+{/if}
