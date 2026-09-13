@@ -19,7 +19,7 @@
         that match the user's current preferences.
     -->
     <div class="flex flex-col gap-4">
-        {#each new Array(4) as _, i}
+        {#each new Array(3) as _, i}
             <div class="bg-base-100 rounded-lg p-6 border border-base-300">
                 <div class="flex flex-col gap-2">
                     <h2 class="font-headings text-2xl">package {i + 1}</h2>
