@@ -43,6 +43,23 @@ export const getClientUpcomingBookings = async (clientId: string, limit = 5) => 
     .limit(limit);
 };
 
+/** Total count behind `getClientUpcomingBookings`, for a "+n more" link when
+ * the preview list is truncated. */
+export const getClientUpcomingBookingsCount = async (clientId: string) => {
+  const [row] = await db
+    .select({ count: sql<number>`count(*)`.mapWith(Number) })
+    .from(booking)
+    .where(
+      and(
+        eq(booking.clientId, clientId),
+        inArray(booking.status, UPCOMING_BOOKING_STATUSES),
+        gt(booking.startsAt, new Date()),
+      ),
+    );
+
+  return row.count;
+};
+
 /** A client's non-expired package purchases, each with its `balance` (summed
  * from `session_ledger_entry`), `holds` (their own other pending_approval
  * bookings against it), and `bookable` (`balance - holds`, what's actually

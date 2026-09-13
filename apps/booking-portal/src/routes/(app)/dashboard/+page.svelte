@@ -52,6 +52,11 @@
 					</div>
 				{/each}
 			</div>
+			{#if data.upcomingBookingsCount > data.upcomingBookings.length}
+				<a href="/bookings" class="text-accent text-left text-sm hover:underline">
+					+{data.upcomingBookingsCount - data.upcomingBookings.length} more
+				</a>
+			{/if}
 		{/if}
 	</div>
 {/snippet}

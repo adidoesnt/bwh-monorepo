@@ -1,21 +1,26 @@
 import type { PageServerLoad } from "./$types";
 import {
   getClientUpcomingBookings,
+  getClientUpcomingBookingsCount,
   getClientActivePackages,
   getClientRecentActivity,
   getClientCompletedSessionStats,
   getClientWeeklySessionCounts,
 } from "$lib/server/queries";
 
+const UPCOMING_BOOKINGS_PREVIEW_COUNT = 3;
+
 const getClientData = async (clientId: string) => {
   const [
     upcomingBookings,
+    upcomingBookingsCount,
     activePackages,
     recentActivity,
     completedSessionStats,
     weeklySessionCounts,
   ] = await Promise.all([
-    getClientUpcomingBookings(clientId),
+    getClientUpcomingBookings(clientId, UPCOMING_BOOKINGS_PREVIEW_COUNT),
+    getClientUpcomingBookingsCount(clientId),
     getClientActivePackages(clientId),
     getClientRecentActivity(clientId),
     getClientCompletedSessionStats(clientId),
@@ -24,6 +29,7 @@ const getClientData = async (clientId: string) => {
 
   return {
     upcomingBookings,
+    upcomingBookingsCount,
     activePackages,
     recentActivity,
     completedSessionStats,
@@ -33,6 +39,7 @@ const getClientData = async (clientId: string) => {
 
 const EMPTY_DASHBOARD_DATA = {
   upcomingBookings: [],
+  upcomingBookingsCount: 0,
   activePackages: [],
   recentActivity: [],
   completedSessionStats: { count: 0, since: null },
