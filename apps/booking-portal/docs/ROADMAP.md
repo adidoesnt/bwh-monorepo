@@ -189,8 +189,8 @@ buy → Stripe Checkout → processing (webhook in flight) → purchased
 - `BuyPackageModal`: review (package, total) → redirect to Stripe (no upload step); on return,
   `/packages` reads a `?purchase=success|cancelled` query param and shows the right banner while
   the webhook (usually seconds) lands — *1.5h*
-- `/packages`: "your packages" (card per active `package_purchase` with an expandable
-  `session_ledger_entry` log) · "processing" (pending purchase-invoices, webhook in flight) ·
+- `/packages`: "your packages" (re-use package carousel from dashboard page, add support expandable
+  `session_ledger_entry` log per slide) · "processing" (pending purchase-invoices, webhook in flight) ·
   "get more sessions" — one card per coach, showing packages from the ≤3 coaches the client
   engaged with most recently, full browsing stays on `/bookings` — *2h*
 - `/packages` enforces `MAX_ACTIVE_PACKAGES = 5` (hardcoded until Phase 9): held = active

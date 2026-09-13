@@ -4,7 +4,8 @@
     import { balanceProgressClass, getPackageSlides } from "$lib/utils/packages";
     import { ChevronLeftIcon, ChevronRightIcon } from "@repo/ui";
 
-    let { activePackages, zone }: { activePackages: ActivePackage[]; zone: string } = $props();
+    // TODO: Set showPackageActivity to true for /packages page, then show dropdown in package slide for each package.
+    let { activePackages, zone, showPackageActivity = false }: { activePackages: ActivePackage[]; zone: string; showPackageActivity: boolean } = $props();
     let packageSlides: PackageSlide[] = $derived(getPackageSlides(activePackages));
 </script>
 
