@@ -42,8 +42,16 @@ export const getClientUpcomingBookings = async (clientId: string, limit = 5) => 
 };
 
 /** A client's non-expired package purchases, each with its remaining balance
- * (summed from `session_ledger_entry`) — the dashboard's package carousel. */
-export const getClientActivePackages = async (clientId: string) => {
+ * (summed from `session_ledger_entry`) — the dashboard's package carousel.
+ * Pass `coachId` to scope to purchases with one coach (the booking form's
+ * package picker), otherwise every coach's purchases come back. */
+export const getClientActivePackages = async (clientId: string, coachId?: string) => {
+  const conditions = [
+    eq(packagePurchase.clientId, clientId),
+    gt(packagePurchase.expiresAt, new Date()),
+  ];
+  if (coachId) conditions.push(eq(coachProfile.id, coachId));
+
   const purchases = await db
     .select({
       purchaseId: packagePurchase.id,
@@ -58,12 +66,7 @@ export const getClientActivePackages = async (clientId: string) => {
     .innerJoin(packageOffering, eq(packagePurchase.packageId, packageOffering.id))
     .innerJoin(coachProfile, eq(packageOffering.coachId, coachProfile.id))
     .innerJoin(user, eq(coachProfile.userId, user.id))
-    .where(
-      and(
-        eq(packagePurchase.clientId, clientId),
-        gt(packagePurchase.expiresAt, new Date()),
-      ),
-    );
+    .where(and(...conditions));
 
   if (purchases.length === 0) return [];
 
