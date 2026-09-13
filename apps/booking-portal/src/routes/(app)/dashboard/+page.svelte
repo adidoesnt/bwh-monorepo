@@ -1,5 +1,4 @@
 <script lang="ts">
-	import { ChevronLeftIcon, ChevronRightIcon } from '@repo/ui';
 	import { dayNumber, formatFullDate, formatTime, monthAbbrev, statusBadgeClass, statusLabel, viewerZone } from '$lib/utils/format';
 	import type { PageProps } from './$types';
 	import { getStats, isClient } from './dashboard';
@@ -12,6 +11,7 @@
 	const clientView = $derived(isClient(data));
 	const zone = $derived(viewerZone(data.user));
 	const stats = $derived(getStats(data, zone));
+	const date = $derived(formatFullDate(new Date(), zone));
 </script>
 
 {#snippet statCard(stat: { label: string; value: string; sub: string })}
@@ -73,7 +73,10 @@
 
 <div class="mx-auto flex max-w-6xl flex-col gap-8 p-6 md:p-10">
 	<div class="flex items-center justify-between">
-		<h1 class="font-headings text-3xl">hey {firstName}!</h1>
+    	<div class="flex flex-col">
+            <p class="text-base-content/60 font-mono">{date}</p>
+    		<h1 class="font-headings text-3xl">hey {firstName}!</h1>
+    	</div>
 		<a href="/bookings" class="btn btn-accent" title="request a session">request a session</a>
 	</div>
 

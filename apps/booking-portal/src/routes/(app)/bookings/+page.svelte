@@ -308,7 +308,10 @@
 {/snippet}
 
 <div class="mx-auto flex max-w-6xl flex-col gap-8 p-6 md:p-10">
-	<h1 class="font-headings text-3xl">bookings</h1>
+    <div class="flex flex-col">
+        <h1 class="font-headings text-3xl">bookings</h1>
+        <p class="text-base-content/60">pick a coach to see their page, their hours and their rates.</p>
+    </div>
 
 	{#if clientView}
 		<div class="grid grid-cols-1 gap-6 lg:grid-cols-2">
