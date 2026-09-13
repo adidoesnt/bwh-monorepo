@@ -110,6 +110,11 @@ in `@repo/database` for the full reference.
   pre-packages model's wording) → "send request". Submit → `booking` row at `pending_approval` if
   the client holds a session with this coach, else the form is replaced by "get a {coach} package
   to book" (see Phase 4). Server action re-validates the slot — never trusts the posted time.
+  Package/date selection is **URL-driven** (`?package=&date=`), same pattern as `/bookings`'s
+  search/tags/sort/pagination — picking either re-runs `load`, which calls
+  `getCoachAvailableStarts` server-side with the new duration/date, rather than a client-side
+  fetch. Consistent with the rest of the app, shareable, and the server never has to trust a
+  client-computed slot list.
 
 **Opening the profile:** clicking a coach in the directory opens this panel inline (not full
 width) rather than a full navigation, so browsing several coaches doesn't reload the page each
@@ -121,18 +126,20 @@ profile UI twice, and the browser back button naturally closes the overlay.
 - ⬜ Date range: today through the active purchase's `expires_at` (8 weeks out if no active
   purchase). Picker is month chips → day chips; month row hides when the range is a single month.
   Form notes the expiry date; the action rejects a start after it.
-- ⬜ Real availability: generates 30-min starts from `availability_slot` windows on the coach-local
-  weekday, blocks starts that overlap an existing `pending_approval | confirmed` booking or are
-  in the past. No travel-time/buffer concept between in-person locations — a coach declines or
-  counter-offers at approval time if a technically-open slot doesn't actually work for them (see
-  `BOOKING-LIFECYCLE.md`).
-  Once this lands as a single-coach function, it also unblocks the coach directory's "next free"
-  line (call it once per coach already on the current page — cheap) even before the harder
-  cross-coach `soonest`/`most open slots` **sort** exists (which needs it computed efficiently for
-  every candidate coach at the DB level, not just the ones already shown).
-- ⬜ Coach timezone: availability windows are wall-clock in the coach's zone, converted via `Intl`
-  (DST-safe). If client and coach zones differ, only online session types are offered (form +
-  server both enforce).
+- ✅ Real availability: `$lib/utils/availability.ts` (pure logic, DST-safe coach-local ↔ UTC
+  conversion) + `getCoachAvailableStarts` (`queries.ts`) generate 30-min starts from
+  `availability_slot` windows on the coach-local weekday, blocking starts that overlap an
+  existing `pending_approval | confirmed` booking or are in the past. Verified against real seed
+  data (Jolene, `Asia/Dubai`), not just typechecked. No travel-time/buffer concept between
+  in-person locations — a coach declines or counter-offers at approval time if a technically-open
+  slot doesn't actually work for them (see `BOOKING-LIFECYCLE.md`).
+  This also unblocks the coach directory's "next free" line (call it once per coach already on
+  the current page — cheap) even before the harder cross-coach `soonest`/`most open slots`
+  **sort** exists (needs it computed efficiently for every candidate coach at the DB level, not
+  just the ones already shown) — neither is wired up in the UI yet.
+- ⬜ Coach timezone gating: the zone-conversion math above is ready, but nothing compares client
+  vs. coach zone yet to restrict session types (only online offered when they differ) — that's
+  form/request-action logic that doesn't exist until the booking form does.
 - ⬜ Session-type gates compose: cross-timezone → online types only; PAR-Q not submitted → free
   consult only (Phase 6 builds the PAR-Q form itself; this is the booking-side gate).
 - ✅ Read-only bookings list with `upcoming / awaiting action / past` tabs on `/bookings`, each a
