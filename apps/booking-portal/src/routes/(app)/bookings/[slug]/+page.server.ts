@@ -1,27 +1,48 @@
 import { error } from "@sveltejs/kit";
 import {
   getClientActivePackages,
-  getCoachAvailableStartsForDate,
+  getClientIntakeSubmitted,
   getCoachBySlug,
   getCoachOpenHours,
   getCoachPackages,
+  getCoachSlotsForDate,
 } from "$lib/server/queries";
 import { BOOKING_SHARE_HOST } from "$lib/server/config";
 import { zonedDateParts } from "$lib/utils/availability";
-import { parseDateParam, resolveBookingSelection } from "./coach";
+import {
+  allowedSessionTypes,
+  parseDateParam,
+  resolveBookingSelection,
+  resolveSessionType,
+} from "./coach";
 import type { PageServerLoad } from "./$types";
 
 export const load: PageServerLoad = async ({ params, url, locals }) => {
   const coach = await getCoachBySlug(params.slug);
   if (!coach) error(404, "coach not found");
 
-  const [packages, openHours, activePackages] = await Promise.all([
-    getCoachPackages(coach.id),
-    getCoachOpenHours(coach.id),
-    locals.user ? getClientActivePackages(locals.user.id, coach.id) : Promise.resolve([]),
-  ]);
+  const [packages, openHours, activePackages, parqSubmitted] =
+    await Promise.all([
+      getCoachPackages(coach.id),
+      getCoachOpenHours(coach.id),
+      locals.user
+        ? getClientActivePackages(locals.user.id, coach.id)
+        : Promise.resolve([]),
+      locals.user
+        ? getClientIntakeSubmitted(locals.user.id)
+        : Promise.resolve(false),
+    ]);
 
-  const sessionType = url.searchParams.get("type") ?? "1:1 in-person";
+  // Unknown client zone (`user.timezone` unset) is treated as not cross-timezone —
+  // permissive by default rather than blocking bookings over missing data.
+  const crossTimezone =
+    !!locals.user?.timezone && locals.user.timezone !== coach.timezone;
+  const allowedTypes = allowedSessionTypes({ crossTimezone, parqSubmitted });
+  const sessionType = resolveSessionType(
+    url.searchParams.get("type") ?? "1:1 in-person",
+    allowedTypes,
+  );
+
   const { selectedPurchase, durationMin, rangeEnd } = resolveBookingSelection({
     sessionType,
     packageIdParam: url.searchParams.get("package"),
@@ -31,8 +52,8 @@ export const load: PageServerLoad = async ({ params, url, locals }) => {
   const today = zonedDateParts(new Date(), coach.timezone);
   const selectedDate = parseDateParam(url.searchParams.get("date")) ?? today;
 
-  const availableStarts = durationMin
-    ? await getCoachAvailableStartsForDate({
+  const slots = durationMin
+    ? await getCoachSlotsForDate({
         coachId: coach.id,
         zone: coach.timezone,
         date: selectedDate,
@@ -48,13 +69,16 @@ export const load: PageServerLoad = async ({ params, url, locals }) => {
     packages,
     openHours,
     activePackages,
+    allowedTypes,
+    crossTimezone,
+    parqSubmitted,
     sessionType,
     selectedPurchase,
     durationMin,
     today,
     selectedDate,
     rangeEnd,
-    availableStarts,
+    slots,
     shareUrl,
   };
 };

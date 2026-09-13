@@ -42,6 +42,9 @@ export const monthAbbrev = (date: Date, zone: string) =>
 export const dayNumber = (date: Date, zone: string) =>
 	new Intl.DateTimeFormat(LOCALE, { day: 'numeric', timeZone: zone }).format(date);
 
+export const weekdayAbbrev = (date: Date, zone: string) =>
+	new Intl.DateTimeFormat(LOCALE, { weekday: 'short', timeZone: zone }).format(date).toUpperCase();
+
 export const statusLabel = (status: string) =>
 	status === 'pending_approval' ? 'awaiting approval' : status;
 

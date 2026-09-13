@@ -3,12 +3,13 @@ import {
   availabilitySlot,
   booking,
   coachProfile,
+  intakeResponse,
   packageOffering,
   packagePurchase,
   sessionLedgerEntry,
   user,
 } from "@repo/database/schema";
-import { availableStartsForDay, zonedDateParts, zonedTimeToUtc } from "$lib/utils/availability";
+import { slotsForDay, zonedDateParts, zonedTimeToUtc, type Slot } from "$lib/utils/availability";
 import { db } from "./db";
 
 /* Client Dashboard Queries */
@@ -41,10 +42,13 @@ export const getClientUpcomingBookings = async (clientId: string, limit = 5) => 
     .limit(limit);
 };
 
-/** A client's non-expired package purchases, each with its remaining balance
- * (summed from `session_ledger_entry`) — the dashboard's package carousel.
- * Pass `coachId` to scope to purchases with one coach (the booking form's
- * package picker), otherwise every coach's purchases come back. */
+/** A client's non-expired package purchases, each with its `balance` (summed
+ * from `session_ledger_entry`), `holds` (their own other pending_approval
+ * bookings against it), and `bookable` (`balance - holds`, what's actually
+ * left to request right now) — the dashboard's package carousel uses
+ * `balance`, the booking form's package picker uses `bookable`. Pass
+ * `coachId` to scope to purchases with one coach, otherwise every coach's
+ * purchases come back. */
 export const getClientActivePackages = async (clientId: string, coachId?: string) => {
   const conditions = [
     eq(packagePurchase.clientId, clientId),
@@ -70,26 +74,40 @@ export const getClientActivePackages = async (clientId: string, coachId?: string
 
   if (purchases.length === 0) return [];
 
-  const balances = await db
-    .select({
-      purchaseId: sessionLedgerEntry.purchaseId,
-      balance: sql<number>`sum(${sessionLedgerEntry.delta})`.mapWith(Number),
-    })
-    .from(sessionLedgerEntry)
-    .where(
-      inArray(
-        sessionLedgerEntry.purchaseId,
-        purchases.map((p) => p.purchaseId),
-      ),
-    )
-    .groupBy(sessionLedgerEntry.purchaseId);
+  const purchaseIds = purchases.map((p) => p.purchaseId);
+
+  const [balances, holds] = await Promise.all([
+    db
+      .select({
+        purchaseId: sessionLedgerEntry.purchaseId,
+        balance: sql<number>`sum(${sessionLedgerEntry.delta})`.mapWith(Number),
+      })
+      .from(sessionLedgerEntry)
+      .where(inArray(sessionLedgerEntry.purchaseId, purchaseIds))
+      .groupBy(sessionLedgerEntry.purchaseId),
+    // "Holds" — the client's own other pending_approval bookings against a
+    // purchase. Not yet consumed (the ledger only moves on approval), but
+    // already spoken for, so they come off what's actually bookable now.
+    db
+      .select({
+        purchaseId: booking.packagePurchaseId,
+        holds: sql<number>`count(*)`.mapWith(Number),
+      })
+      .from(booking)
+      .where(
+        and(inArray(booking.packagePurchaseId, purchaseIds), eq(booking.status, "pending_approval")),
+      )
+      .groupBy(booking.packagePurchaseId),
+  ]);
 
   const balanceByPurchaseId = new Map(balances.map((b) => [b.purchaseId, b.balance]));
+  const holdsByPurchaseId = new Map(holds.map((h) => [h.purchaseId, h.holds]));
 
-  return purchases.map((p) => ({
-    ...p,
-    balance: balanceByPurchaseId.get(p.purchaseId) ?? 0,
-  }));
+  return purchases.map((p) => {
+    const balance = balanceByPurchaseId.get(p.purchaseId) ?? 0;
+    const holdsCount = holdsByPurchaseId.get(p.purchaseId) ?? 0;
+    return { ...p, balance, holds: holdsCount, bookable: balance - holdsCount };
+  });
 };
 
 /** A client's most recent session-ledger movements — the dashboard's activity feed. */
@@ -371,10 +389,11 @@ export const getCoachActiveBookings = async (coachId: string, from: Date, to: Da
     );
 };
 
-/** Bookable starts for a coach across `[from, to)`, at `durationMin` each —
- * combines their weekly windows with their existing bookings in range, then
- * walks each coach-local calendar day applying `availableStartsForDay`. */
-export const getCoachAvailableStarts = async ({
+/** Every candidate slot for a coach across `[from, to)`, at `durationMin`
+ * each, tagged `available` — combines their weekly windows with their
+ * existing bookings in range, then walks each coach-local calendar day
+ * applying `slotsForDay`. */
+export const getCoachSlots = async ({
   coachId,
   zone,
   from,
@@ -387,35 +406,33 @@ export const getCoachAvailableStarts = async ({
   to: Date;
   durationMin: number;
 }) => {
-  const [slots, existingBookings] = await Promise.all([
+  const [availabilitySlots, existingBookings] = await Promise.all([
     getCoachAvailabilitySlots(coachId),
     getCoachActiveBookings(coachId, from, to),
   ]);
 
-  const slotsByWeekday = new Map<number, { startMin: number; endMin: number }[]>();
-  for (const s of slots) {
-    const windows = slotsByWeekday.get(s.weekday) ?? [];
+  const windowsByWeekday = new Map<number, { startMin: number; endMin: number }[]>();
+  for (const s of availabilitySlots) {
+    const windows = windowsByWeekday.get(s.weekday) ?? [];
     windows.push({ startMin: s.startMin, endMin: s.endMin });
-    slotsByWeekday.set(s.weekday, windows);
+    windowsByWeekday.set(s.weekday, windows);
   }
 
-  const starts: Date[] = [];
+  const slots: Slot[] = [];
   for (let cursor = new Date(from); cursor < to; cursor = new Date(cursor.getTime() + 86_400_000)) {
     const { year, month, day, weekday } = zonedDateParts(cursor, zone);
-    const windows = slotsByWeekday.get(weekday) ?? [];
+    const windows = windowsByWeekday.get(weekday) ?? [];
     if (windows.length === 0) continue;
 
-    starts.push(
-      ...availableStartsForDay({ year, month, day, zone, windows, existingBookings, durationMin }),
-    );
+    slots.push(...slotsForDay({ year, month, day, zone, windows, existingBookings, durationMin }));
   }
 
-  return starts;
+  return slots;
 };
 
-/** Convenience wrapper around `getCoachAvailableStarts` for a single
- * coach-local calendar day, given `zonedDateParts`-shaped `date`. */
-export const getCoachAvailableStartsForDate = async ({
+/** Convenience wrapper around `getCoachSlots` for a single coach-local
+ * calendar day, given `zonedDateParts`-shaped `date`. */
+export const getCoachSlotsForDate = async ({
   coachId,
   zone,
   date,
@@ -428,7 +445,7 @@ export const getCoachAvailableStartsForDate = async ({
 }) => {
   const dayStart = zonedTimeToUtc(date.year, date.month, date.day, 0, 0, zone);
   const dayEnd = new Date(dayStart.getTime() + 86_400_000);
-  return getCoachAvailableStarts({ coachId, zone, from: dayStart, to: dayEnd, durationMin });
+  return getCoachSlots({ coachId, zone, from: dayStart, to: dayEnd, durationMin });
 };
 
 /* Coach Profile Page Queries */
@@ -483,4 +500,16 @@ export const getCoachOpenHours = async (coachId: string) => {
     .from(availabilitySlot)
     .where(eq(availabilitySlot.coachId, coachId))
     .orderBy(asc(availabilitySlot.startMin));
+};
+
+/** Whether a client has completed PAR-Q health screening — gates the booking
+ * form to `free consult` only until they have. */
+export const getClientIntakeSubmitted = async (clientId: string) => {
+  const [row] = await db
+    .select({ submittedAt: intakeResponse.submittedAt })
+    .from(intakeResponse)
+    .where(eq(intakeResponse.clientId, clientId))
+    .limit(1);
+
+  return row?.submittedAt != null;
 };

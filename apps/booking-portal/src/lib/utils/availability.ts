@@ -63,14 +63,18 @@ export const zonedTimeToUtc = (
 
 export type AvailabilityWindow = { startMin: number; endMin: number };
 export type ActiveBooking = { startsAt: Date; durationMin: number };
+export type Slot = { start: Date; available: boolean };
 
 /**
- * Bookable 30-min-cadence starts for one coach-local calendar day, given that
- * day's availability windows and the coach's already-booked sessions. A start
- * is excluded if it doesn't leave room for `durationMin` before the window
- * closes, overlaps an existing booking, or is already in the past.
+ * Every 30-min-cadence candidate start for one coach-local calendar day,
+ * given that day's availability windows and the coach's already-booked
+ * sessions — each tagged with whether it's actually bookable. A slot is
+ * unavailable if it doesn't leave room for `durationMin` before the window
+ * closes and gets skipped entirely (it was never a real candidate), or if
+ * it's marked `available: false` because it overlaps an existing booking or
+ * is already in the past.
  */
-export const availableStartsForDay = ({
+export const slotsForDay = ({
 	year,
 	month,
 	day,
@@ -88,7 +92,7 @@ export const availableStartsForDay = ({
 	existingBookings: ActiveBooking[];
 	durationMin: number;
 	now?: Date;
-}): Date[] => {
+}): Slot[] => {
 	const candidates: Date[] = [];
 
 	for (const window of windows) {
@@ -97,13 +101,15 @@ export const availableStartsForDay = ({
 		}
 	}
 
-	return candidates.filter((start) => {
-		if (start <= now) return false;
+	return candidates.map((start) => {
+		const isPast = start <= now;
 
 		const end = new Date(start.getTime() + durationMin * 60_000);
-		return !existingBookings.some((b) => {
+		const overlapsExisting = existingBookings.some((b) => {
 			const bookingEnd = new Date(b.startsAt.getTime() + b.durationMin * 60_000);
 			return start < bookingEnd && b.startsAt < end;
 		});
+
+		return { start, available: !isPast && !overlapsExisting };
 	});
 };
