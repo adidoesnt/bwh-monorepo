@@ -107,6 +107,7 @@ export const getClientActivePackages = async (
       sessionLengthMin: packagePurchase.sessionLengthMin,
       expiresAt: packagePurchase.expiresAt,
       coachId: coachProfile.id,
+      coachSlug: coachProfile.slug,
       coachName: user.name,
     })
     .from(packagePurchase)

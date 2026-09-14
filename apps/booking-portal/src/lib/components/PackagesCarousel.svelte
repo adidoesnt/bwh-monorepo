@@ -27,7 +27,7 @@
 		<p class="text-neutral-content/60 text-sm">no active packages — get one to start booking.</p>
 	{:else}
 		<!-- TODO: auto-scroll this carousel (pause on hover/touch, respect prefers-reduced-motion) -->
-		<div class="carousel carousel-center w-full gap-4">
+		<div class="carousel carousel-center w-full flex-1 gap-4">
 			{#each packageSlides as pkg (pkg.purchaseId)}
 				<div id={pkg.slideId} class="carousel-item w-full flex-col gap-3">
 					<div>
@@ -62,6 +62,12 @@
 							</span>
 						{/if}
 					</div>
+					<a
+						href={`/bookings/${pkg.coachSlug}?package=${pkg.purchaseId}`}
+						class="btn btn-accent btn-sm mt-auto w-full"
+					>
+						request a session
+					</a>
 				</div>
 			{/each}
 		</div>
