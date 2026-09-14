@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { enhance } from '$app/forms';
 	import { CoachHeader } from '$lib/components';
 	import { formatPriceCents } from '$lib/utils/format';
 	import { ChevronLeftIcon } from '@repo/ui';
@@ -27,7 +28,7 @@
 			</span>
 			<span class="text-base-content/50 text-xs">{formatPriceCents(pkg.pricePerSessionCents)} / session</span>
 		</div>
-		<form method="POST" action="?/buy">
+		<form method="POST" action="?/buy" use:enhance>
 			<input type="hidden" name="packageId" value={pkg.id} />
 			<button type="submit" class="btn btn-accent w-full">buy this package</button>
 		</form>

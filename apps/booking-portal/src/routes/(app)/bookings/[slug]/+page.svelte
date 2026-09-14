@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { goto } from '$app/navigation';
+	import { enhance } from '$app/forms';
 	import { page } from '$app/state';
 	import { CoachHeader } from '$lib/components';
 	import { ChevronLeftIcon, ChevronRightIcon } from '@repo/ui';
@@ -317,7 +318,7 @@
 {/snippet}
 
 {#snippet requestForm()}
-	<form method="POST" action={requestActionUrl} class="flex flex-col gap-6">
+	<form method="POST" action={requestActionUrl} class="flex flex-col gap-6" use:enhance>
 		{@render locationField()}
 
 		<div>
