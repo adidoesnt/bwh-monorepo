@@ -75,6 +75,13 @@ in `@repo/database` for the full reference.
   link to `/bookings` when there are more — row actions land once Phase 3/5 ship the routes to
   deep-link to), package carousel with per-purchase balance, recent-activity feed from
   `session_ledger_entry` — *3h*
+  - ✅ The package carousel is `$lib/components/PackagesCarousel.svelte`, shared with `/packages`
+    (see Phase 4) rather than duplicated. Each slide has a "request a session" button that
+    deep-links to `/bookings/[slug]?package=<purchaseId>`, pre-selecting that purchase on the
+    booking form. Prev/next slide navigation uses `scrollIntoView({ block: 'nearest' })` on click
+    rather than the raw `href="#id"` fragment-jump daisyUI's carousel pattern suggests — the native
+    fragment-jump scrolls the whole page, not just the carousel, which was a real regression caught
+    and fixed this session.
 - ✅ Render dates in the viewer's timezone: `/dashboard` renders client-side (`ssr = false`) so
   times show in the viewer's stored `user.timezone`, else the browser's — *1h*
 
@@ -149,6 +156,11 @@ in `@repo/database` for the full reference.
   server-side paginated bucket (date-first, status-second — see `BOOKING-LIFECYCLE.md`) with its
   own count badge. Row actions (reschedule / cancel) render as disabled placeholders; making them
   real, plus the 24h cancellation policy, is Phase 5.
+- ✅ `CoachHeader`, `DropdownControl`, `Pager` pulled out to `$lib/components` once `/packages`
+  needed the same coach-directory browsing UI `/bookings` already had (search/tags/sort/pagination,
+  the coach header block) — no behavior change, just de-duplication. The booking form's `?/request`
+  submit uses `use:enhance` (SvelteKit progressive enhancement — submits via `fetch` instead of a
+  full page reload, so in-progress local state like the note textarea survives a failed submit).
 
 **Opening the profile** (not built): clicking a coach in the directory should open this panel
 inline (not full width) rather than a full navigation, so browsing several coaches doesn't reload
@@ -165,8 +177,8 @@ could request several sessions off a purchase's balance before any got approved 
 sessions that haven't actually been consumed. Verified against a real seeded pending booking
 (Tessa/Nadia's "starter": `balance: 3, holds: 1, bookable: 2`), not synthetic data.
 
-## Phase 4 — Package checkout & Stripe payments (client) ⬜
-**Estimate: ~9.5h**
+## Phase 4 — Package browsing, purchase & Stripe payments (client) 🚧 partial
+**Estimate: ~9.5h** (~5h remaining — Stripe checkout + webhook + invoicing)
 
 *Design screen: checkout modal (review → pay → processing/confirmed)*
 
@@ -178,24 +190,47 @@ buy → Stripe Checkout → processing (webhook in flight) → purchased
                                                         → failed (no charge, retry)
 ```
 
-- `?/buy` (`/packages`, and from `/bookings/[slug]` when the client has no active package with a
-  coach) creates a Stripe Checkout Session for the package total (metadata: client + package id),
-  writes an `invoice` row (`status: pending`, `stripe_checkout_session_id`), and redirects the
-  client to Stripe's hosted checkout — *2h*
+- ✅ `/packages`: "your packages" (shared `PackagesCarousel` component, see Phase 2) · recent
+  activity feed · **suggested packages** (`getSuggestedPackages`: one package per distinct
+  recently-active coach, cheapest-first, when the client has booking/purchase history; otherwise
+  the platform's most-purchased active packages, with a timezone match as a tiebreaker — a brand-
+  new client with no history gets the popularity branch, verified against real seed data for both
+  branches) · **browse packages** (the same server-side searchable/tag-filterable/sortable/
+  paginated coach directory `/bookings` uses, reused via `getCoachDirectoryPage` +
+  `parseCoachDirectoryParams`, linking into `/packages/[slug]` instead of the booking flow) — *2h*
+- ✅ `/packages/[slug]`: lists a coach's active package offerings; each has a real `?/buy` action
+  (`use:enhance`) that inserts the `package_purchase` row and an immediate `+N` `purchase` ledger
+  entry — **no Stripe wiring yet**, so sessions land as soon as the purchase row does, same spirit
+  as how the booking form writes real `pending_approval` rows without payment infra. Verified
+  end-to-end: a real purchase produced the right `package_purchase` + ledger rows and balance; the
+  action's gates (missing/foreign-coach/inactive `packageId`) correctly reject. `/packages` shows a
+  one-shot "package purchased" toast via `?bought=1`, mirroring `/bookings`' `?booked=1` pattern —
+  *2h*
+- ✅ Per-package "activity" (`session_ledger_entry` history scoped to that one purchase, via
+  `getPurchaseLedgerEntries`) — an inline expand/collapse on each carousel slide, not a floating
+  popover. daisyUI's `.dropdown` was tried first but depends on the CSS Anchor Positioning API
+  (`position-area`) to float the panel, which didn't escape the carousel's layout reliably; rather
+  than fight that (a manual `position: absolute` + click-outside overlay was also tried and is a
+  viable fallback if a floating panel is wanted elsewhere later), it's a plain `$state` toggle that
+  expands in normal flow. Worth remembering if Phase 8's trainer portal reaches for a `.dropdown`
+  inside a similarly cramped layout — *0.5h*
+- ⬜ **Next up:** buying a package **inline from the booking form** (`/bookings/[slug]`) when the
+  client has no active package with that coach, instead of the current dead-end message. Discussed
+  and agreed: reuse the existing `?/buy` action as a second, independent form action on the same
+  page (not merged into `?/request`) — type/package/date/startsAt are already URL-driven, so after
+  a successful buy the page just re-renders with the new package selectable and nothing about the
+  in-progress booking selection is lost. `use:enhance` on both forms.
+- `?/buy` creates a Stripe Checkout Session for the package total instead of inserting the purchase
+  directly (metadata: client + package id), writes an `invoice` row (`status: pending`,
+  `stripe_checkout_session_id`), and redirects to Stripe's hosted checkout — *2h*
 - Webhook (`src/routes/webhooks/stripe/+server.ts`): verifies the Stripe signature, handles
-  `checkout.session.completed` — creates the `package_purchase` (snapshotting `sessionsGranted`,
-  `sessionLengthMin`, `expiresAt`), writes the `+N` `purchase` ledger entry, flips the invoice to
-  `paid`. A failed/expired session flips the invoice to a failed state instead — *2.5h*
-- `BuyPackageModal`: review (package, total) → redirect to Stripe (no upload step); on return,
-  `/packages` reads a `?purchase=success|cancelled` query param and shows the right banner while
-  the webhook (usually seconds) lands — *1.5h*
-- `/packages`: "your packages" (re-use package carousel from dashboard page, add support expandable
-  `session_ledger_entry` log per slide) · "processing" (pending purchase-invoices, webhook in flight) ·
-  "get more sessions" — one card per coach, showing packages from the ≤3 coaches the client
-  engaged with most recently, full browsing stays on `/bookings` — *2h*
+  `checkout.session.completed` — creates the `package_purchase` the same way `purchasePackage`
+  does today (snapshotting `sessionsGranted`, `sessionLengthMin`, `expiresAt`), writes the `+N`
+  `purchase` ledger entry, flips the invoice to `paid`. A failed/expired session flips the invoice
+  to a failed state instead — *2.5h*
 - `/packages` enforces `MAX_ACTIVE_PACKAGES = 5` (hardcoded until Phase 9): held = active
   purchases + pending purchase-invoices; `?/buy` rejects at the cap and the buy buttons disable
-  with a reason — *0.5h*
+  with a reason. **Not yet enforced** — today's stub `?/buy` has no cap check at all — *0.5h*
 - **Under consideration, not decided:** disallowing more than *one* active package **per coach**
   at a time (separate from the global 5-package cap above). Nothing in the schema or Phase 3's
   booking form currently prevents a client holding two simultaneous active purchases with the same
@@ -313,17 +348,19 @@ State machine: [`BOOKING-LIFECYCLE.md`](BOOKING-LIFECYCLE.md).
 
 **Done:** Phases 0, 1, 2. **Phase 3 mostly done:** the coach directory, the bookings list, the
 coach profile panel, real availability, the timezone/screening gates, and the booking form + its
-`?/request` action are all built and verified end-to-end against real data. **Phase 4 partially done:**
-packages page has been enabled with an active packages count badge in the nav; active packages and recent activity widgets
-are visible.
+`?/request` action are all built and verified end-to-end against real data. **Phase 4 mostly done
+except Stripe itself:** browsing packages (suggested + full coach directory), buying one
+(`/packages/[slug]`'s `?/buy`), and the per-package activity log are all real and verified against
+real data — the money side (Stripe Checkout, the webhook, `/payments`, `/activity`, the 5-package
+cap) is still stubbed or unbuilt.
 
 **What's left in Phase 3:** opening the coach profile inline (shallow routing) instead of only as
 a full page; the coach directory's "next free" line and `soonest`/`most open slots` sort (the
 single-coach availability function they'd need already exists, just not wired to them).
 
-**What's left in Phase 4:** placeholder panels for suggested packages for purchase and the coach directory 
-(the packages version, not session) are visible and need to replaced with actual implementations. This will
-involve one of the critical flows of the app; the Stripe checkout flow.
+**What's left in Phase 4:** buying a package inline from the booking form (agreed approach, not yet
+built — see the Phase 4 bullet); real Stripe Checkout + webhook in place of the direct-insert
+`?/buy` stub; `MAX_ACTIVE_PACKAGES` enforcement; `/payments` and `/activity`.
 
 **Next on the critical path:** Phase 8 (trainer portal) is the real unblock now — every
 `pending_approval` booking the form can now create sits idle with no one to approve it until a
@@ -335,6 +372,11 @@ Phases 2 → 5 build the client booking loop (dashboard, timezones, coach direct
 Stripe checkout, bookings management). Phase 8 (trainer portal) is the first hard unblock after
 that — until it lands, `pending_approval` bookings sit idle with no one to approve them. Phases
 6, 7, 9, 10 otherwise proceed in roughly the listed order.
+
+**Immediate next session:** the inline "buy a package from the booking form" feature described in
+Phase 4 — a second `?/buy` form action on `/bookings/[slug]`, reusing `getCoachPackages` +
+`purchasePackage`, shown in place of today's dead-end "get a package to book" message when the
+client has no active package with that coach.
 
 ## Total estimated effort
 
