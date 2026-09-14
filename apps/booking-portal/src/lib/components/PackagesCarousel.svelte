@@ -7,6 +7,15 @@
     // TODO: Set showPackageActivity to true for /packages page, then show dropdown in package slide for each package.
     let { activePackages, zone, showPackageActivity = false }: { activePackages: ActivePackage[]; zone: string; showPackageActivity?: boolean } = $props();
     let packageSlides: PackageSlide[] = $derived(getPackageSlides(activePackages));
+
+    // The href gives no-JS/accessible fallback behavior, but the browser's
+    // native fragment-jump scrolls the whole page (any scrollable ancestor)
+    // to the target, not just this horizontally-scrolling carousel — hence
+    // the preventDefault + manually scoped scrollIntoView.
+    const scrollToSlide = (e: MouseEvent, slideId: string) => {
+        e.preventDefault();
+        document.getElementById(slideId)?.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'start' });
+    };
 </script>
 
 <div class="bg-neutral text-neutral-content flex flex-col gap-4 rounded-2xl p-5">
@@ -36,10 +45,18 @@
 						<span>expires {formatFullDate(pkg.expiresAt, zone)}</span>
 						{#if packageSlides.length > 1}
 							<span class="flex gap-1">
-								<a href="#{pkg.prevId}" class="btn btn-circle btn-xs btn-ghost">
+								<a
+									href="#{pkg.prevId}"
+									class="btn btn-circle btn-xs btn-ghost"
+									onclick={(e) => scrollToSlide(e, pkg.prevId)}
+								>
 									<ChevronLeftIcon className="h-3 w-3" />
 								</a>
-								<a href="#{pkg.nextId}" class="btn btn-circle btn-xs btn-ghost">
+								<a
+									href="#{pkg.nextId}"
+									class="btn btn-circle btn-xs btn-ghost"
+									onclick={(e) => scrollToSlide(e, pkg.nextId)}
+								>
 									<ChevronRightIcon className="h-3 w-3" />
 								</a>
 							</span>
