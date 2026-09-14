@@ -196,6 +196,33 @@ export type RecentActivity = Awaited<
   ReturnType<typeof getClientRecentActivity>
 >;
 
+/** Every session-ledger entry for a given set of purchases, tagged with
+ * `purchaseId` and uncapped — unlike `getClientRecentActivity`'s
+ * cross-purchase "last 5" feed, this backs `/packages`' per-package activity
+ * dropdown, which needs a specific purchase's full history. Scope
+ * `purchaseIds` to what's actually rendered (e.g. `getClientActivePackages`'
+ * result) rather than every purchase the client's ever made. */
+export const getPurchaseLedgerEntries = async (purchaseIds: string[]) => {
+  if (purchaseIds.length === 0) return [];
+
+  return db
+    .select({
+      id: sessionLedgerEntry.id,
+      purchaseId: sessionLedgerEntry.purchaseId,
+      delta: sessionLedgerEntry.delta,
+      reason: sessionLedgerEntry.reason,
+      description: sessionLedgerEntry.description,
+      createdAt: sessionLedgerEntry.createdAt,
+    })
+    .from(sessionLedgerEntry)
+    .where(inArray(sessionLedgerEntry.purchaseId, purchaseIds))
+    .orderBy(desc(sessionLedgerEntry.createdAt));
+};
+
+export type PurchaseLedgerEntries = Awaited<
+  ReturnType<typeof getPurchaseLedgerEntries>
+>;
+
 /** Total completed sessions for a client, plus the date of the earliest one
  * — the dashboard's "sessions done · since X" stat card. */
 export const getClientCompletedSessionStats = async (clientId: string) => {

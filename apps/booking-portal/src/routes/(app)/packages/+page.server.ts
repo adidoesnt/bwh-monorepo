@@ -4,6 +4,7 @@ import {
   getClientActivePackages,
   getClientRecentActivity,
   getCoachDirectoryPage,
+  getPurchaseLedgerEntries,
   getSuggestedPackages,
   parseCoachDirectoryParams,
 } from "$lib/server/queries";
@@ -15,23 +16,23 @@ const getClientData = async (
   clientZone: string | null,
   url: URL,
 ) => {
-  const [
-    activePackages,
-    recentActivity,
-    suggestedPackages,
-    coachDirectoryPage,
-    coachTags,
-  ] = await Promise.all([
-    getClientActivePackages(clientId),
-    getClientRecentActivity(clientId),
-    getSuggestedPackages(clientId, clientZone, NUM_SUGGESTED_PACKAGES),
-    getCoachDirectoryPage(parseCoachDirectoryParams(url)),
-    getAllCoachTags(),
-  ]);
+  // Ledger entries are scoped to the active purchases actually rendered, so
+  // this has to wait on activePackages rather than joining the Promise.all below.
+  const activePackages = await getClientActivePackages(clientId);
+
+  const [recentActivity, purchaseLedgerEntries, suggestedPackages, coachDirectoryPage, coachTags] =
+    await Promise.all([
+      getClientRecentActivity(clientId),
+      getPurchaseLedgerEntries(activePackages.map((p) => p.purchaseId)),
+      getSuggestedPackages(clientId, clientZone, NUM_SUGGESTED_PACKAGES),
+      getCoachDirectoryPage(parseCoachDirectoryParams(url)),
+      getAllCoachTags(),
+    ]);
 
   return {
     activePackages,
     recentActivity,
+    purchaseLedgerEntries,
     suggestedPackages,
     coachDirectoryPage,
     coachTags,
@@ -41,6 +42,7 @@ const getClientData = async (
 const EMPTY_PACKAGES_DATA = {
   activePackages: [],
   recentActivity: [],
+  purchaseLedgerEntries: [],
   suggestedPackages: [],
   coachDirectoryPage: { coaches: [], totalCount: 0 },
   coachTags: [] as string[],

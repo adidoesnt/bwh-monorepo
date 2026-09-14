@@ -213,7 +213,12 @@
 
 	{#if clientView}
 		<div class="grid grid-cols-1 gap-6 lg:grid-cols-2">
-			<PackagesCarousel activePackages={data.activePackages} {zone} />
+			<PackagesCarousel
+				activePackages={data.activePackages}
+				{zone}
+				showPackageActivity
+				purchaseLedgerEntries={data.purchaseLedgerEntries}
+			/>
 			<RecentActivity recentActivity={data.recentActivity} />
 		</div>
 
