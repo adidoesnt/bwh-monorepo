@@ -1,0 +1,45 @@
+import { error, fail, redirect } from "@sveltejs/kit";
+import {
+  getClientActivePackages,
+  getCoachBySlug,
+  getCoachPackageById,
+  getCoachPackages,
+  purchasePackage,
+} from "$lib/server/queries";
+import type { Actions, PageServerLoad } from "./$types";
+
+export const load: PageServerLoad = async ({ params, locals }) => {
+  const coach = await getCoachBySlug(params.slug);
+  if (!coach) error(404, "coach not found");
+
+  const [packages, activePackages] = await Promise.all([
+    getCoachPackages(coach.id),
+    locals.user
+      ? getClientActivePackages(locals.user.id, coach.id)
+      : Promise.resolve([]),
+  ]);
+
+  return { coach, packages, activePackages };
+};
+
+export const actions: Actions = {
+  buy: async ({ params, request, locals }) => {
+    if (!locals.user || locals.user.role !== "client") {
+      return fail(403, { message: "not allowed" });
+    }
+
+    const coach = await getCoachBySlug(params.slug);
+    if (!coach) error(404, "coach not found");
+
+    const formData = await request.formData();
+    const packageId = formData.get("packageId")?.toString();
+    if (!packageId) return fail(400, { message: "pick a package first" });
+
+    const pkg = await getCoachPackageById(coach.id, packageId);
+    if (!pkg) return fail(400, { message: "that package isn't available anymore" });
+
+    await purchasePackage({ clientId: locals.user.id, pkg });
+
+    redirect(303, "/packages?bought=1");
+  },
+};

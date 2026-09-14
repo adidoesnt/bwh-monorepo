@@ -633,6 +633,206 @@ export const getCoachPackages = async (coachId: string) => {
     .orderBy(asc(packageOffering.pricePerSessionCents));
 };
 
+/** One of a coach's active packages by id, or `null` if it doesn't exist /
+ * isn't active / belongs to a different coach — used to revalidate a
+ * `?/buy` request against the coach page it came from. */
+export const getCoachPackageById = async (coachId: string, packageId: string) => {
+  const [row] = await db
+    .select({
+      id: packageOffering.id,
+      name: packageOffering.name,
+      sessionCount: packageOffering.sessionCount,
+      sessionLengthMin: packageOffering.sessionLengthMin,
+      pricePerSessionCents: packageOffering.pricePerSessionCents,
+      validityDays: packageOffering.validityDays,
+    })
+    .from(packageOffering)
+    .where(
+      and(
+        eq(packageOffering.id, packageId),
+        eq(packageOffering.coachId, coachId),
+        eq(packageOffering.active, true),
+      ),
+    )
+    .limit(1);
+
+  return row ?? null;
+};
+
+export type SuggestedPackage = Awaited<
+  ReturnType<typeof getSuggestedPackages>
+>[number];
+
+/** Up to `limit` packages to suggest buying, for `/packages`'s "purchase a
+ * package" panel. If the client has any booking/purchase history, suggests
+ * one package (the cheapest active one) per distinct coach they've most
+ * recently been active with. A brand-new client with no history instead
+ * gets the platform's most-purchased active packages, preferring the
+ * client's own timezone as a tiebreaker when it's known. Location isn't
+ * factored in — clients don't have a stored location to match against. */
+export const getSuggestedPackages = async (
+  clientId: string,
+  clientZone: string | null,
+  limit = 3,
+) => {
+  const [bookingActivity, purchaseActivity] = await Promise.all([
+    db
+      .select({
+        coachId: booking.coachId,
+        lastActivity: sql<Date>`max(${booking.createdAt})`.mapWith(
+          (v) => new Date(v),
+        ),
+      })
+      .from(booking)
+      .where(eq(booking.clientId, clientId))
+      .groupBy(booking.coachId),
+    db
+      .select({
+        coachId: packageOffering.coachId,
+        lastActivity: sql<Date>`max(${packagePurchase.purchasedAt})`.mapWith(
+          (v) => new Date(v),
+        ),
+      })
+      .from(packagePurchase)
+      .innerJoin(
+        packageOffering,
+        eq(packagePurchase.packageId, packageOffering.id),
+      )
+      .where(eq(packagePurchase.clientId, clientId))
+      .groupBy(packageOffering.coachId),
+  ]);
+
+  const lastActivityByCoachId = new Map<string, Date>();
+  for (const { coachId, lastActivity } of [
+    ...bookingActivity,
+    ...purchaseActivity,
+  ]) {
+    const existing = lastActivityByCoachId.get(coachId);
+    if (!existing || lastActivity > existing) {
+      lastActivityByCoachId.set(coachId, lastActivity);
+    }
+  }
+
+  const recentCoachIds = [...lastActivityByCoachId.entries()]
+    .sort(([, a], [, b]) => b.getTime() - a.getTime())
+    .slice(0, limit)
+    .map(([coachId]) => coachId);
+
+  const packageColumns = {
+    packageId: packageOffering.id,
+    coachId: coachProfile.id,
+    coachSlug: coachProfile.slug,
+    coachName: user.name,
+    name: packageOffering.name,
+    description: packageOffering.description,
+    sessionCount: packageOffering.sessionCount,
+    sessionLengthMin: packageOffering.sessionLengthMin,
+    pricePerSessionCents: packageOffering.pricePerSessionCents,
+    validityDays: packageOffering.validityDays,
+  };
+
+  if (recentCoachIds.length > 0) {
+    const rows = await db
+      .select(packageColumns)
+      .from(packageOffering)
+      .innerJoin(coachProfile, eq(packageOffering.coachId, coachProfile.id))
+      .innerJoin(user, eq(coachProfile.userId, user.id))
+      .where(
+        and(
+          inArray(packageOffering.coachId, recentCoachIds),
+          eq(packageOffering.active, true),
+        ),
+      )
+      .orderBy(asc(packageOffering.pricePerSessionCents));
+
+    const cheapestByCoachId = new Map<string, (typeof rows)[number]>();
+    for (const row of rows) {
+      if (!cheapestByCoachId.has(row.coachId)) {
+        cheapestByCoachId.set(row.coachId, row);
+      }
+    }
+
+    return recentCoachIds
+      .map((coachId) => cheapestByCoachId.get(coachId))
+      .filter((row): row is (typeof rows)[number] => row !== undefined)
+      .map((row) => ({ ...row, reason: "recent" as const }));
+  }
+
+  const purchaseCounts = db
+    .select({
+      packageId: packagePurchase.packageId,
+      totalSessionsSold: sql<number>`sum(${packagePurchase.sessionsGranted})`
+        .mapWith(Number)
+        .as("total_sessions_sold"),
+    })
+    .from(packagePurchase)
+    .groupBy(packagePurchase.packageId)
+    .as("purchase_counts");
+
+  const popularity = sql`coalesce(${purchaseCounts.totalSessionsSold}, 0)`;
+
+  const popularRows = await db
+    .select(packageColumns)
+    .from(packageOffering)
+    .innerJoin(coachProfile, eq(packageOffering.coachId, coachProfile.id))
+    .innerJoin(user, eq(coachProfile.userId, user.id))
+    .leftJoin(purchaseCounts, eq(purchaseCounts.packageId, packageOffering.id))
+    .where(eq(packageOffering.active, true))
+    .orderBy(
+      desc(sql`${coachProfile.timezone} = ${clientZone ?? ""}`),
+      desc(popularity),
+      asc(packageOffering.pricePerSessionCents),
+    )
+    .limit(limit);
+
+  return popularRows.map((row) => ({ ...row, reason: "popular" as const }));
+};
+
+/** Buys a package: creates the purchase (snapshotting price/length/expiry
+ * off the offering) and immediately grants its sessions via a `purchase`
+ * ledger entry. No payment processor is wired up yet (see ROADMAP.md
+ * Phase 4) — sessions land as soon as the purchase row does. */
+export const purchasePackage = async (values: {
+  clientId: string;
+  pkg: {
+    id: string;
+    name: string;
+    sessionCount: number;
+    sessionLengthMin: number;
+    pricePerSessionCents: number;
+    validityDays: number;
+  };
+}) => {
+  const { clientId, pkg } = values;
+  const purchasedAt = new Date();
+  const expiresAt = new Date(
+    purchasedAt.getTime() + pkg.validityDays * 86_400_000,
+  );
+
+  const [purchase] = await db
+    .insert(packagePurchase)
+    .values({
+      clientId,
+      packageId: pkg.id,
+      purchasedAt,
+      pricePaidCents: pkg.sessionCount * pkg.pricePerSessionCents,
+      sessionsGranted: pkg.sessionCount,
+      sessionLengthMin: pkg.sessionLengthMin,
+      expiresAt,
+    })
+    .returning({ id: packagePurchase.id });
+
+  await db.insert(sessionLedgerEntry).values({
+    clientId,
+    purchaseId: purchase.id,
+    delta: pkg.sessionCount,
+    reason: "purchase",
+    description: `purchased ${pkg.name}`,
+  });
+
+  return purchase;
+};
+
 /** A coach's distinct weekly windows, deduplicated across weekdays — the
  * profile page's "open hours" summary chips, not tied to any specific date. */
 export const getCoachOpenHours = async (coachId: string) => {
