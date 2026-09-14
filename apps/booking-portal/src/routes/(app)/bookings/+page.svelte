@@ -2,7 +2,8 @@
 	import { goto } from '$app/navigation';
 	import { page } from '$app/state';
 	import { untrack } from 'svelte';
-	import { ChevronsDownIcon, CircleCheckIcon } from '@repo/ui';
+	import { DropdownControl, Pager } from '$lib/components';
+	import { PAGE_SIZE_OPTIONS, SORT_OPTIONS } from '$lib/utils/coachDirectory';
 	import {
 		dayNumber,
 		formatPriceCents,
@@ -12,8 +13,9 @@
 		statusLabel,
 		viewerZone
 	} from '$lib/utils/format';
+	import { totalPages } from '$lib/utils/pagination';
 	import type { PageProps } from './$types';
-	import { BUCKET_TABS, PAGE_SIZE_OPTIONS, SORT_OPTIONS, bucketCount, isClient, totalPages } from './bookings';
+	import { BUCKET_TABS, bucketCount, isClient } from './bookings';
 
 	let { data }: PageProps = $props();
 
@@ -80,72 +82,7 @@
 	const setBucket = (bucket: string) =>
 		updateUrl({ tab: bucket === 'upcoming' ? null : bucket, bookingsPage: null });
 	const setBookingsPage = (n: number) => updateUrl({ bookingsPage: n === 1 ? null : String(n) });
-
-	const closeDropdown = (e: Event) => (e.currentTarget as HTMLElement).blur();
 </script>
-
-{#snippet dropdownControl(
-	options: { value: string; label: string }[],
-	current: string,
-	onSelect: (value: string) => void
-)}
-	<div class="dropdown">
-		<div
-			tabindex="0"
-			role="button"
-			class="btn btn-sm border-base-300 bg-base-100 rounded-field flex items-center gap-1.5 font-normal"
-		>
-			{options.find((o) => o.value === current)?.label ?? current}
-			<ChevronsDownIcon className="h-3 w-3" />
-		</div>
-		<ul
-			tabindex="0"
-			role="menu"
-			class="dropdown-content menu bg-base-100 border-base-300 z-10 mt-1 w-36 rounded-xl border p-2 shadow-sm"
-		>
-			{#each options as opt (opt.value)}
-				<li role="none">
-					<button
-						type="button"
-						role="menuitem"
-						class="flex items-center gap-2"
-						onclick={(e) => {
-							onSelect(opt.value);
-							closeDropdown(e);
-						}}
-					>
-						{#if opt.value === current}
-							<CircleCheckIcon className="h-3 w-3" />
-						{/if}
-						{opt.label}
-					</button>
-				</li>
-			{/each}
-		</ul>
-	</div>
-{/snippet}
-
-{#snippet pager(current: number, total: number, onChange: (n: number) => void)}
-	<div class="flex items-center justify-center gap-3 pt-1 text-sm">
-		<button
-			type="button"
-			class="btn btn-ghost btn-xs"
-			disabled={current <= 1}
-			onclick={() => onChange(current - 1)}
-		>
-			prev
-		</button>
-		<span class="text-base-content/60">page {current} of {total}</span>
-		<button
-			type="button"
-			class="btn btn-ghost btn-xs"
-			disabled={current >= total}
-			onclick={() => onChange(current + 1)}
-		>
-			next
-		</button>
-	</div>
-{/snippet}
 
 {#snippet sessionsWidget()}
 	<div class="bg-base-100 border-base-300 flex flex-col gap-4 rounded-2xl border p-5">
@@ -208,7 +145,7 @@
 			</div>
 
 			{#if bookingsTotalPages > 1}
-				{@render pager(bookingsPageNum, bookingsTotalPages, setBookingsPage)}
+				<Pager current={bookingsPageNum} total={bookingsTotalPages} onChange={setBookingsPage} />
 			{/if}
 		{/if}
 	</div>
@@ -261,11 +198,15 @@
 			<div class="flex items-center gap-3">
 				<span class="text-base-content/60 flex items-center gap-1.5 text-sm">
 					sort
-					{@render dropdownControl(SORT_OPTIONS, sort, setSort)}
+					<DropdownControl options={SORT_OPTIONS} current={sort} onSelect={setSort} />
 				</span>
 				<span class="text-base-content/60 flex items-center gap-1.5 text-sm">
 					show
-					{@render dropdownControl(PAGE_SIZE_OPTIONS, String(pageSize), (v) => setPageSize(Number(v)))}
+					<DropdownControl
+						options={PAGE_SIZE_OPTIONS}
+						current={String(pageSize)}
+						onSelect={(v) => setPageSize(Number(v))}
+					/>
 				</span>
 			</div>
 		</div>
@@ -301,7 +242,7 @@
 			</div>
 
 			{#if directoryTotalPages > 1}
-				{@render pager(directoryPage, directoryTotalPages, setDirectoryPage)}
+				<Pager current={directoryPage} total={directoryTotalPages} onChange={setDirectoryPage} />
 			{/if}
 		{/if}
 	</div>

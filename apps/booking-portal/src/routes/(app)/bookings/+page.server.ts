@@ -4,30 +4,11 @@ import {
   getClientBookingBucketCounts,
   getClientBookingsPage,
   getCoachDirectoryPage,
+  parseCoachDirectoryParams,
   type BookingBucket,
-  type CoachDirectoryParams,
-  type CoachDirectorySort,
 } from "$lib/server/queries";
 
-const COACH_DIRECTORY_SORTS: CoachDirectorySort[] = ["name", "price"];
 const BOOKING_BUCKETS: BookingBucket[] = ["upcoming", "awaiting_action", "past"];
-
-const parseCoachDirectoryParams = (url: URL): CoachDirectoryParams => {
-  const sort = url.searchParams.get("sort");
-  const page = Number(url.searchParams.get("page"));
-  const pageSize = Number(url.searchParams.get("pageSize"));
-  const tags = url.searchParams.get("tags");
-
-  return {
-    search: url.searchParams.get("q") ?? undefined,
-    tags: tags ? tags.split(",").filter(Boolean) : undefined,
-    sort: COACH_DIRECTORY_SORTS.includes(sort as CoachDirectorySort)
-      ? (sort as CoachDirectorySort)
-      : undefined,
-    page: Number.isInteger(page) && page > 0 ? page : undefined,
-    pageSize: Number.isInteger(pageSize) && pageSize > 0 ? pageSize : undefined,
-  };
-};
 
 const parseBookingBucket = (url: URL): BookingBucket => {
   const tab = url.searchParams.get("tab");

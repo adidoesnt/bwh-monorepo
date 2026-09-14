@@ -437,6 +437,28 @@ export const getCoachDirectoryPage = async ({
   };
 };
 
+const COACH_DIRECTORY_SORTS: CoachDirectorySort[] = ["name", "price"];
+
+/** Parses `?q=&tags=&sort=&page=&pageSize=` into `getCoachDirectoryPage`'s
+ * params — shared by `/bookings` and `/packages`, which both browse the same
+ * coach directory. */
+export const parseCoachDirectoryParams = (url: URL): CoachDirectoryParams => {
+  const sort = url.searchParams.get("sort");
+  const page = Number(url.searchParams.get("page"));
+  const pageSize = Number(url.searchParams.get("pageSize"));
+  const tags = url.searchParams.get("tags");
+
+  return {
+    search: url.searchParams.get("q") ?? undefined,
+    tags: tags ? tags.split(",").filter(Boolean) : undefined,
+    sort: COACH_DIRECTORY_SORTS.includes(sort as CoachDirectorySort)
+      ? (sort as CoachDirectorySort)
+      : undefined,
+    page: Number.isInteger(page) && page > 0 ? page : undefined,
+    pageSize: Number.isInteger(pageSize) && pageSize > 0 ? pageSize : undefined,
+  };
+};
+
 /** Every distinct tag across active coaches, for the directory's filter chips. */
 export const getAllCoachTags = async () => {
   const rows = await db

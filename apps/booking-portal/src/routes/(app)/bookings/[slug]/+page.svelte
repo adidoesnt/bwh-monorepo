@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { goto } from '$app/navigation';
 	import { page } from '$app/state';
+	import { CoachHeader } from '$lib/components';
 	import { ChevronLeftIcon, ChevronRightIcon } from '@repo/ui';
 	import {
 		dayNumber,
@@ -87,27 +88,6 @@
 		if (firstDayInMonth) setDate(firstDayInMonth);
 	};
 </script>
-
-{#snippet coachHeader()}
-	<div class="bg-neutral text-neutral-content flex flex-col gap-4 rounded-2xl p-6">
-		<div class="flex items-center gap-4">
-			<div
-				class="bg-base-100/10 text-neutral-content grid h-16 w-16 shrink-0 place-items-center rounded-full font-headings text-2xl"
-			>
-				{data.coach.name[0]}
-			</div>
-			<div class="min-w-0">
-				<h1 class="font-headings text-3xl">{data.coach.name.split(' ')[0]}</h1>
-				<p class="text-neutral-content/70">{data.coach.tagline}</p>
-			</div>
-		</div>
-		<div class="flex flex-wrap gap-2">
-			{#each data.coach.tags as tag (tag)}
-				<span class="badge badge-sm bg-base-100/10 text-neutral-content border-none font-body">{tag}</span>
-			{/each}
-		</div>
-	</div>
-{/snippet}
 
 {#snippet rateAndLocationCards()}
 	<div class="grid grid-cols-2 gap-4">
@@ -374,7 +354,7 @@
 		</a>
 
 		{#if clientView}
-			{@render coachHeader()}
+			<CoachHeader name={data.coach.name} tagline={data.coach.tagline} tags={data.coach.tags} />
 			{@render rateAndLocationCards()}
 
 			<p class="text-base-content/80">{data.coach.bio}</p>
