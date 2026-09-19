@@ -33,7 +33,7 @@
 		{:else}
 			<div class="flex flex-col gap-2">
 				{#each data.upcomingBookings as b (b.id)}
-					<div class="bg-base-200 flex items-center gap-3 rounded-field p-3">
+					<div class="bg-base-200 border border-base-300 flex items-center gap-3 rounded-field p-3">
 						<div
 							class="bg-base-300 flex w-12 flex-col items-center rounded-field py-1.5 text-center leading-tight"
 						>
