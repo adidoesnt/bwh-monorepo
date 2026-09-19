@@ -1,7 +1,7 @@
-import { fail, isHttpError, isRedirect } from "@sveltejs/kit";
 import { sql } from "drizzle-orm";
 import { MAX_ACTIVE_PACKAGES } from "./config";
 import { db } from "./db";
+import { actionFailure } from "./errors";
 import {
   getClientActivePackageCount,
   purchasePackage,
@@ -40,15 +40,6 @@ export const buyPackage = (
     return { ok: true as const, purchase };
   });
 
-/** For a `?/buy` action's `catch`: turns an unexpected failure (DB down, a
- * failed insert, …) into a `fail(500)` so the client stays on the page with
- * their selection instead of landing on SvelteKit's bare error page.
- * `redirect()` and `error()` work by throwing, so those are rethrown. */
-export const purchaseFailure = (err: unknown) => {
-  if (isRedirect(err) || isHttpError(err)) throw err;
-
-  console.error("package purchase failed", err);
-  return fail(500, {
-    message: "we couldn't complete your purchase — please try again",
-  });
-};
+/** For a `?/buy` action's `catch` — see `actionFailure`. */
+export const purchaseFailure = (err: unknown) =>
+  actionFailure(err, "we couldn't complete your purchase — please try again");
