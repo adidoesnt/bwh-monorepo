@@ -1,6 +1,8 @@
 <script lang="ts">
 	import { enhance } from '$app/forms';
+	import type { SubmitFunction } from '@sveltejs/kit';
 	import { CoachHeader } from '$lib/components';
+	import { NETWORK_ERROR_MESSAGE, isNetworkFailure } from '$lib/utils/forms';
 	import { formatPriceCents } from '$lib/utils/format';
 	import { ChevronLeftIcon } from '@repo/ui';
 	import type { PageProps } from './$types';
@@ -8,6 +10,24 @@
 	let { data, form }: PageProps = $props();
 
 	const clientView = $derived(data.user.role === 'client');
+
+	// One buy form per package card: a shared pending/network state stops a
+	// second card being bought while the first is in flight.
+	let buying = $state(false);
+	let networkError = $state(false);
+	const enhanceBuy: SubmitFunction = () => {
+		buying = true;
+		networkError = false;
+		return async ({ result, update }) => {
+			if (isNetworkFailure(result)) {
+				buying = false;
+				networkError = true;
+				return;
+			}
+			await update();
+			buying = false;
+		};
+	};
 	const existingBalance = $derived(data.activePackages.reduce((sum, pkg) => sum + pkg.bookable, 0));
 </script>
 
@@ -28,10 +48,10 @@
 			</span>
 			<span class="text-base-content/50 text-xs">{formatPriceCents(pkg.pricePerSessionCents)} / session</span>
 		</div>
-		<form method="POST" action="?/buy" use:enhance>
+		<form method="POST" action="?/buy" use:enhance={enhanceBuy}>
 			<input type="hidden" name="packageId" value={pkg.id} />
-			<button type="submit" class="btn btn-accent w-full" disabled={!!data.purchaseBlockReason}>
-				buy this package
+			<button type="submit" class="btn btn-accent w-full" disabled={buying || !!data.purchaseBlockReason}>
+				{buying ? 'buying…' : 'buy this package'}
 			</button>
 		</form>
 	</div>
@@ -64,6 +84,9 @@
 
 			{#if form?.message}
 				<p class="text-error text-sm">{form.message}</p>
+			{/if}
+			{#if networkError}
+				<p class="text-error text-sm">{NETWORK_ERROR_MESSAGE}</p>
 			{/if}
 
 			{#if data.packages.length === 0}

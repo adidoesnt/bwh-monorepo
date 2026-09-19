@@ -2,6 +2,7 @@
 	import { goto } from '$app/navigation';
 	import { enhance } from '$app/forms';
 	import type { SubmitFunction } from '@sveltejs/kit';
+	import { NETWORK_ERROR_MESSAGE, isNetworkFailure } from '$lib/utils/forms';
 	import { page } from '$app/state';
 	import { CoachHeader } from '$lib/components';
 	import { ChevronLeftIcon, ChevronRightIcon } from '@repo/ui';
@@ -42,21 +43,53 @@
 
 	let selectedOfferingId = $state<string | null>(null);
 	let buying = $state(false);
+	let buyNetworkError = $state(false);
 	const enhanceBuy: SubmitFunction = () => {
 		buying = true;
-		return async ({ update }) => {
+		buyNetworkError = false;
+		return async ({ result, update }) => {
+			if (isNetworkFailure(result)) {
+				buying = false;
+				buyNetworkError = true;
+				return;
+			}
 			await update();
 			buying = false;
+		};
+	};
+
+	let requesting = $state(false);
+	let requestNetworkError = $state(false);
+	const enhanceRequest: SubmitFunction = () => {
+		requesting = true;
+		requestNetworkError = false;
+		return async ({ result, update }) => {
+			if (isNetworkFailure(result)) {
+				requesting = false;
+				requestNetworkError = true;
+				return;
+			}
+			await update();
+			requesting = false;
 		};
 	};
 	const priceCents = $derived(cheapestPackagePriceCents(data.packages));
 	const shareUrl = $derived(data.shareUrl);
 
 	let copied = $state(false);
+	let copyFailed = $state(false);
 	const copyLink = async () => {
-		await navigator.clipboard.writeText(shareUrl);
-		copied = true;
-		setTimeout(() => (copied = false), 1500);
+		try {
+			await navigator.clipboard.writeText(shareUrl);
+			copied = true;
+		} catch {
+			// Clipboard access is denied or unavailable (insecure context, permissions).
+			copyFailed = true;
+		}
+		setTimeout(() => {
+			copied = false;
+			copyFailed = false;
+		}, 1500);
 	};
 
 	const dateOptions = $derived(enumerateDateRange(data.today, data.rangeEnd, data.coach.timezone));
@@ -127,7 +160,7 @@
 			class="btn btn-sm border-base-300 bg-base-100 text-base-content/60 shrink-0 font-normal"
 			onclick={copyLink}
 		>
-			{copied ? 'copied' : 'copy link'}
+			{copied ? 'copied' : copyFailed ? "couldn't copy" : 'copy link'}
 		</button>
 	</div>
 {/snippet}
@@ -221,6 +254,9 @@
 										<input type="hidden" name="packageId" value={pkg.id} />
 										{#if form?.message}
 											<p class="text-error mb-2 text-sm">{form.message}</p>
+										{/if}
+										{#if buyNetworkError}
+											<p class="text-error mb-2 text-sm">{NETWORK_ERROR_MESSAGE}</p>
 										{/if}
 										<button
 											type="submit"
@@ -386,7 +422,12 @@
 {/snippet}
 
 {#snippet requestForm()}
-	<form method="POST" action={requestActionUrl} class="flex flex-col gap-6" use:enhance>
+	<form
+		method="POST"
+		action={requestActionUrl}
+		class="flex flex-col gap-6"
+		use:enhance={enhanceRequest}
+	>
 		{@render locationField()}
 
 		<div>
@@ -405,9 +446,12 @@
 		{#if form?.message}
 			<p class="text-error text-sm">{form.message}</p>
 		{/if}
+		{#if requestNetworkError}
+			<p class="text-error text-sm">{NETWORK_ERROR_MESSAGE}</p>
+		{/if}
 
-		<button type="submit" class="btn btn-accent w-full" disabled={!selectedStartsAt}>
-			send request
+		<button type="submit" class="btn btn-accent w-full" disabled={!selectedStartsAt || requesting}>
+			{requesting ? 'sending…' : 'send request'}
 		</button>
 	</form>
 {/snippet}
