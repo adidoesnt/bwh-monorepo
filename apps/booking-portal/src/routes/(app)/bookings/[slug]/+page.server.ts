@@ -6,8 +6,10 @@ import {
   getClientIntakeSubmitted,
   getCoachBySlug,
   getCoachOpenHours,
+  getCoachPackageById,
   getCoachPackages,
   getCoachSlotsForDate,
+  purchasePackage,
 } from "$lib/server/queries";
 import { BOOKING_SHARE_HOST } from "$lib/server/config";
 import { zonedDateParts } from "$lib/utils/availability";
@@ -165,5 +167,28 @@ export const actions: Actions = {
     });
 
     redirect(303, "/bookings?tab=awaiting_action&booked=1");
+  },
+
+  // Buy a package without leaving the booking form. Returns instead of
+  // redirecting so the URL (type/date/startsAt) is untouched and the page's
+  // `load` just reruns, surfacing the new purchase in `activePackages`.
+  // Only `packageId` is trusted from the form, revalidated against this coach.
+  buy: async ({ params, request, locals }) => {
+    if (!locals.user || locals.user.role !== "client") {
+      return fail(403, { message: "not allowed" });
+    }
+
+    const coach = await getCoachBySlug(params.slug);
+    if (!coach) error(404, "coach not found");
+
+    const packageId = (await request.formData()).get("packageId")?.toString();
+    if (!packageId) return fail(400, { message: "pick a package first" });
+
+    const pkg = await getCoachPackageById(coach.id, packageId);
+    if (!pkg) return fail(400, { message: "that package isn't available anymore" });
+
+    await purchasePackage({ clientId: locals.user.id, pkg });
+
+    return { boughtPackage: pkg.name };
   },
 };
