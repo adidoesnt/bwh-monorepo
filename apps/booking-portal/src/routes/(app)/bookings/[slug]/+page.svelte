@@ -188,6 +188,9 @@
 				<p class="text-sm">
 					you need a {data.coach.name.split(' ')[0]} package to book a session. pick one to get started.
 				</p>
+				{#if data.purchaseBlockReason}
+					<p class="text-warning text-sm">{data.purchaseBlockReason}</p>
+				{/if}
 				{#if data.packages.length > 0}
 					<ul class="flex flex-col gap-2">
 						{#each data.packages as pkg (pkg.id)}
@@ -219,7 +222,11 @@
 										{#if form?.message}
 											<p class="text-error mb-2 text-sm">{form.message}</p>
 										{/if}
-										<button type="submit" class="btn btn-accent btn-sm w-full" disabled={buying}>
+										<button
+											type="submit"
+											class="btn btn-accent btn-sm w-full"
+											disabled={buying || !!data.purchaseBlockReason}
+										>
 											{buying ? 'buying…' : 'buy this package'}
 										</button>
 									</form>

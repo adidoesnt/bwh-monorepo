@@ -30,7 +30,9 @@
 		</div>
 		<form method="POST" action="?/buy" use:enhance>
 			<input type="hidden" name="packageId" value={pkg.id} />
-			<button type="submit" class="btn btn-accent w-full">buy this package</button>
+			<button type="submit" class="btn btn-accent w-full" disabled={!!data.purchaseBlockReason}>
+				buy this package
+			</button>
 		</form>
 	</div>
 {/snippet}
@@ -54,6 +56,10 @@
 						' '
 					)[0]}.
 				</div>
+			{/if}
+
+			{#if data.purchaseBlockReason}
+				<p class="text-warning text-sm">{data.purchaseBlockReason}</p>
 			{/if}
 
 			{#if form?.message}

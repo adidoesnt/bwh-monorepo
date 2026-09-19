@@ -6,20 +6,22 @@ import {
   getCoachPackages,
   purchasePackage,
 } from "$lib/server/queries";
+import { getPurchaseBlockReason } from "$lib/server/packages";
 import type { Actions, PageServerLoad } from "./$types";
 
 export const load: PageServerLoad = async ({ params, locals }) => {
   const coach = await getCoachBySlug(params.slug);
   if (!coach) error(404, "coach not found");
 
-  const [packages, activePackages] = await Promise.all([
+  const [packages, activePackages, purchaseBlockReason] = await Promise.all([
     getCoachPackages(coach.id),
     locals.user
       ? getClientActivePackages(locals.user.id, coach.id)
       : Promise.resolve([]),
+    locals.user ? getPurchaseBlockReason(locals.user.id) : Promise.resolve(null),
   ]);
 
-  return { coach, packages, activePackages };
+  return { coach, packages, activePackages, purchaseBlockReason };
 };
 
 export const actions: Actions = {
@@ -37,6 +39,9 @@ export const actions: Actions = {
 
     const pkg = await getCoachPackageById(coach.id, packageId);
     if (!pkg) return fail(400, { message: "that package isn't available anymore" });
+
+    const blockReason = await getPurchaseBlockReason(locals.user.id);
+    if (blockReason) return fail(409, { message: blockReason });
 
     await purchasePackage({ clientId: locals.user.id, pkg });
 

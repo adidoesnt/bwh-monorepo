@@ -816,6 +816,22 @@ export const getSuggestedPackages = async (
   return popularRows.map((row) => ({ ...row, reason: "popular" as const }));
 };
 
+/** How many non-expired purchases a client holds — same definition of
+ * "active" as `getClientActivePackages`, without its balance/holds work. */
+export const getClientActivePackageCount = async (clientId: string) => {
+  const [row] = await db
+    .select({ count: sql<number>`count(*)`.mapWith(Number) })
+    .from(packagePurchase)
+    .where(
+      and(
+        eq(packagePurchase.clientId, clientId),
+        gt(packagePurchase.expiresAt, new Date()),
+      ),
+    );
+
+  return row.count;
+};
+
 /** Buys a package: creates the purchase (snapshotting price/length/expiry
  * off the offering) and immediately grants its sessions via a `purchase`
  * ledger entry. No payment processor is wired up yet (see ROADMAP.md
