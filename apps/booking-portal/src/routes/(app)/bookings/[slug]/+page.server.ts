@@ -9,10 +9,9 @@ import {
   getCoachPackageById,
   getCoachPackages,
   getCoachSlotsForDate,
-  purchasePackage,
 } from "$lib/server/queries";
 import { BOOKING_SHARE_HOST } from "$lib/server/config";
-import { getPurchaseBlockReason } from "$lib/server/packages";
+import { buyPackage, getPurchaseBlockReason } from "$lib/server/packages";
 import { zonedDateParts } from "$lib/utils/availability";
 import {
   allowedSessionTypes,
@@ -192,10 +191,8 @@ export const actions: Actions = {
     const pkg = await getCoachPackageById(coach.id, packageId);
     if (!pkg) return fail(400, { message: "that package isn't available anymore" });
 
-    const blockReason = await getPurchaseBlockReason(locals.user.id);
-    if (blockReason) return fail(409, { message: blockReason });
-
-    await purchasePackage({ clientId: locals.user.id, pkg });
+    const result = await buyPackage(locals.user.id, pkg);
+    if (!result.ok) return fail(409, { message: result.reason });
 
     return { boughtPackage: pkg.name };
   },

@@ -32,6 +32,11 @@ import {
 } from "$lib/utils/availability";
 import { db } from "./db";
 
+/** The pool or an open transaction — lets a query join a caller's transaction. */
+export type DbExecutor =
+  | typeof db
+  | Parameters<Parameters<typeof db.transaction>[0]>[0];
+
 /* Client Dashboard Queries */
 
 const UPCOMING_BOOKING_STATUSES = ["pending_approval", "confirmed"] as const;
@@ -818,8 +823,11 @@ export const getSuggestedPackages = async (
 
 /** How many non-expired purchases a client holds — same definition of
  * "active" as `getClientActivePackages`, without its balance/holds work. */
-export const getClientActivePackageCount = async (clientId: string) => {
-  const [row] = await db
+export const getClientActivePackageCount = async (
+  clientId: string,
+  executor: DbExecutor = db,
+) => {
+  const [row] = await executor
     .select({ count: sql<number>`count(*)`.mapWith(Number) })
     .from(packagePurchase)
     .where(
@@ -836,45 +844,53 @@ export const getClientActivePackageCount = async (clientId: string) => {
  * off the offering) and immediately grants its sessions via a `purchase`
  * ledger entry. No payment processor is wired up yet (see ROADMAP.md
  * Phase 4) — sessions land as soon as the purchase row does. */
-export const purchasePackage = async (values: {
-  clientId: string;
-  pkg: {
-    id: string;
-    name: string;
-    sessionCount: number;
-    sessionLengthMin: number;
-    pricePerSessionCents: number;
-    validityDays: number;
-  };
-}) => {
+export const purchasePackage = async (
+  values: {
+    clientId: string;
+    pkg: {
+      id: string;
+      name: string;
+      sessionCount: number;
+      sessionLengthMin: number;
+      pricePerSessionCents: number;
+      validityDays: number;
+    };
+  },
+  executor: DbExecutor = db,
+) => {
   const { clientId, pkg } = values;
   const purchasedAt = new Date();
   const expiresAt = new Date(
     purchasedAt.getTime() + pkg.validityDays * 86_400_000,
   );
 
-  const [purchase] = await db
-    .insert(packagePurchase)
-    .values({
+  // One transaction (a savepoint if the caller already opened one) so a
+  // failure between the inserts can't leave a purchase with no `purchase`
+  // ledger entry, i.e. a paid-for package with 0 balance.
+  return executor.transaction(async (tx) => {
+    const [purchase] = await tx
+      .insert(packagePurchase)
+      .values({
+        clientId,
+        packageId: pkg.id,
+        purchasedAt,
+        pricePaidCents: pkg.sessionCount * pkg.pricePerSessionCents,
+        sessionsGranted: pkg.sessionCount,
+        sessionLengthMin: pkg.sessionLengthMin,
+        expiresAt,
+      })
+      .returning({ id: packagePurchase.id });
+
+    await tx.insert(sessionLedgerEntry).values({
       clientId,
-      packageId: pkg.id,
-      purchasedAt,
-      pricePaidCents: pkg.sessionCount * pkg.pricePerSessionCents,
-      sessionsGranted: pkg.sessionCount,
-      sessionLengthMin: pkg.sessionLengthMin,
-      expiresAt,
-    })
-    .returning({ id: packagePurchase.id });
+      purchaseId: purchase.id,
+      delta: pkg.sessionCount,
+      reason: "purchase",
+      description: `purchased ${pkg.name}`,
+    });
 
-  await db.insert(sessionLedgerEntry).values({
-    clientId,
-    purchaseId: purchase.id,
-    delta: pkg.sessionCount,
-    reason: "purchase",
-    description: `purchased ${pkg.name}`,
+    return purchase;
   });
-
-  return purchase;
 };
 
 /** A coach's distinct weekly windows, deduplicated across weekdays — the

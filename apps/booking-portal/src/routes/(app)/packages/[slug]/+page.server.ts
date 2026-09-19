@@ -4,9 +4,8 @@ import {
   getCoachBySlug,
   getCoachPackageById,
   getCoachPackages,
-  purchasePackage,
 } from "$lib/server/queries";
-import { getPurchaseBlockReason } from "$lib/server/packages";
+import { buyPackage, getPurchaseBlockReason } from "$lib/server/packages";
 import type { Actions, PageServerLoad } from "./$types";
 
 export const load: PageServerLoad = async ({ params, locals }) => {
@@ -40,10 +39,8 @@ export const actions: Actions = {
     const pkg = await getCoachPackageById(coach.id, packageId);
     if (!pkg) return fail(400, { message: "that package isn't available anymore" });
 
-    const blockReason = await getPurchaseBlockReason(locals.user.id);
-    if (blockReason) return fail(409, { message: blockReason });
-
-    await purchasePackage({ clientId: locals.user.id, pkg });
+    const result = await buyPackage(locals.user.id, pkg);
+    if (!result.ok) return fail(409, { message: result.reason });
 
     redirect(303, "/packages?bought=1");
   },
