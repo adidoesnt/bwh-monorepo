@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { goto } from '$app/navigation';
 	import { enhance } from '$app/forms';
+	import type { SubmitFunction } from '@sveltejs/kit';
 	import { page } from '$app/state';
 	import { CoachHeader } from '$lib/components';
 	import { ChevronLeftIcon, ChevronRightIcon } from '@repo/ui';
@@ -35,6 +36,19 @@
 	const requestActionUrl = $derived(
 		`${page.url.pathname}${page.url.search}${page.url.search ? '&' : '?'}/request`
 	);
+	const buyActionUrl = $derived(
+		`${page.url.pathname}${page.url.search}${page.url.search ? '&' : '?'}/buy`
+	);
+
+	let selectedOfferingId = $state<string | null>(null);
+	let buying = $state(false);
+	const enhanceBuy: SubmitFunction = () => {
+		buying = true;
+		return async ({ update }) => {
+			await update();
+			buying = false;
+		};
+	};
 	const priceCents = $derived(cheapestPackagePriceCents(data.packages));
 	const shareUrl = $derived(data.shareUrl);
 
@@ -172,16 +186,39 @@
 				{#if data.packages.length > 0}
 					<ul class="flex flex-col gap-2">
 						{#each data.packages as pkg (pkg.id)}
-							<li class="bg-base-100 border border-base-300 hover:border-accent flex items-center justify-between gap-3 rounded-field p-3">
-								<div class="min-w-0">
-									<div class="text-sm font-medium">{pkg.name}</div>
-									<div class="text-base-content/60 text-xs">
-										{pkg.sessionCount} × {pkg.sessionLengthMin}-min sessions · valid {pkg.validityDays} days
-									</div>
-								</div>
-								<span class="font-headings shrink-0 text-lg">
-									{formatPriceCents(pkg.sessionCount * pkg.pricePerSessionCents)}
-								</span>
+							{@const selected = selectedOfferingId === pkg.id}
+							<li
+								class="bg-base-100 hover:border-accent flex flex-col gap-3 rounded-field border p-3 {selected
+									? 'border-accent'
+									: 'border-base-300'}"
+							>
+								<button
+									type="button"
+									class="flex w-full cursor-pointer items-center justify-between gap-3 text-left"
+									aria-pressed={selected}
+									onclick={() => (selectedOfferingId = selected ? null : pkg.id)}
+								>
+									<span class="min-w-0">
+										<span class="block text-sm font-medium">{pkg.name}</span>
+										<span class="text-base-content/60 block text-xs">
+											{pkg.sessionCount} × {pkg.sessionLengthMin}-min sessions · valid {pkg.validityDays} days
+										</span>
+									</span>
+									<span class="font-headings shrink-0 text-lg">
+										{formatPriceCents(pkg.sessionCount * pkg.pricePerSessionCents)}
+									</span>
+								</button>
+								{#if selected}
+									<form method="POST" action={buyActionUrl} use:enhance={enhanceBuy}>
+										<input type="hidden" name="packageId" value={pkg.id} />
+										{#if form?.message}
+											<p class="text-error mb-2 text-sm">{form.message}</p>
+										{/if}
+										<button type="submit" class="btn btn-accent btn-sm w-full" disabled={buying}>
+											{buying ? 'buying…' : 'buy this package'}
+										</button>
+									</form>
+								{/if}
 							</li>
 						{/each}
 					</ul>
