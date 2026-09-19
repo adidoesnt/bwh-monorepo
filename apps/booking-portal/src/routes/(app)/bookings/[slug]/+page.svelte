@@ -178,6 +178,11 @@
 
 {#snippet packagePicker()}
 	{#if data.sessionType !== 'free consult'}
+		{#if form?.boughtPackage}
+			<p class="text-success text-sm">
+				{form.boughtPackage} purchased — pick a date and time below to request your session.
+			</p>
+		{/if}
 		{#if data.activePackages.length === 0}
 			<div class="bg-base-200 flex flex-col gap-3 rounded-2xl p-4">
 				<p class="text-sm">
