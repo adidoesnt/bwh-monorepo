@@ -122,7 +122,10 @@ in `@repo/database` for the full reference.
   hidden form fields for them; only `note`/`location` are genuine posted fields. The action
   re-checks every gate fresh at submit time (type allowed, package exists/`bookable ≥ 1`/not
   expired, slot still actually available) before inserting the `booking` row at `pending_approval`
-  — no ledger write, per `BOOKING-LIFECYCLE.md` (the session is only spent on coach approval).
+  — no ledger write, per `BOOKING-LIFECYCLE.md` (the session is only spent on coach approval). The
+  two checks that concurrent requests can race on (a session still bookable, the slot still free)
+  are re-run inside the insert's transaction under a per-coach lock — see the error handling bullet
+  in Phase 4.
   Verified end-to-end against real data: a real submission produced a real row with the right
   fields, no ledger entry; resubmitting the same now-taken slot correctly failed with 409.
 - ✅ Date range: the range (today through the active purchase's `expires_at`, 8 weeks out if free
@@ -239,18 +242,46 @@ Stripe flow:  buy → Stripe Checkout → processing (webhook in flight) → pur
   against real data (purchase + ledger rows, gates) — *2h*
 - ✅ **`MAX_ACTIVE_PACKAGES = 5`** (`config.ts`, hardcoded until Phase 9) enforced for the
   no-payment flow in one shared place: `getPurchaseBlockReason` (`lib/server/packages.ts`), backed by
-  `getClientActivePackageCount`, called by both `?/buy` actions (409 at the cap) and by both pages'
-  `load` so the buy buttons disable with the reason up front instead of after a failed click.
-  Verified by filling a real client to the cap and confirming the next buy is rejected from both
-  pages with nothing written. **Stripe flow will add:** "held" also counts pending purchase-
+  `getClientActivePackageCount`, enforced atomically by `buyPackage` for both `?/buy` actions (409 at
+  the cap) and read by both pages' `load` so the buy buttons disable with the reason up front instead
+  of after a failed click. Verified by filling a real client to the cap and confirming the next buy is
+  rejected from both pages with nothing written, and under concurrent load (see the error handling
+  bullet). **Stripe flow will add:** "held" also counts pending purchase-
   invoices, and the check runs when the Checkout Session is *created*, not in the webhook (money
   has already moved by then) — *0.5h*
-- ⬜ **Error handling pass** (planned on its own branch): `purchasePackage`'s two inserts and the cap
-  check aren't in one transaction (see the `TODO` in `lib/server/packages.ts`) — a failure between
-  the inserts leaves a purchase with no ledger entry, and simultaneous requests can both pass the
-  cap check. There's also no `+error.svelte`, and an unexpected throw in `?/buy` lands on SvelteKit's
-  bare error page and drops the client's in-progress booking selection; the actions should catch and
-  return a `fail(500, …)` instead.
+- ✅ **Error handling pass** (`chore/error-handling-pass`), covering purchases *and* session
+  requests:
+  - **Atomic purchase.** `purchasePackage`'s two inserts run in one transaction (a failure between
+    them can no longer leave a purchase with no ledger entry). `buyPackage` (`lib/server/packages.ts`)
+    also takes a per-client advisory lock and re-checks the cap inside that transaction. With 8
+    concurrent buys against a cap of 5, the lock-free version accepted all 8 (10 active); with it,
+    exactly 3 were accepted and the count landed on 5.
+  - **Atomic session request.** `bookSession` (`lib/server/bookings.ts`) takes a per-coach advisory
+    lock and re-checks `bookable ≥ 1` and that the slot is still free *inside the transaction* with
+    the insert — one lock covers both, since a package belongs to one coach. The availability
+    queries, `getClientActivePackages` and `createBooking` take an optional `DbExecutor` so they can
+    join it without a second definition of "available". Lock-free, 12 concurrent requests for one
+    slot created up to 5 bookings and a 6-session package accepted 8 of 9 requests; with the lock,
+    exactly 1 booking per slot and exactly 6 accepted.
+  - **Unexpected failures don't strand the client.** `actionFailure` (`lib/server/errors.ts`) wraps
+    `?/buy` (both pages) and `?/request` so a DB failure returns `fail(500, …)` with a friendly
+    message instead of SvelteKit's bare error page (rethrowing `redirect()`/`error()`, which work by
+    throwing). Verified by forcing real failures with temporary triggers: the message came back and
+    nothing was left behind.
+  - **Error pages and reference ids.** Root and `(app)` `+error.svelte` share one `ErrorMessage`
+    component (the `(app)` one keeps the sidebar). A `handleError` hook logs unexpected 5xx errors
+    with method, path, user id and stack under a short id and shows it on the page; statuses below
+    500 (unknown routes) pass through untouched.
+  - **Auth forms.** Login/signup return a 500 form error (values kept) for non-`APIError` failures.
+    Logout was left alone — better-auth swallows `signOut` failures itself and still clears the
+    cookie, checked with a forced failure.
+  - **Client-side.** `use:enhance` forms (`?/request`, both `?/buy`s) show an inline message on a
+    dropped connection instead of swapping the page for the error page, and disable while in
+    flight; the copy-link button handles a denied clipboard.
+  - **Known gaps:** no `hooks.client.ts` `handleError`; the `fail(500)`s from `actionFailure` are
+    logged but don't carry a reference id; signup's non-`APIError` branch is unexercised (better-auth
+    wraps DB failures as `APIError`); and the error pages and network-failure messages were checked
+    by reading code and probing endpoints, not in a browser.
 - ⬜ **Stripe flow:** `?/buy` creates a Stripe Checkout Session for the package total instead of
   calling `purchasePackage` (metadata: client + package id), writes an `invoice` row
   (`status: pending`, `stripe_checkout_session_id`), and redirects to Stripe's hosted checkout —
@@ -365,7 +396,9 @@ State machine: [`BOOKING-LIFECYCLE.md`](BOOKING-LIFECYCLE.md).
   via a `?booked=1` flag stripped from the URL after showing) — *1.5h remaining*
 - Accessibility and responsive pass against the prototype's breakpoints — *3h*
 - Test coverage for booking / session-ledger / cancellation logic and the Stripe webhook (real
-  money and scheduling correctness at stake) — *4h*
+  money and scheduling correctness at stake) — *4h*. The concurrency checks that proved the purchase
+  cap and double-booking fixes (Phase 4) were throwaway scripts, not committed tests; they're the
+  first candidates to turn into real ones, since the failure they guard against is silent.
 - Production deploy pipeline: pick a concrete SvelteKit adapter (adapter-auto can't detect one),
   and set the prod env — `BETTER_AUTH_SECRET` is **required** (dev + `vite build` fall back to a
   throwaway value; real prod runtime throws without it — see `src/lib/server/config.ts`), plus
@@ -388,8 +421,9 @@ a full page; the coach directory's "next free" line and `soonest`/`most open slo
 single-coach availability function they'd need already exists, just not wired to them).
 
 **What's left in Phase 4:** the Stripe flow (Checkout + webhook + invoices) and deciding how it
-coexists with the no-payment flow; `/payments` and `/activity`; and the purchase error-handling
-pass (transaction around the purchase + cap race, `fail(500)` instead of the bare error page).
+coexists with the no-payment flow; and `/payments` and `/activity`. The error-handling pass
+(atomic purchase/booking, `fail(500)`s, error pages, reference ids) is done — see its bullet for the
+few known gaps.
 
 **Next on the critical path:** Phase 8 (trainer portal) is the real unblock now — every
 `pending_approval` booking the form can now create sits idle with no one to approve it until a
@@ -404,8 +438,8 @@ that — until it lands, `pending_approval` bookings sit idle with no one to app
 
 **Immediate next:** the client-side purchase loop is complete for the no-payment flow, so the choice
 is Phase 8 (trainer portal — completes the booking loop end to end) or the Stripe flow (needs test
-keys, a webhook secret and the Stripe CLI first). The error-handling pass is planned separately on
-its own branch.
+keys, a webhook secret and the Stripe CLI first). The error-handling pass is finished on
+`chore/error-handling-pass`.
 
 ## Total estimated effort
 
