@@ -86,6 +86,7 @@
 		{:else}
 			<div class="flex flex-col gap-4">
 				{#each data.suggestedPackages as pkg (pkg.packageId)}
+				    <!-- TODO: Make these link straight to the checkout for that particular package -->
 					<a href={`/packages/${pkg.coachSlug}`} class="block">
 						<div
 							class="bg-base-200 hover:border-accent border-base-300 flex flex-col gap-2 rounded-field border p-4 transition-colors"
