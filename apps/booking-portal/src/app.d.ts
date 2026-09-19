@@ -6,7 +6,11 @@ type AuthSession = typeof auth.$Infer.Session;
 
 declare global {
 	namespace App {
-		// interface Error {}
+		interface Error {
+			message: string;
+			/** Set by `handleError` for unexpected server errors, to quote in a report. */
+			errorId?: string;
+		}
 		interface Locals {
 			user: AuthSession["user"] | null;
 			session: AuthSession["session"] | null;

@@ -14,5 +14,8 @@
 	{#if page.error?.message}
 		<p class="text-base-content/60">{page.error.message}</p>
 	{/if}
+	{#if page.error?.errorId}
+		<p class="text-base-content/40 text-xs">reference: {page.error.errorId}</p>
+	{/if}
 	<a {href} class="btn btn-accent">{label}</a>
 </div>

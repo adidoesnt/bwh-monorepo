@@ -1,4 +1,4 @@
-import type { Handle } from "@sveltejs/kit";
+import type { Handle, HandleServerError } from "@sveltejs/kit";
 import { redirect } from "@sveltejs/kit";
 import { auth } from "$lib/server/auth";
 import { svelteKitHandler } from "better-auth/svelte-kit";
@@ -76,4 +76,24 @@ export const handle: Handle = async ({ event, resolve }) => {
   }
 
   return svelteKitHandler({ event, resolve, auth, building });
+};
+
+/**
+ * Runs for unexpected server errors (not `error()` or `fail()`). Logs the real
+ * error with request context under a short reference id and hands that id to
+ * the page, so a user's report can be matched to a log line. SvelteKit also
+ * calls this for client-caused errors like an unknown route, so anything
+ * below 500 is passed through unchanged.
+ */
+export const handleError: HandleServerError = ({ error, event, status, message }) => {
+  if (status < 500) return { message };
+
+  const errorId = crypto.randomUUID().slice(0, 8);
+  console.error(
+    `[${errorId}] ${event.request.method} ${event.url.pathname} -> ${status}`,
+    { userId: event.locals.user?.id ?? null },
+    error,
+  );
+
+  return { message: "an unexpected error occurred", errorId };
 };
