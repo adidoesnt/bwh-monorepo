@@ -165,8 +165,27 @@
 {#snippet packagePicker()}
 	{#if data.sessionType !== 'free consult'}
 		{#if data.activePackages.length === 0}
-			<div class="bg-base-200 rounded-2xl p-4 text-sm">
-				get a {data.coach.name.split(' ')[0]} package to book — see the packages above.
+			<div class="bg-base-200 flex flex-col gap-3 rounded-2xl p-4">
+				<p class="text-sm">
+					you need a {data.coach.name.split(' ')[0]} package to book a session. pick one to get started.
+				</p>
+				{#if data.packages.length > 0}
+					<ul class="flex flex-col gap-2">
+						{#each data.packages as pkg (pkg.id)}
+							<li class="bg-base-100 border border-base-300 hover:border-accent flex items-center justify-between gap-3 rounded-field p-3">
+								<div class="min-w-0">
+									<div class="text-sm font-medium">{pkg.name}</div>
+									<div class="text-base-content/60 text-xs">
+										{pkg.sessionCount} × {pkg.sessionLengthMin}-min sessions · valid {pkg.validityDays} days
+									</div>
+								</div>
+								<span class="font-headings shrink-0 text-lg">
+									{formatPriceCents(pkg.sessionCount * pkg.pricePerSessionCents)}
+								</span>
+							</li>
+						{/each}
+					</ul>
+				{/if}
 			</div>
 		{:else}
 			<div>
