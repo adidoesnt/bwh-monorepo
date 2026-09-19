@@ -178,16 +178,30 @@ sessions that haven't actually been consumed. Verified against a real seeded pen
 (Tessa/Nadia's "starter": `balance: 3, holds: 1, bookable: 2`), not synthetic data.
 
 ## Phase 4 — Package browsing, purchase & Stripe payments (client) 🚧 partial
-**Estimate: ~9.5h** (~5h remaining — Stripe checkout + webhook + invoicing)
+**Estimate: ~9.5h** (~5h remaining — Stripe flow + `/payments` + `/activity`)
 
 *Design screen: checkout modal (review → pay → processing/confirmed)*
 
 Money lives entirely on the package-purchase side — a booking never carries a price or a payment
 state. See [`BOOKING-LIFECYCLE.md`](BOOKING-LIFECYCLE.md) for both state machines.
 
+There are two purchase flows. **Today only the no-payment flow exists.**
+
+- **No-payment flow** ✅ — `?/buy` → cap check → `purchasePackage` inserts the `package_purchase`
+  and an immediate `+N` `purchase` ledger entry, so sessions land at once.
+- **Stripe flow** ⬜ — the diagram below; not built.
+
+Both `?/buy` actions (`/packages/[slug]`, `/bookings/[slug]`) are the single seam: they call the
+shared cap guard, then `purchasePackage` (no-payment) or, later, start a Checkout Session.
+
+**Open decision:** how the two coexist. Either an env-driven switch (no-payment stays a real mode
+for deployments where coaches take payment off-platform), or Stripe replaces the no-payment flow
+outright. No switch exists yet — an unused `ENABLE_STRIPE_PAYMENTS` placeholder was removed from
+`config.ts`. Decide when the Stripe flow starts.
+
 ```
-buy → Stripe Checkout → processing (webhook in flight) → purchased
-                                                        → failed (no charge, retry)
+Stripe flow:  buy → Stripe Checkout → processing (webhook in flight) → purchased
+                                                                     → failed (no charge, retry)
 ```
 
 - ✅ `/packages`: "your packages" (shared `PackagesCarousel` component, see Phase 2) · recent
@@ -214,23 +228,38 @@ buy → Stripe Checkout → processing (webhook in flight) → purchased
   viable fallback if a floating panel is wanted elsewhere later), it's a plain `$state` toggle that
   expands in normal flow. Worth remembering if Phase 8's trainer portal reaches for a `.dropdown`
   inside a similarly cramped layout — *0.5h*
-- ⬜ **Next up:** buying a package **inline from the booking form** (`/bookings/[slug]`) when the
-  client has no active package with that coach, instead of the current dead-end message. Discussed
-  and agreed: reuse the existing `?/buy` action as a second, independent form action on the same
-  page (not merged into `?/request`) — type/package/date/startsAt are already URL-driven, so after
-  a successful buy the page just re-renders with the new package selectable and nothing about the
-  in-progress booking selection is lost. `use:enhance` on both forms.
-- `?/buy` creates a Stripe Checkout Session for the package total instead of inserting the purchase
-  directly (metadata: client + package id), writes an `invoice` row (`status: pending`,
-  `stripe_checkout_session_id`), and redirects to Stripe's hosted checkout — *2h*
-- Webhook (`src/routes/webhooks/stripe/+server.ts`): verifies the Stripe signature, handles
+- ✅ **Buying a package inline from the booking form** (`/bookings/[slug]`) when the client has no
+  active package with that coach (no-payment flow). The dead-end message is replaced by the coach's
+  packages; click one to select it and a "buy this package" button appears in its card. `?/buy` is
+  a second, independent form action on the page (not merged into `?/request`); it returns instead
+  of redirecting, so the URL's type/date/startsAt and the note textarea are untouched, `load` reruns,
+  and the normal package picker takes over with an inline "purchased" confirmation. `use:enhance`
+  on both forms, and the button disables while a request is in flight so a double-click can't buy
+  twice. Only `packageId` is trusted from the form, revalidated against the page's coach. Verified
+  against real data (purchase + ledger rows, gates) — *2h*
+- ✅ **`MAX_ACTIVE_PACKAGES = 5`** (`config.ts`, hardcoded until Phase 9) enforced for the
+  no-payment flow in one shared place: `getPurchaseBlockReason` (`lib/server/packages.ts`), backed by
+  `getClientActivePackageCount`, called by both `?/buy` actions (409 at the cap) and by both pages'
+  `load` so the buy buttons disable with the reason up front instead of after a failed click.
+  Verified by filling a real client to the cap and confirming the next buy is rejected from both
+  pages with nothing written. **Stripe flow will add:** "held" also counts pending purchase-
+  invoices, and the check runs when the Checkout Session is *created*, not in the webhook (money
+  has already moved by then) — *0.5h*
+- ⬜ **Error handling pass** (planned on its own branch): `purchasePackage`'s two inserts and the cap
+  check aren't in one transaction (see the `TODO` in `lib/server/packages.ts`) — a failure between
+  the inserts leaves a purchase with no ledger entry, and simultaneous requests can both pass the
+  cap check. There's also no `+error.svelte`, and an unexpected throw in `?/buy` lands on SvelteKit's
+  bare error page and drops the client's in-progress booking selection; the actions should catch and
+  return a `fail(500, …)` instead.
+- ⬜ **Stripe flow:** `?/buy` creates a Stripe Checkout Session for the package total instead of
+  calling `purchasePackage` (metadata: client + package id), writes an `invoice` row
+  (`status: pending`, `stripe_checkout_session_id`), and redirects to Stripe's hosted checkout —
+  *2h*
+- ⬜ Webhook (`src/routes/webhooks/stripe/+server.ts`): verifies the Stripe signature, handles
   `checkout.session.completed` — creates the `package_purchase` the same way `purchasePackage`
   does today (snapshotting `sessionsGranted`, `sessionLengthMin`, `expiresAt`), writes the `+N`
   `purchase` ledger entry, flips the invoice to `paid`. A failed/expired session flips the invoice
   to a failed state instead — *2.5h*
-- `/packages` enforces `MAX_ACTIVE_PACKAGES = 5` (hardcoded until Phase 9): held = active
-  purchases + pending purchase-invoices; `?/buy` rejects at the cap and the buy buttons disable
-  with a reason. **Not yet enforced** — today's stub `?/buy` has no cap check at all — *0.5h*
 - **Under consideration, not decided:** disallowing more than *one* active package **per coach**
   at a time (separate from the global 5-package cap above). Nothing in the schema or Phase 3's
   booking form currently prevents a client holding two simultaneous active purchases with the same
@@ -349,18 +378,18 @@ State machine: [`BOOKING-LIFECYCLE.md`](BOOKING-LIFECYCLE.md).
 **Done:** Phases 0, 1, 2. **Phase 3 mostly done:** the coach directory, the bookings list, the
 coach profile panel, real availability, the timezone/screening gates, and the booking form + its
 `?/request` action are all built and verified end-to-end against real data. **Phase 4 mostly done
-except Stripe itself:** browsing packages (suggested + full coach directory), buying one
-(`/packages/[slug]`'s `?/buy`), and the per-package activity log are all real and verified against
-real data — the money side (Stripe Checkout, the webhook, `/payments`, `/activity`, the 5-package
-cap) is still stubbed or unbuilt.
+except the Stripe flow:** browsing packages (suggested + full coach directory), buying one from
+`/packages/[slug]` or inline from the booking form, the 5-package cap, and the per-package activity
+log are all real and verified against real data — for the **no-payment flow**. The Stripe flow
+(Checkout, webhook, invoices) plus `/payments` and `/activity` are unbuilt.
 
 **What's left in Phase 3:** opening the coach profile inline (shallow routing) instead of only as
 a full page; the coach directory's "next free" line and `soonest`/`most open slots` sort (the
 single-coach availability function they'd need already exists, just not wired to them).
 
-**What's left in Phase 4:** buying a package inline from the booking form (agreed approach, not yet
-built — see the Phase 4 bullet); real Stripe Checkout + webhook in place of the direct-insert
-`?/buy` stub; `MAX_ACTIVE_PACKAGES` enforcement; `/payments` and `/activity`.
+**What's left in Phase 4:** the Stripe flow (Checkout + webhook + invoices) and deciding how it
+coexists with the no-payment flow; `/payments` and `/activity`; and the purchase error-handling
+pass (transaction around the purchase + cap race, `fail(500)` instead of the bare error page).
 
 **Next on the critical path:** Phase 8 (trainer portal) is the real unblock now — every
 `pending_approval` booking the form can now create sits idle with no one to approve it until a
@@ -373,10 +402,10 @@ Stripe checkout, bookings management). Phase 8 (trainer portal) is the first har
 that — until it lands, `pending_approval` bookings sit idle with no one to approve them. Phases
 6, 7, 9, 10 otherwise proceed in roughly the listed order.
 
-**Immediate next session:** the inline "buy a package from the booking form" feature described in
-Phase 4 — a second `?/buy` form action on `/bookings/[slug]`, reusing `getCoachPackages` +
-`purchasePackage`, shown in place of today's dead-end "get a package to book" message when the
-client has no active package with that coach.
+**Immediate next:** the client-side purchase loop is complete for the no-payment flow, so the choice
+is Phase 8 (trainer portal — completes the booking loop end to end) or the Stripe flow (needs test
+keys, a webhook secret and the Stripe CLI first). The error-handling pass is planned separately on
+its own branch.
 
 ## Total estimated effort
 

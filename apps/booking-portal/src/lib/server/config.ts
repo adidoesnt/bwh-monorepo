@@ -32,7 +32,5 @@ export const s3 = {
   autoCreateBucket: (env.S3_AUTO_CREATE_BUCKET || "true") === "true",
 };
 
-export const ENABLE_STRIPE_PAYMENTS = env.ENABLE_STRIPE_PAYMENTS === "true";
-
 // Hardcoded policy limit until Phase 9 makes it editable (see ROADMAP.md).
 export const MAX_ACTIVE_PACKAGES = 5;
