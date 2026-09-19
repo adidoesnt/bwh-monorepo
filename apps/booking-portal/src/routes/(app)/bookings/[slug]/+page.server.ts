@@ -1,7 +1,6 @@
 import { error, fail, redirect } from "@sveltejs/kit";
 import type { SessionType } from "@repo/database/schema";
 import {
-  createBooking,
   getClientActivePackages,
   getClientIntakeSubmitted,
   getCoachBySlug,
@@ -11,6 +10,7 @@ import {
   getCoachSlotsForDate,
 } from "$lib/server/queries";
 import { BOOKING_SHARE_HOST } from "$lib/server/config";
+import { bookSession } from "$lib/server/bookings";
 import { actionFailure } from "$lib/server/errors";
 import {
   buyPackage,
@@ -146,17 +146,6 @@ export const actions: Actions = {
         return fail(400, { message: "that date is after this package expires" });
       }
 
-      const slots = await getCoachSlotsForDate({
-        coachId: coach.id,
-        zone: coach.timezone,
-        date: zonedDateParts(startsAt, coach.timezone),
-        durationMin,
-      });
-      const matchingSlot = slots.find((s) => s.start.getTime() === startsAt.getTime());
-      if (!matchingSlot?.available) {
-        return fail(409, { message: "that slot's no longer available — pick another time" });
-      }
-
       const formData = await request.formData();
       const note = formData.get("note")?.toString().trim() || null;
       const locationInput = formData.get("location")?.toString().trim();
@@ -165,16 +154,20 @@ export const actions: Actions = {
           ? "video call"
           : (locationInput ?? coach.locations.find((l) => l !== "online") ?? coach.locations[0] ?? "");
 
-      await createBooking({
-        clientId: locals.user.id,
-        coachId: coach.id,
-        type: sessionType as SessionType,
-        location,
-        startsAt,
-        durationMin,
-        packagePurchaseId: selectedPurchase?.purchaseId ?? null,
-        clientNote: note,
-      });
+      const result = await bookSession(
+        {
+          clientId: locals.user.id,
+          coachId: coach.id,
+          type: sessionType as SessionType,
+          location,
+          startsAt,
+          durationMin,
+          packagePurchaseId: selectedPurchase?.purchaseId ?? null,
+          clientNote: note,
+        },
+        coach.timezone,
+      );
+      if (!result.ok) return fail(409, { message: result.message });
 
       redirect(303, "/bookings?tab=awaiting_action&booked=1");
     } catch (err) {

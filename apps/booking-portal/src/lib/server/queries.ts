@@ -97,6 +97,7 @@ export const getClientUpcomingBookingsCount = async (clientId: string) => {
 export const getClientActivePackages = async (
   clientId: string,
   coachId?: string,
+  executor: DbExecutor = db,
 ) => {
   const conditions = [
     eq(packagePurchase.clientId, clientId),
@@ -104,7 +105,7 @@ export const getClientActivePackages = async (
   ];
   if (coachId) conditions.push(eq(coachProfile.id, coachId));
 
-  const purchases = await db
+  const purchases = await executor
     .select({
       purchaseId: packagePurchase.id,
       packageName: packageOffering.name,
@@ -132,7 +133,7 @@ export const getClientActivePackages = async (
   const purchaseIds = purchases.map((p) => p.purchaseId);
 
   const [balances, holds] = await Promise.all([
-    db
+    executor
       .select({
         purchaseId: sessionLedgerEntry.purchaseId,
         balance: sql<number>`sum(${sessionLedgerEntry.delta})`.mapWith(Number),
@@ -143,7 +144,7 @@ export const getClientActivePackages = async (
     // "Holds" — the client's own other pending_approval bookings against a
     // purchase. Not yet consumed (the ledger only moves on approval), but
     // already spoken for, so they come off what's actually bookable now.
-    db
+    executor
       .select({
         purchaseId: booking.packagePurchaseId,
         holds: sql<number>`count(*)`.mapWith(Number),
@@ -507,8 +508,11 @@ export const getAllCoachTags = async () => {
 /* Availability */
 
 /** A coach's recurring weekly open windows, every weekday. */
-export const getCoachAvailabilitySlots = async (coachId: string) => {
-  return db
+export const getCoachAvailabilitySlots = async (
+  coachId: string,
+  executor: DbExecutor = db,
+) => {
+  return executor
     .select({
       weekday: availabilitySlot.weekday,
       startMin: availabilitySlot.startMin,
@@ -524,8 +528,9 @@ export const getCoachActiveBookings = async (
   coachId: string,
   from: Date,
   to: Date,
+  executor: DbExecutor = db,
 ) => {
-  return db
+  return executor
     .select({ startsAt: booking.startsAt, durationMin: booking.durationMin })
     .from(booking)
     .where(
@@ -542,22 +547,25 @@ export const getCoachActiveBookings = async (
  * each, tagged `available` — combines their weekly windows with their
  * existing bookings in range, then walks each coach-local calendar day
  * applying `slotsForDay`. */
-export const getCoachSlots = async ({
-  coachId,
-  zone,
-  from,
-  to,
-  durationMin,
-}: {
-  coachId: string;
-  zone: string;
-  from: Date;
-  to: Date;
-  durationMin: number;
-}) => {
+export const getCoachSlots = async (
+  {
+    coachId,
+    zone,
+    from,
+    to,
+    durationMin,
+  }: {
+    coachId: string;
+    zone: string;
+    from: Date;
+    to: Date;
+    durationMin: number;
+  },
+  executor: DbExecutor = db,
+) => {
   const [availabilitySlots, existingBookings] = await Promise.all([
-    getCoachAvailabilitySlots(coachId),
-    getCoachActiveBookings(coachId, from, to),
+    getCoachAvailabilitySlots(coachId, executor),
+    getCoachActiveBookings(coachId, from, to, executor),
   ]);
 
   const windowsByWeekday = new Map<
@@ -598,26 +606,32 @@ export const getCoachSlots = async ({
 
 /** Convenience wrapper around `getCoachSlots` for a single coach-local
  * calendar day, given `zonedDateParts`-shaped `date`. */
-export const getCoachSlotsForDate = async ({
-  coachId,
-  zone,
-  date,
-  durationMin,
-}: {
-  coachId: string;
-  zone: string;
-  date: { year: number; month: number; day: number };
-  durationMin: number;
-}) => {
-  const dayStart = zonedTimeToUtc(date.year, date.month, date.day, 0, 0, zone);
-  const dayEnd = new Date(dayStart.getTime() + 86_400_000);
-  return getCoachSlots({
+export const getCoachSlotsForDate = async (
+  {
     coachId,
     zone,
-    from: dayStart,
-    to: dayEnd,
+    date,
     durationMin,
-  });
+  }: {
+    coachId: string;
+    zone: string;
+    date: { year: number; month: number; day: number };
+    durationMin: number;
+  },
+  executor: DbExecutor = db,
+) => {
+  const dayStart = zonedTimeToUtc(date.year, date.month, date.day, 0, 0, zone);
+  const dayEnd = new Date(dayStart.getTime() + 86_400_000);
+  return getCoachSlots(
+    {
+      coachId,
+      zone,
+      from: dayStart,
+      to: dayEnd,
+      durationMin,
+    },
+    executor,
+  );
 };
 
 /* Coach Profile Page Queries */
@@ -920,17 +934,20 @@ export const getClientIntakeSubmitted = async (clientId: string) => {
 
 /** Inserts a `pending_approval` booking. No ledger entry here — the session
  * is only spent when a coach approves (see `BOOKING-LIFECYCLE.md`). */
-export const createBooking = async (values: {
-  clientId: string;
-  coachId: string;
-  type: SessionType;
-  location: string;
-  startsAt: Date;
-  durationMin: number;
-  packagePurchaseId: string | null;
-  clientNote: string | null;
-}) => {
-  const [row] = await db
+export const createBooking = async (
+  values: {
+    clientId: string;
+    coachId: string;
+    type: SessionType;
+    location: string;
+    startsAt: Date;
+    durationMin: number;
+    packagePurchaseId: string | null;
+    clientNote: string | null;
+  },
+  executor: DbExecutor = db,
+) => {
+  const [row] = await executor
     .insert(booking)
     .values({ ...values, status: "pending_approval" })
     .returning({ id: booking.id });
