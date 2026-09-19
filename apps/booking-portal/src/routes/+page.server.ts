@@ -20,6 +20,10 @@ export type LoginErrorValues = {
 
 type FieldErrors<T> = Partial<Record<keyof T, string[]>>;
 
+// Shown when the auth library fails in a way it didn't anticipate (not a
+// wrong password / taken email, which it reports as an `APIError`).
+const UNEXPECTED_AUTH_ERROR = "something went wrong — please try again";
+
 const loginSchema = z.object({
   email: z
     .email()
@@ -65,18 +69,21 @@ export const actions: Actions = {
         },
       });
     } catch (error) {
-      if (error instanceof APIError) {
-        const errors: FieldErrors<LoginErrorValues> = {
-          password: [error.body?.message ?? error.message],
-        };
+      if (!(error instanceof APIError)) console.error("login failed", error);
 
-        return fail(400, {
-          mode: "login" as const,
-          errors,
-          values: { email } satisfies LoginErrorValues,
-        });
-      }
-      throw error;
+      const errors: FieldErrors<LoginErrorValues> = {
+        password: [
+          error instanceof APIError
+            ? (error.body?.message ?? error.message)
+            : UNEXPECTED_AUTH_ERROR,
+        ],
+      };
+
+      return fail(error instanceof APIError ? 400 : 500, {
+        mode: "login" as const,
+        errors,
+        values: { email } satisfies LoginErrorValues,
+      });
     }
 
     redirect(303, "/dashboard");
@@ -105,23 +112,26 @@ export const actions: Actions = {
     try {
       await auth.api.signUpEmail({ body: { name, email, password } });
     } catch (error) {
-      if (error instanceof APIError) {
-        const errors: FieldErrors<SignupErrorValues> = {
-          email: [error.body?.message ?? error.message],
-        };
+      if (!(error instanceof APIError)) console.error("signup failed", error);
 
-        return fail(400, {
-          mode: "signup" as const,
-          errors,
-          values: {
-            firstName,
-            middleName,
-            lastName,
-            email,
-          } satisfies SignupErrorValues,
-        });
-      }
-      throw error;
+      const errors: FieldErrors<SignupErrorValues> = {
+        email: [
+          error instanceof APIError
+            ? (error.body?.message ?? error.message)
+            : UNEXPECTED_AUTH_ERROR,
+        ],
+      };
+
+      return fail(error instanceof APIError ? 400 : 500, {
+        mode: "signup" as const,
+        errors,
+        values: {
+          firstName,
+          middleName,
+          lastName,
+          email,
+        } satisfies SignupErrorValues,
+      });
     }
 
     redirect(303, "/dashboard");
