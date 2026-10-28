@@ -43,7 +43,8 @@ in `@repo/database` for the full reference.
   purpose — a user can hold a coach profile regardless of which portal their `role` admits them to.
 - ✅ Role-based route guards in `hooks.server.ts`: shared surfaces need any session;
   `/trainer/*` is trainer+admin, `/admin/*` is admin-only; wrong-role access → role's home.
-  (`HOME_BY_ROLE` all point at `/dashboard` until the trainer/admin route trees exist.)
+  (`HOME_BY_ROLE` points every role at `/dashboard`, which renders a role-specific view — see
+  Phase 8.)
 - ✅ Seed script (`bun run db:seed`, `packages/database/src/seed.ts`) mirrors the prototype:
   Ishita/Nadia/Jolene coaches, Tessa as the worked-example client (an active package, bookings,
   progress, measurements, completed PAR-Q), plus Renee/Farah/Declan/Hana/Yasmin. Farah has a
@@ -141,9 +142,10 @@ in `@repo/database` for the full reference.
   onboarding flow yet that captures a client's zone. Disallowed chips render struck-through with a
   `title` explaining why, matching the time-chip treatment. The `?/request` action re-derives both
   gates fresh rather than trusting the page's `?type=`.
-- ✅ Read-only bookings list with `upcoming / awaiting action / past` tabs on `/bookings`, each a
-  server-side paginated bucket (date-first, status-second — see `BOOKING-LIFECYCLE.md`) with its
-  own count badge. Row actions (reschedule / cancel) render as disabled placeholders; making them
+- ✅ Read-only bookings list with `upcoming / awaiting action / history` tabs on `/bookings`, each
+  a server-side paginated bucket with its own count badge (see `BOOKING-LIFECYCLE.md`). History
+  holds past sessions plus requests the coach declined, and requests that lapsed unanswered show
+  as "lapsed". Row actions (reschedule / cancel) render as disabled placeholders; making them
   real, plus the 24h cancellation policy, is Phase 5.
 - ✅ `CoachHeader`, `DropdownControl`, `Pager` pulled out to `$lib/components` once `/packages`
   needed the same coach-directory browsing UI `/bookings` already had (search/tags/sort/pagination,
@@ -329,19 +331,69 @@ State machine: [`BOOKING-LIFECYCLE.md`](BOOKING-LIFECYCLE.md).
 - Measurements list, "log this week's numbers" entry form
 - Check-in photos — private storage (client + assigned coach only)
 
-## Phase 8 — Trainer (coach) portal ⬜
+## Phase 8 — Trainer (coach) portal 🚧 partial
 
 *Design screens: "Trainer dashboard", "Trainer clients"*
 
-- Dashboard: today's schedule, pending requests (approve / suggest another time — approve flips
-  booking to `confirmed` and consumes a session `−1` from the client's purchase)
-- Weekly availability grid: tap to toggle open/closed; booked cells derived from real bookings,
-  not manually set
-- Clients table: roster with sessions remaining, next session, attendance %, flags — derived
-  (package running low / no screening / etc.), not manually set
-- Package editor: CRUD the packages clients buy from this coach — session count, length,
+Shared surfaces render per role instead of living under `/trainer/*`: `/dashboard` and
+`/bookings` each branch in `load` on role and return a tagged result (`{ view: 'client' | 'trainer'
+| 'admin', … }`) that the page hands to a `ClientX.svelte` / `TrainerX.svelte` component.
+`/trainer/*` stays for trainer-only pages (clients, payouts). A trainer is linked to their
+`coach_profile` via `getCoachProfileByUserId`; one without a profile sees an empty state.
+
+- ✅ **Dashboard** (`/dashboard`, trainer view): four stat cards — today (with first–last time),
+  this week (with "N done so far"), requests waiting (with "oldest N ago"), active clients (with
+  "N running low"; a placeholder for monthly revenue until the Stripe flow exists) — then
+  **today** and **needs action** widgets. Needs action groups requests and sessions to close out,
+  3 each with "+N more" / "view all" deep-linking into `/bookings` pre-filtered. "Today" and "this
+  week" use the coach profile's timezone, not the browser's. `StatCard` is shared with the client
+  dashboard.
+- ✅ **Sessions page** (`/bookings`, trainer view; "sessions" in the trainer nav, which carries the
+  needs-action badge): client-name search, `upcoming / awaiting action / history` tabs with
+  counts, filter chips (*requests / to close out* on awaiting action; *completed / declined /
+  lapsed* on history), server-side pagination. Everything is URL-driven (`?tab=&filter=&q=&page=`).
+  Rows are `$lib/components/CoachSessionRow.svelte`, shared with the dashboard widget.
+- ✅ **Approve / decline / mark complete** — `?/approve`, `?/decline`, `?/complete` on `/bookings`,
+  posted to from both the page and the dashboard. Approve and decline run under the same per-coach
+  advisory lock as `bookSession` and re-check the request is still pending and in the future;
+  approve also re-checks the package hasn't expired and has a session left, then confirms and
+  writes `session_consumed −1` in one transaction. Decline sets the new **`declined`** status
+  (distinct from a client's `cancelled`), which shows in history on both sides. Complete is a
+  conditional update (confirmed + already started) with no ledger change. Approve and decline
+  confirm in a modal showing the full session and its effect on the package; success shows a
+  toast and slides the row out. Verified against real data, including 3 concurrent approvals
+  against a 2-session package (exactly 2 succeed).
+- ✅ **Read-only availability grid** on the dashboard: this week, Mon–Sun in the coach's zone,
+  30-minute rows (rows closed every day skipped), each cell open / booked / requested / closed,
+  past cells dimmed, first name on a session's first cell, "N hours still open this week".
+- ✅ **Fix found on the way:** a request whose start passed unanswered kept holding a session on
+  its package forever (`getClientActivePackages` counted every `pending_approval` booking as a
+  hold), blocking the client from booking again. Holds now only count future requests.
+- 🚧 **Availability editing** — next. Agreed so far:
+  - Edits the **weekly pattern** (`availability_slot`), in an explicit edit mode laid out as a
+    plain Mon–Sun week so it's clear changes apply to every week.
+  - Edit mode shows **all 48 half-hour rows** (midnight to midnight) so new hours can be opened;
+    the read-only grid and the client's booking form keep showing only hours that have slots.
+  - The coach toggles cells, then **saves manually** (or cancels). One action replaces the coach's
+    windows in a single transaction under the per-coach lock, merging adjacent cells.
+  - Closing hours that already hold upcoming sessions is **allowed, but made very clear**: the
+    affected cells are marked in the grid and saving asks for confirmation listing each affected
+    session. Those bookings stay booked; pending requests stay pending.
+  - A hint when a window is shorter than every package's session length (no client could book it).
+  - Quick edits in the dashboard card, plus an "open editor" for bigger changes (page vs popup
+    being decided), using one shared editor component.
+  - **One-off changes** ("off this thursday" / "block time off") come at the end of this slice:
+    a new exceptions table, honoured by slot generation and shown in the grid.
+- ⬜ **Suggest another time** on a request (a counter-offer the client accepts or rejects).
+- ⬜ **Clients table:** roster with sessions remaining, next session, attendance %, flags — derived
+  (package running low / no screening / etc.), not manually set.
+- ⬜ **Package editor:** CRUD the packages clients buy from this coach — session count, length,
   per-session price, validity days; deactivate without deleting (past purchases keep their
-  snapshot)
+  snapshot).
+- Known gaps: admins with a coach profile (Ishita) get the admin view, so can't reach their coach
+  view until Phase 9's "coach view"; trainers can still open the client-only `/bookings/[slug]` and
+  `/packages` pages; the test bookings used to verify this slice were inserted by hand because the
+  seed's bookings are all dated September (make seed dates relative to when it runs).
 
 ## Phase 9 — Admin portal ⬜
 
@@ -368,9 +420,11 @@ State machine: [`BOOKING-LIFECYCLE.md`](BOOKING-LIFECYCLE.md).
 Spread across the project rather than a single sprint.
 
 - Email/SMS reminders for upcoming sessions and pending approvals
-- Notifications/toasts wired to real events (payment received, etc.) — the pattern's first
-  instance already exists (a "request sent" toast after `/bookings/[slug]`'s `?/request` redirect,
-  via a `?booked=1` flag stripped from the URL after showing)
+- Notifications/toasts wired to real events (payment received, etc.). A shared toast now exists
+  (`$lib/toast.svelte.ts` → `showToast(message)`, rendered once in the `(app)` layout) and is used
+  by the trainer's approve / decline / complete. The older "request sent" and "package purchased"
+  toasts still use their own `?booked=1` / `?bought=1` URL-flag pattern — move them onto the shared
+  one. Clients aren't yet told when a request is approved or declined beyond what their lists show.
 - Accessibility and responsive pass against the prototype's breakpoints
 - Test coverage for booking / session-ledger / cancellation logic and the Stripe webhook (real
   money and scheduling correctness at stake). The concurrency checks that proved the purchase
@@ -390,8 +444,10 @@ coach profile panel, real availability, the timezone/screening gates, and the bo
 `?/request` action are all built and verified end-to-end against real data. **Phase 4 mostly done
 except the Stripe flow:** browsing packages (suggested + full coach directory), buying one from
 `/packages/[slug]` or inline from the booking form, the 5-package cap, and the per-package activity
-log are all real and verified against real data — for the **no-payment flow**. The Stripe flow
-(Checkout, webhook, invoices) plus `/payments` and `/activity` are unbuilt.
+log are all real and verified against real data — for the **no-payment flow**. **Phase 8 partly
+done:** the booking loop now works end to end — a client requests, the coach approves (spending a
+session) or declines, and marks it complete afterwards — through the trainer dashboard and sessions
+page, with a read-only availability grid.
 
 **What's left in Phase 3:** opening the coach profile inline (shallow routing) instead of only as
 a full page; the coach directory's "next free" line and `soonest`/`most open slots` sort (the
@@ -402,9 +458,8 @@ coexists with the no-payment flow; and `/payments` and `/activity`. The error-ha
 (atomic purchase/booking, `fail(500)`s, error pages, reference ids) is done — see its bullet for the
 few known gaps.
 
-**Next on the critical path:** Phase 8 (trainer portal) is the real unblock now — every
-`pending_approval` booking the form can now create sits idle with no one to approve it until a
-coach can act on requests.
+**What's left in Phase 8:** availability editing (weekly pattern, then one-off changes), suggest
+another time, the clients table, and the package editor.
 
 ## Suggested near-term order
 
@@ -413,7 +468,7 @@ Stripe checkout, bookings management). Phase 8 (trainer portal) is the first har
 that — until it lands, `pending_approval` bookings sit idle with no one to approve them. Phases
 6, 7, 9, 10 otherwise proceed in roughly the listed order.
 
-**Immediate next:** the client-side purchase loop is complete for the no-payment flow, so the choice
-is Phase 8 (trainer portal — completes the booking loop end to end) or the Stripe flow (needs test
-keys, a webhook secret and the Stripe CLI first). The error-handling pass is finished on
-`chore/error-handling-pass`.
+**Immediate next:** availability editing in Phase 8 — coaches can't change their hours at all yet
+(they only come from the seed), which is the main thing between the trainer portal and real use.
+After that, Phase 5 (client reschedule / cancel) is the natural follow-on: its ledger rules depend
+on bookings reaching `confirmed`, which now happens.
