@@ -13,7 +13,9 @@ import {
   type DbExecutor,
 } from "./queries";
 
-const lockCoach = (tx: DbExecutor, coachId: string) =>
+/** Serialises everything that reads or changes a coach's bookable time:
+ * session requests, approvals and declines, and saving their weekly hours. */
+export const lockCoach = (tx: DbExecutor, coachId: string) =>
   tx.execute(sql`select pg_advisory_xact_lock(hashtext(${`coach:${coachId}`}))`);
 
 /** Requests a session, re-checking the two things concurrent requests can

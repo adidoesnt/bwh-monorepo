@@ -1,4 +1,8 @@
-import type { PageServerLoad } from "./$types";
+import { fail } from "@sveltejs/kit";
+import { z } from "zod";
+import type { Actions, PageServerLoad } from "./$types";
+import { saveWeeklyHours } from "$lib/server/availability";
+import { actionFailure } from "$lib/server/errors";
 import {
   getClientUpcomingBookings,
   getClientUpcomingBookingsCount,
@@ -131,4 +135,41 @@ export const load: PageServerLoad = async ({
     default:
       throw new Error("Invalid role");
   }
+};
+
+const halfHour = z.number().int().multipleOf(30);
+const weeklyHoursSchema = z.array(
+  z
+    .object({
+      weekday: z.number().int().min(0).max(6),
+      startMin: halfHour.min(0).max(24 * 60 - 30),
+      endMin: halfHour.min(30).max(24 * 60),
+    })
+    .refine((w) => w.endMin > w.startMin),
+);
+
+export const actions: Actions = {
+  saveHours: async ({ locals, request }) => {
+    if (!locals.user || locals.user.role !== "trainer") {
+      return fail(403, { message: "not allowed" });
+    }
+
+    try {
+      const coach = await getCoachProfileByUserId(locals.user.id);
+      if (!coach) return fail(403, { message: "not allowed" });
+
+      const raw = (await request.formData()).get("windows");
+      let parsed;
+      try {
+        parsed = weeklyHoursSchema.safeParse(JSON.parse(String(raw)));
+      } catch {
+        parsed = null;
+      }
+      if (!parsed?.success) return fail(400, { message: "those hours aren't valid — check them and try again" });
+
+      await saveWeeklyHours(coach.id, parsed.data);
+    } catch (err) {
+      return actionFailure(err, "we couldn't save your hours — please try again");
+    }
+  },
 };

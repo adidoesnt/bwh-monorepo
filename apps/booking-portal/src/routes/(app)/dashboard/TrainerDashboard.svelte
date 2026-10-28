@@ -182,6 +182,7 @@
 				{zone}
 				minSessionLength={data.minSessionLength}
 				onCancel={() => (editingHours = false)}
+				onSaved={() => (editingHours = false)}
 				bind:draft={draftHours}
 			>
 				{#snippet preview()}

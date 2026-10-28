@@ -1,6 +1,11 @@
 <script lang="ts">
 	import { untrack, type Snippet } from 'svelte';
+	import { enhance } from '$app/forms';
+	import { beforeNavigate, goto, invalidateAll } from '$app/navigation';
+	import type { SubmitFunction } from '@sveltejs/kit';
+	import { showToast } from '$lib/toast.svelte';
 	import { dayLabel, formatTime } from '$lib/utils/format';
+	import { isNetworkFailure, NETWORK_ERROR_MESSAGE } from '$lib/utils/forms';
 	import {
 		EDITOR_WEEKDAYS,
 		TIME_OPTIONS,
@@ -31,6 +36,8 @@
 		zone,
 		minSessionLength,
 		onCancel,
+		onSaved,
+		saveAction = '/dashboard?/saveHours',
 		preview,
 		draft = $bindable()
 	}: {
@@ -39,6 +46,9 @@
 		zone: string;
 		minSessionLength: number | null;
 		onCancel: () => void;
+		onSaved: () => void;
+		/** Where the save form posts — the dashboard's action unless a page has its own. */
+		saveAction?: string;
 		/** Shown between the day rows and the save bar, so the coach reviews before saving. */
 		preview?: Snippet;
 		/** The windows this edit would save. */
@@ -110,6 +120,55 @@
 	const cancel = () => {
 		ranges = clone(original);
 		onCancel();
+	};
+
+	const dirty = $derived(changedDays.length > 0);
+	let saving = $state(false);
+	// Set once saved or discarded, so leaving afterwards isn't stopped.
+	let saved = false;
+	let saveError = $state<string | null>(null);
+	let saveForm = $state<HTMLFormElement>();
+	let confirmDialog = $state<HTMLDialogElement>();
+
+	// Sessions in hours being closed need an explicit "save anyway"; otherwise save straight away.
+	const requestSave = () => {
+		if (conflicts.length > 0) confirmDialog?.showModal();
+		else saveForm?.requestSubmit();
+	};
+
+	const enhanceSave: SubmitFunction = () => {
+		saving = true;
+		saveError = null;
+		return async ({ result }) => {
+			if (isNetworkFailure(result)) saveError = NETWORK_ERROR_MESSAGE;
+			else if (result.type === 'failure') saveError = String(result.data?.message ?? 'something went wrong');
+			else if (result.type === 'error') saveError = 'something went wrong — please try again';
+			else {
+				showToast('weekly hours saved');
+				await invalidateAll();
+				saved = true;
+				onSaved();
+			}
+			saving = false;
+			confirmDialog?.close();
+		};
+	};
+
+	// Unsaved changes: closing/reloading the tab gets the browser's own prompt;
+	// navigating within the app asks here first.
+	let leaveDialog = $state<HTMLDialogElement>();
+	let pendingLeave: URL | null = null;
+	beforeNavigate(({ cancel, to, type }) => {
+		if (!dirty || saved || saving) return;
+		cancel();
+		if (type === 'leave' || !to) return;
+		pendingLeave = to.url;
+		leaveDialog?.showModal();
+	});
+	const discardAndLeave = () => {
+		saved = true;
+		leaveDialog?.close();
+		if (pendingLeave) goto(pendingLeave);
 	};
 
 	const START_OPTIONS = TIME_OPTIONS.slice(0, -1);
@@ -274,11 +333,20 @@
 		{/if}
 	</div>
 
-	<div class="flex flex-wrap items-center justify-between gap-3">
+	<form
+		bind:this={saveForm}
+		method="POST"
+		action={saveAction}
+		class="flex flex-wrap items-center justify-between gap-3"
+		use:enhance={enhanceSave}
+	>
+		<input type="hidden" name="windows" value={JSON.stringify(draftWindows)} />
 		<span class="text-base-content/60 text-sm">
-			{#if hasErrors}
+			{#if saveError}
+				<span class="text-error">{saveError}</span>
+			{:else if hasErrors}
 				<span class="text-error">fix the hours marked above to save</span>
-			{:else if changedDays.length === 0}
+			{:else if !dirty}
 				no changes yet
 			{:else}
 				unsaved changes to {changedDays.map((w) => WEEKDAY_LABELS[w]).join(', ')}
@@ -290,9 +358,68 @@
 			{/if}
 		</span>
 		<div class="flex gap-2">
-			<button type="button" class="btn btn-sm btn-ghost" onclick={cancel}>cancel</button>
-			<!-- Saving lands in the next step. -->
-			<button type="button" class="btn btn-sm btn-accent" disabled>save</button>
+			<button type="button" class="btn btn-sm btn-ghost" disabled={saving} onclick={cancel}>cancel</button>
+			<button
+				type="button"
+				class="btn btn-sm btn-accent"
+				disabled={!dirty || hasErrors || saving}
+				onclick={requestSave}
+			>
+				{saving ? 'saving…' : 'save'}
+			</button>
+		</div>
+	</form>
+</div>
+
+<dialog bind:this={confirmDialog} class="modal">
+	<div class="modal-box bg-base-100 flex flex-col gap-4 rounded-2xl">
+		<h3 class="font-headings text-xl">save your new hours?</h3>
+		<p class="text-base-content/70 text-sm">
+			{conflicts.length === 1 ? 'this session falls' : `these ${conflicts.length} sessions fall`} in hours you're
+			closing:
+		</p>
+		<ul class="bg-base-200 border-base-300 divide-base-300 divide-y rounded-field border text-sm">
+			{#each conflicts as { booking } (booking.id)}
+				<li class="flex items-center justify-between gap-3 px-4 py-2.5">
+					<span>
+						{booking.clientName} · {dayLabel(booking.startsAt, zone)} at {formatTime(booking.startsAt, zone)}
+					</span>
+					<span class="badge badge-sm font-body {booking.status === 'confirmed' ? 'badge-success' : 'badge-warning'}">
+						{booking.status === 'confirmed' ? 'booked' : 'requested'}
+					</span>
+				</li>
+			{/each}
+		</ul>
+		<p class="text-base-content/70 text-sm">
+			{conflicts.length === 1 ? 'it stays' : 'they stay'} as {conflicts.length === 1 ? 'it is' : 'they are'} —
+			closing hours only stops new bookings. reschedule or decline them separately if you can't make them.
+		</p>
+		<div class="modal-action mt-0">
+			<button type="button" class="btn btn-sm btn-ghost" disabled={saving} onclick={() => confirmDialog?.close()}>
+				keep editing
+			</button>
+			<button type="button" class="btn btn-sm btn-accent" disabled={saving} onclick={() => saveForm?.requestSubmit()}>
+				{saving ? 'saving…' : 'save anyway'}
+			</button>
 		</div>
 	</div>
-</div>
+	<form method="dialog" class="modal-backdrop">
+		<button aria-label="close">close</button>
+	</form>
+</dialog>
+
+<dialog bind:this={leaveDialog} class="modal">
+	<div class="modal-box bg-base-100 flex flex-col gap-4 rounded-2xl">
+		<h3 class="font-headings text-xl">discard your changes?</h3>
+		<p class="text-base-content/70 text-sm">
+			you've changed your hours for {changedDays.map((w) => WEEKDAY_LABELS[w]).join(', ')} but haven't saved.
+		</p>
+		<div class="modal-action mt-0">
+			<button type="button" class="btn btn-sm btn-ghost" onclick={() => leaveDialog?.close()}>keep editing</button>
+			<button type="button" class="btn btn-sm btn-error" onclick={discardAndLeave}>discard and leave</button>
+		</div>
+	</div>
+	<form method="dialog" class="modal-backdrop">
+		<button aria-label="close">close</button>
+	</form>
+</dialog>
