@@ -8,3 +8,4 @@ export { default as PackagesCarousel } from "./PackagesCarousel.svelte";
 export { default as RecentActivity } from "./RecentActivity.svelte";
 export { default as Sidebar } from "./Sidebar.svelte";
 export { default as StatCard } from "./StatCard.svelte";
+export { default as WeekGrid } from "./WeekGrid.svelte";

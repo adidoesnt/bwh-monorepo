@@ -45,8 +45,9 @@
 		upcoming: UpcomingBooking[];
 		zone: string;
 		minSessionLength: number | null;
-		onCancel: () => void;
-		onSaved: () => void;
+		/** Called after cancel has reset the edits — e.g. to close the editor. */
+		onCancel?: () => void;
+		onSaved?: () => void;
 		/** Where the save form posts — the dashboard's action unless a page has its own. */
 		saveAction?: string;
 		/** Shown between the day rows and the save bar, so the coach reviews before saving. */
@@ -119,7 +120,7 @@
 
 	const cancel = () => {
 		ranges = clone(original);
-		onCancel();
+		onCancel?.();
 	};
 
 	const dirty = $derived(changedDays.length > 0);
@@ -147,7 +148,7 @@
 				showToast('weekly hours saved');
 				await invalidateAll();
 				saved = true;
-				onSaved();
+				onSaved?.();
 			}
 			saving = false;
 			confirmDialog?.close();

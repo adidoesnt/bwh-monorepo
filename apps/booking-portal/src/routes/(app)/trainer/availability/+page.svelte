@@ -1,0 +1,76 @@
+<script lang="ts">
+	import { goto } from '$app/navigation';
+	import { page } from '$app/state';
+	import { AvailabilityRangeEditor, WeekGrid } from '$lib/components';
+	import type { WeeklyWindow } from '$lib/utils/availabilityEditor';
+	import { getWeekGrid } from '$lib/utils/weekGrid';
+	import type { PageProps } from './$types';
+
+	let { data }: PageProps = $props();
+
+	// `?edit=1` opens the editor — the dashboard's "open editor" link lands here.
+	const editing = $derived(page.url.searchParams.get('edit') === '1');
+	const setEditing = (on: boolean) => {
+		const url = new URL(page.url);
+		if (on) url.searchParams.set('edit', '1');
+		else url.searchParams.delete('edit');
+		goto(url, { replaceState: true, keepFocus: true, noScroll: true });
+	};
+
+	let draftHours = $state<WeeklyWindow[]>();
+</script>
+
+<div class="mx-auto flex max-w-6xl flex-col gap-8 p-6 md:p-10">
+	<div class="flex flex-col">
+		<h1 class="font-headings text-3xl">availability</h1>
+		<p class="text-base-content/60">the hours clients can book you. they repeat every week.</p>
+	</div>
+
+	{#if !data.coach}
+		<p class="text-base-content/60 max-w-sm">
+			you don't have a coach profile yet — ask an admin to set one up before clients can book you.
+		</p>
+	{:else}
+		{@const zone = data.coach.timezone}
+		<div class="bg-base-100 border-base-300 flex flex-col gap-4 rounded-2xl border p-5">
+			<div class="flex items-start justify-between gap-3">
+				<div class="flex flex-col">
+					<h2 class="font-headings text-xl">{editing ? 'your weekly hours' : "this week's availability"}</h2>
+					{#if !editing}
+						<p class="text-base-content/60 text-sm">your open hours, and what's booked or requested in them.</p>
+					{/if}
+				</div>
+				{#if !editing}
+					<button type="button" class="btn btn-sm shrink-0" onclick={() => setEditing(true)}>edit hours</button>
+				{/if}
+			</div>
+
+			{#if !editing}
+				<WeekGrid grid={getWeekGrid(data, zone)} />
+			{:else}
+				<!-- Re-created after a save so it starts from the newly saved hours. -->
+				{#key data.availability}
+					<AvailabilityRangeEditor
+						windows={data.availability}
+						upcoming={data.upcomingActive}
+						{zone}
+						minSessionLength={data.minSessionLength}
+						saveAction="?/saveHours"
+						onCancel={() => setEditing(false)}
+						onSaved={() => setEditing(false)}
+						bind:draft={draftHours}
+					>
+						{#snippet preview()}
+							<div class="flex min-w-0 flex-col gap-3">
+								<p class="text-base-content/60 text-sm">preview — this week with your new hours</p>
+								<WeekGrid
+									grid={getWeekGrid({ ...data, availability: draftHours ?? data.availability }, zone)}
+								/>
+							</div>
+						{/snippet}
+					</AvailabilityRangeEditor>
+				{/key}
+			{/if}
+		</div>
+	{/if}
+</div>
