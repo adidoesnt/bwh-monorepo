@@ -796,6 +796,127 @@ export const getCoachActiveClientStats = async (coachId: string) => {
   return { count: active.length, runningLow: active.filter((b) => b <= 1).length };
 };
 
+export type CoachBookingFilter = "requests" | "to_close";
+
+/** A coach's version of the client's bucketing: a confirmed session that's
+ * already started still needs closing out, so it sits in `awaiting_action`
+ * (filter `to_close`) next to future requests (filter `requests`). */
+const coachBucketCondition = (
+  bucket: BookingBucket,
+  filter?: CoachBookingFilter,
+) => {
+  const now = new Date();
+  const requests = and(
+    eq(booking.status, "pending_approval"),
+    gte(booking.startsAt, now),
+  );
+  const toClose = and(eq(booking.status, "confirmed"), lt(booking.startsAt, now));
+
+  switch (bucket) {
+    case "upcoming":
+      return and(eq(booking.status, "confirmed"), gte(booking.startsAt, now));
+    case "awaiting_action":
+      if (filter === "requests") return requests;
+      if (filter === "to_close") return toClose;
+      return or(requests, toClose);
+    case "past":
+      return and(
+        inArray(booking.status, ["completed", "pending_approval"]),
+        lt(booking.startsAt, now),
+      );
+  }
+};
+
+const clientNameCondition = (search?: string) =>
+  search ? ilike(user.name, `%${search}%`) : undefined;
+
+/** One page of a coach's sessions within a tab bucket. Requests come before
+ * close-outs in `awaiting_action`; `past` is most-recent-first; everything
+ * else soonest-first. */
+export const getCoachBookingsPage = async ({
+  coachId,
+  bucket,
+  filter,
+  search,
+  page = 1,
+  pageSize = 10,
+}: {
+  coachId: string;
+  bucket: BookingBucket;
+  filter?: CoachBookingFilter;
+  search?: string;
+  page?: number;
+  pageSize?: number;
+}) => {
+  const rows = await db
+    .select({
+      ...coachBookingFields,
+      purchaseId: booking.packagePurchaseId,
+      packageName: packageOffering.name,
+      totalCount: sql<number>`count(*) over()`.mapWith(Number),
+    })
+    .from(booking)
+    .innerJoin(user, eq(booking.clientId, user.id))
+    .leftJoin(packagePurchase, eq(booking.packagePurchaseId, packagePurchase.id))
+    .leftJoin(packageOffering, eq(packagePurchase.packageId, packageOffering.id))
+    .where(
+      and(
+        eq(booking.coachId, coachId),
+        coachBucketCondition(bucket, filter),
+        clientNameCondition(search),
+      ),
+    )
+    .orderBy(
+      ...(bucket === "past"
+        ? [desc(booking.startsAt)]
+        : [desc(sql`${booking.status} = 'pending_approval'`), asc(booking.startsAt)]),
+    )
+    .limit(pageSize)
+    .offset((page - 1) * pageSize);
+
+  const balances = await getPurchaseBalances(
+    rows.flatMap((r) => (r.purchaseId ? [r.purchaseId] : [])),
+  );
+
+  return {
+    bookings: rows.map(({ totalCount: _totalCount, ...b }) => ({
+      ...b,
+      balance: b.purchaseId ? (balances.get(b.purchaseId) ?? 0) : null,
+    })),
+    totalCount: rows[0]?.totalCount ?? 0,
+  };
+};
+
+/** Counts per tab, plus the `awaiting_action` split for its filter chips. */
+export const getCoachBookingBucketCounts = async (
+  coachId: string,
+  search?: string,
+) => {
+  const [row] = await db
+    .select({
+      upcoming:
+        sql<number>`count(*) filter (where ${booking.status} = 'confirmed' and ${booking.startsAt} >= now())`.mapWith(
+          Number,
+        ),
+      requests:
+        sql<number>`count(*) filter (where ${booking.status} = 'pending_approval' and ${booking.startsAt} >= now())`.mapWith(
+          Number,
+        ),
+      toClose:
+        sql<number>`count(*) filter (where ${booking.status} = 'confirmed' and ${booking.startsAt} < now())`.mapWith(
+          Number,
+        ),
+      past: sql<number>`count(*) filter (where ${booking.status} in ('completed', 'pending_approval') and ${booking.startsAt} < now())`.mapWith(
+        Number,
+      ),
+    })
+    .from(booking)
+    .innerJoin(user, eq(booking.clientId, user.id))
+    .where(and(eq(booking.coachId, coachId), clientNameCondition(search)));
+
+  return { ...row, awaitingAction: row.requests + row.toClose };
+};
+
 /* Coach Profile Page Queries */
 
 /** An active coach's profile fields by slug, or `null` if no such active coach exists. */

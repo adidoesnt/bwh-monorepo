@@ -1,4 +1,5 @@
 export { default as CoachHeader } from "./CoachHeader.svelte";
+export { default as CoachSessionRow } from "./CoachSessionRow.svelte";
 export { default as DropdownControl } from "./DropdownControl.svelte";
 export { default as ErrorMessage } from "./ErrorMessage.svelte";
 export { default as Pager } from "./Pager.svelte";

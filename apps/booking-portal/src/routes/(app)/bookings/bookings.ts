@@ -1,9 +1,12 @@
 import type { PageData } from './$types';
 
-export const isClient = (data: PageData) => data.user.role === 'client';
+export type ClientBookingsData = Extract<PageData, { view: 'client' }>;
+export type TrainerBookingsData = Extract<PageData, { view: 'trainer' }>;
+
+type Bucket = 'upcoming' | 'awaiting_action' | 'past';
 
 export const BUCKET_TABS: {
-	id: 'upcoming' | 'awaiting_action' | 'past';
+	id: Bucket;
 	label: string;
 	badgeClass?: string;
 }[] = [
@@ -12,5 +15,7 @@ export const BUCKET_TABS: {
 	{ id: 'past', label: 'past' }
 ];
 
-export const bucketCount = (data: PageData, bucket: 'upcoming' | 'awaiting_action' | 'past') =>
-	bucket === 'awaiting_action' ? data.bucketCounts.awaitingAction : data.bucketCounts[bucket];
+export const bucketCount = (
+	counts: { upcoming: number; awaitingAction: number; past: number },
+	bucket: Bucket
+) => (bucket === 'awaiting_action' ? counts.awaitingAction : counts[bucket]);

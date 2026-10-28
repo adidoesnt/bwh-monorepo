@@ -1,6 +1,6 @@
 <script lang="ts">
-	import { StatCard } from '$lib/components';
-	import { dayLabel, dayNumber, formatTime, monthAbbrev, statusBadgeClass, statusLabel } from '$lib/utils/format';
+	import { CoachSessionRow, StatCard } from '$lib/components';
+	import { formatTime, statusBadgeClass, statusLabel } from '$lib/utils/format';
 	import { getTrainerStats, type TrainerDashboardData } from './dashboard';
 
 	let { data }: { data: TrainerDashboardData } = $props();
@@ -27,13 +27,6 @@
 			+{total - PREVIEW_COUNT} more
 		</a>
 	{/if}
-{/snippet}
-
-{#snippet dateBlock(date: Date)}
-	<div class="bg-base-300 flex w-12 shrink-0 flex-col items-center rounded-field py-1.5 text-center leading-tight">
-		<span class="text-base-content/50 text-[10px]">{monthAbbrev(date, zone)}</span>
-		<span class="font-headings text-lg">{dayNumber(date, zone)}</span>
-	</div>
 {/snippet}
 
 {#snippet today()}
@@ -83,28 +76,7 @@
 			<div class="flex flex-col gap-2">
 				{@render groupHeading('requests', 'requests')}
 				{#each data.pendingRequests.slice(0, PREVIEW_COUNT) as r (r.id)}
-					<div class="bg-base-200 border border-base-300 flex flex-col gap-3 rounded-field p-3">
-						<div class="flex items-center gap-3">
-							{@render dateBlock(r.startsAt)}
-							<div class="min-w-0 flex-1">
-								<div class="truncate text-sm font-medium">{r.clientName}</div>
-								<div class="text-base-content/60 truncate text-xs">
-									{dayLabel(r.startsAt, zone)} · {formatTime(r.startsAt, zone)} · {r.type} · {r.location}
-								</div>
-								<div class="text-base-content/60 truncate text-xs">
-									{r.packageName ? `${r.packageName} · ${r.balance} left` : 'no package'}
-								</div>
-							</div>
-						</div>
-						{#if r.clientNote}
-							<p class="text-base-content/70 text-sm italic">"{r.clientNote}"</p>
-						{/if}
-						<!-- Wired up in the next step. -->
-						<div class="flex gap-2">
-							<button type="button" class="btn btn-sm btn-accent" disabled>approve</button>
-							<button type="button" class="btn btn-sm btn-ghost" disabled>decline</button>
-						</div>
-					</div>
+					<CoachSessionRow session={r} {zone} />
 				{/each}
 				{@render moreLink(data.pendingRequests.length, 'requests')}
 			</div>
@@ -113,17 +85,7 @@
 			<div class="flex flex-col gap-2">
 				{@render groupHeading('to close out', 'to_close', 'past sessions still waiting to be marked complete')}
 				{#each data.sessionsToClose.slice(0, PREVIEW_COUNT) as s (s.id)}
-					<div class="bg-base-200 border border-base-300 flex items-center gap-3 rounded-field p-3">
-						{@render dateBlock(s.startsAt)}
-						<div class="min-w-0 flex-1">
-							<div class="truncate text-sm font-medium">{s.clientName}</div>
-							<div class="text-base-content/60 truncate text-xs">
-								{formatTime(s.startsAt, zone)} · {s.type} · {s.location}
-							</div>
-						</div>
-						<!-- Wired up in a later step. -->
-						<button type="button" class="btn btn-sm shrink-0" disabled>mark complete</button>
-					</div>
+					<CoachSessionRow session={s} {zone} />
 				{/each}
 				{@render moreLink(data.sessionsToClose.length, 'to_close')}
 			</div>
