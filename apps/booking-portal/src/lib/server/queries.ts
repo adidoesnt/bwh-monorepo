@@ -143,7 +143,8 @@ export const getClientActivePackages = async (
       .groupBy(sessionLedgerEntry.purchaseId),
     // "Holds" — the client's own other pending_approval bookings against a
     // purchase. Not yet consumed (the ledger only moves on approval), but
-    // already spoken for, so they come off what's actually bookable now.
+    // already spoken for, so they come off what's actually bookable now. A
+    // request whose start has passed can never be approved, so it holds nothing.
     executor
       .select({
         purchaseId: booking.packagePurchaseId,
@@ -154,6 +155,7 @@ export const getClientActivePackages = async (
         and(
           inArray(booking.packagePurchaseId, purchaseIds),
           eq(booking.status, "pending_approval"),
+          gt(booking.startsAt, new Date()),
         ),
       )
       .groupBy(booking.packagePurchaseId),

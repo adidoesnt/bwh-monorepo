@@ -1,4 +1,7 @@
-import type { PageServerLoad } from "./$types";
+import { fail } from "@sveltejs/kit";
+import type { Actions, PageServerLoad } from "./$types";
+import { approveBooking, declineBooking } from "$lib/server/bookings";
+import { actionFailure } from "$lib/server/errors";
 import {
   getAllCoachTags,
   getClientBookingBucketCounts,
@@ -100,4 +103,46 @@ export const load: PageServerLoad = async ({ locals, url }) => {
     default:
       throw new Error("Invalid role");
   }
+};
+
+/** The acting coach and the posted `bookingId`, or the `fail` to return. */
+const parseCoachAction = async (locals: App.Locals, request: Request) => {
+  if (!locals.user || locals.user.role !== "trainer") {
+    return { error: fail(403, { message: "not allowed" }) };
+  }
+  const coach = await getCoachProfileByUserId(locals.user.id);
+  if (!coach) return { error: fail(403, { message: "not allowed" }) };
+
+  const bookingId = (await request.formData()).get("bookingId");
+  if (typeof bookingId !== "string" || !bookingId) {
+    return { error: fail(400, { message: "missing booking" }) };
+  }
+  return { coach, bookingId };
+};
+
+// Posted to from the dashboard's "needs action" widget as well as this page.
+export const actions: Actions = {
+  approve: async ({ locals, request }) => {
+    try {
+      const parsed = await parseCoachAction(locals, request);
+      if ("error" in parsed) return parsed.error;
+
+      const result = await approveBooking(parsed.bookingId, parsed.coach);
+      if (!result.ok) return fail(409, { message: result.message });
+    } catch (err) {
+      return actionFailure(err, "we couldn't approve that request — please try again");
+    }
+  },
+
+  decline: async ({ locals, request }) => {
+    try {
+      const parsed = await parseCoachAction(locals, request);
+      if ("error" in parsed) return parsed.error;
+
+      const result = await declineBooking(parsed.bookingId, parsed.coach.id);
+      if (!result.ok) return fail(409, { message: result.message });
+    } catch (err) {
+      return actionFailure(err, "we couldn't decline that request — please try again");
+    }
+  },
 };

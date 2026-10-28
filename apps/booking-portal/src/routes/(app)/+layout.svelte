@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { MenuIcon } from '@repo/ui';
 	import { Sidebar } from '$lib/components';
+	import { toast } from '$lib/toast.svelte';
 	import type { LayoutProps } from './$types';
 
 	let { data, children }: LayoutProps = $props();
@@ -24,6 +25,16 @@
 		<main class="bg-base-200 flex-1 overflow-y-auto">
 			{@render children()}
 		</main>
+
+		{#if toast.current}
+			{#key toast.current.id}
+				<div class="toast toast-top toast-center z-50">
+					<div class="alert alert-success">
+						<span>{toast.current.message}</span>
+					</div>
+				</div>
+			{/key}
+		{/if}
 	</div>
 
 	<div class="drawer-side z-20">
