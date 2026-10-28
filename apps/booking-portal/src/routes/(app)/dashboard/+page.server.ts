@@ -1,5 +1,5 @@
-import type { Actions, PageServerLoad } from "./$types";
-import { coachWeekBounds, getHoursEditorData, saveHoursAction } from "$lib/server/availability";
+import type { PageServerLoad } from "./$types";
+import { coachWeekBounds } from "$lib/server/availability";
 import {
   getClientUpcomingBookings,
   getClientUpcomingBookingsCount,
@@ -12,6 +12,7 @@ import {
   getCoachPendingRequests,
   getCoachSessionsToClose,
   getCoachActiveClientStats,
+  getCoachAvailabilitySlots,
   type CoachSession,
   type CoachPendingRequest,
 } from "$lib/server/queries";
@@ -53,9 +54,7 @@ const EMPTY_TRAINER_DATA = {
   sessionsToClose: [] as CoachSession[],
   activeClientStats: { count: 0, runningLow: 0 },
   weekStart: new Date(),
-  availability: [] as Awaited<ReturnType<typeof getHoursEditorData>>["availability"],
-  upcomingActive: [] as CoachSession[],
-  minSessionLength: null as number | null,
+  availability: [] as Awaited<ReturnType<typeof getCoachAvailabilitySlots>>,
 };
 
 const getTrainerData = async (userId: string) => {
@@ -64,13 +63,13 @@ const getTrainerData = async (userId: string) => {
 
   const { todayStart, tomorrowStart, weekStart, weekEnd } = coachWeekBounds(coach.timezone);
 
-  const [weekSessions, pendingRequests, sessionsToClose, activeClientStats, hoursEditor] =
+  const [weekSessions, pendingRequests, sessionsToClose, activeClientStats, availability] =
     await Promise.all([
       getCoachSessionsBetween(coach.id, weekStart, weekEnd),
       getCoachPendingRequests(coach.id),
       getCoachSessionsToClose(coach.id),
       getCoachActiveClientStats(coach.id),
-      getHoursEditorData(coach.id),
+      getCoachAvailabilitySlots(coach.id),
     ]);
 
   const todaySessions = weekSessions.filter(
@@ -86,7 +85,7 @@ const getTrainerData = async (userId: string) => {
     sessionsToClose,
     activeClientStats,
     weekStart,
-    ...hoursEditor,
+    availability,
   };
 };
 
@@ -107,8 +106,4 @@ export const load: PageServerLoad = async ({
     default:
       throw new Error("Invalid role");
   }
-};
-
-export const actions: Actions = {
-  saveHours: saveHoursAction,
 };

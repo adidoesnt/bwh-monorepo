@@ -37,7 +37,7 @@
 		minSessionLength,
 		onCancel,
 		onSaved,
-		saveAction = '/dashboard?/saveHours',
+		saveAction = '/trainer/availability?/saveHours',
 		preview,
 		draft = $bindable()
 	}: {
@@ -48,7 +48,7 @@
 		/** Called after cancel has reset the edits — e.g. to close the editor. */
 		onCancel?: () => void;
 		onSaved?: () => void;
-		/** Where the save form posts — the dashboard's action unless a page has its own. */
+		/** Where the save form posts. */
 		saveAction?: string;
 		/** Shown between the day rows and the save bar, so the coach reviews before saving. */
 		preview?: Snippet;

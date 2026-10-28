@@ -1,6 +1,5 @@
 <script lang="ts">
-	import { AvailabilityRangeEditor, CoachSessionRow, StatCard, WeekGrid } from '$lib/components';
-	import type { WeeklyWindow } from '$lib/utils/availabilityEditor';
+	import { CoachSessionRow, StatCard, WeekGrid } from '$lib/components';
 	import { formatTime, statusBadgeClass, statusLabel } from '$lib/utils/format';
 	import { getWeekGrid } from '$lib/utils/weekGrid';
 	import { getTrainerStats, type TrainerDashboardData } from './dashboard';
@@ -12,18 +11,7 @@
 	const stats = $derived(getTrainerStats(data, zone));
 	const actionCount = $derived(data.pendingRequests.length + data.sessionsToClose.length);
 
-	let editingHours = $state(false);
-	// The editor's unsaved hours, so the range editor's preview can show them.
-	let draftHours = $state<WeeklyWindow[]>();
 	const weekGrid = $derived(getWeekGrid(data, zone));
-	const previewGrid = $derived(
-		getWeekGrid({ ...data, availability: draftHours ?? data.availability }, zone)
-	);
-
-	const startEditing = () => {
-		draftHours = undefined;
-		editingHours = true;
-	};
 
 	const PREVIEW_COUNT = 3;
 	const AWAITING_ACTION_HREF = '/bookings?tab=awaiting_action';
@@ -112,39 +100,12 @@
 	<div class="bg-base-100 border-base-300 flex flex-col gap-4 rounded-2xl border p-5">
 		<div class="flex items-start justify-between gap-3">
 			<div class="flex flex-col">
-				<h2 class="font-headings text-xl">{editingHours ? 'your weekly hours' : "this week's availability"}</h2>
-				{#if !editingHours}
-					<p class="text-base-content/60 text-sm">your open hours, and what's booked or requested in them.</p>
-				{/if}
+				<h2 class="font-headings text-xl">this week's availability</h2>
+				<p class="text-base-content/60 text-sm">your open hours, and what's booked or requested in them.</p>
 			</div>
-			{#if !editingHours}
-				<div class="flex shrink-0 items-center gap-3">
-					<a class="text-accent text-sm hover:underline" href="/trainer/availability?edit=1">open editor</a>
-					<button type="button" class="btn btn-sm" onclick={startEditing}>quick edit</button>
-				</div>
-			{/if}
+			<a class="btn btn-sm shrink-0" href="/trainer/availability?edit=1">edit hours</a>
 		</div>
-
-		{#if !editingHours}
-			<WeekGrid grid={weekGrid} />
-		{:else}
-			<AvailabilityRangeEditor
-				windows={data.availability}
-				upcoming={data.upcomingActive}
-				{zone}
-				minSessionLength={data.minSessionLength}
-				onCancel={() => (editingHours = false)}
-				onSaved={() => (editingHours = false)}
-				bind:draft={draftHours}
-			>
-				{#snippet preview()}
-					<div class="flex min-w-0 flex-col gap-3">
-						<p class="text-base-content/60 text-sm">preview — this week with your new hours</p>
-						<WeekGrid grid={previewGrid} />
-					</div>
-				{/snippet}
-			</AvailabilityRangeEditor>
-		{/if}
+		<WeekGrid grid={weekGrid} />
 	</div>
 {/snippet}
 

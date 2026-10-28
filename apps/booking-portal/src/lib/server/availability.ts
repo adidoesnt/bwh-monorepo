@@ -73,9 +73,8 @@ const weeklyHoursSchema = z.array(
     .refine((w) => w.endMin > w.startMin),
 );
 
-/** The `?/saveHours` form action, shared by the dashboard and the availability
- * page. Anyone with a coach profile edits their own hours — that includes an
- * admin who also coaches. */
+/** The availability page's `?/saveHours` form action. Anyone with a coach
+ * profile edits their own hours — that includes an admin who also coaches. */
 export const saveHoursAction = async ({ locals, request }: RequestEvent) => {
   if (!locals.user || (locals.user.role !== "trainer" && locals.user.role !== "admin")) {
     return fail(403, { message: "not allowed" });

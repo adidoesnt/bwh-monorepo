@@ -8,7 +8,7 @@
 
 	let { data }: PageProps = $props();
 
-	// `?edit=1` opens the editor — the dashboard's "open editor" link lands here.
+	// `?edit=1` opens the editor — the dashboard's "edit hours" link lands here.
 	const editing = $derived(page.url.searchParams.get('edit') === '1');
 	const setEditing = (on: boolean) => {
 		const url = new URL(page.url);
@@ -55,7 +55,6 @@
 						upcoming={data.upcomingActive}
 						{zone}
 						minSessionLength={data.minSessionLength}
-						saveAction="?/saveHours"
 						onCancel={() => setEditing(false)}
 						onSaved={() => setEditing(false)}
 						bind:draft={draftHours}
