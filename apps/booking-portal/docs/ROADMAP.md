@@ -365,25 +365,40 @@ Shared surfaces render per role instead of living under `/trainer/*`: `/dashboar
   against a 2-session package (exactly 2 succeed).
 - ✅ **Read-only availability grid** on the dashboard: this week, Mon–Sun in the coach's zone,
   30-minute rows (rows closed every day skipped), each cell open / booked / requested / closed,
-  past cells dimmed, first name on a session's first cell, "N hours still open this week".
+  past cells dimmed, the client as "Tessa L." on every slot a session covers, "N hours still open
+  this week". Below `xl` it scrolls both ways inside a capped height with the day row and hour
+  column pinned (the `pinned-hour` utility in `app.css`).
 - ✅ **Fix found on the way:** a request whose start passed unanswered kept holding a session on
   its package forever (`getClientActivePackages` counted every `pending_approval` booking as a
   hold), blocking the client from booking again. Holds now only count future requests.
-- 🚧 **Availability editing** — next. Agreed so far:
-  - Edits the **weekly pattern** (`availability_slot`), in an explicit edit mode laid out as a
-    plain Mon–Sun week so it's clear changes apply to every week.
-  - Edit mode shows **all 48 half-hour rows** (midnight to midnight) so new hours can be opened;
-    the read-only grid and the client's booking form keep showing only hours that have slots.
-  - The coach toggles cells, then **saves manually** (or cancels). One action replaces the coach's
-    windows in a single transaction under the per-coach lock, merging adjacent cells.
-  - Closing hours that already hold upcoming sessions is **allowed, but made very clear**: the
-    affected cells are marked in the grid and saving asks for confirmation listing each affected
-    session. Those bookings stay booked; pending requests stay pending.
-  - A hint when a window is shorter than every package's session length (no client could book it).
-  - Quick edits in the dashboard card, plus an "open editor" for bigger changes (page vs popup
-    being decided), using one shared editor component.
-  - **One-off changes** ("off this thursday" / "block time off") come at the end of this slice:
-    a new exceptions table, honoured by slot generation and shown in the grid.
+- ✅ **Weekly hours editor** ("edit weekly hours" on the dashboard availability card) —
+  `$lib/components/AvailabilityRangeEditor.svelte`, logic in `$lib/utils/availabilityEditor.ts`:
+  - Edits the **weekly pattern** (`availability_slot`), so changes apply to every week.
+  - **Ranges, not cells.** One block per day: an open/closed toggle (closing remembers the hours
+    for reopening), then start/end dropdowns in 30-minute steps (ends up to "midnight"),
+    "+ add hours", ✕, and "copy to…" other days (with an "all weekdays" shortcut). A first
+    version had coaches click/drag half-hour cells in a 48-row grid; a trainer couldn't work out
+    how it worked, so it was replaced (briefly kept behind a flag to compare, then removed).
+  - **Inline feedback:** "ends before it starts" / "overlaps other hours on this day"; a "too
+    short" note on a range no package session fits in (shorter than the coach's shortest active
+    package — only a free consult fits; skipped when they have no packages); and, under each
+    day, the upcoming sessions that fall in hours being closed.
+  - **Live preview:** the same week grid, showing this week with the new hours. Side by side on
+    `xl` (the preview sets the height, the day list scrolls), stacked below.
+  - **Saving** (`?/saveHours` on `/dashboard`, `saveWeeklyHours` in `lib/server/availability.ts`):
+    zod-validated (weekday 0–6, half-hour boundaries, end after start), merged, then the coach's
+    windows replaced in one transaction under the same per-coach lock as requests and approvals.
+    Bookings are never touched. If sessions fall in hours being closed, a "save your new hours?"
+    modal lists each one and asks for "save anyway"; otherwise it saves straight away. A toast
+    on success; leaving with unsaved changes asks first (in-app modal, or the browser's prompt
+    on close/reload).
+  - Verified against real data: clients see the new slots straight away; invalid input changes
+    nothing; and 10 runs racing a client request against closing that hour always ended
+    consistently (either booked first and kept, or cleanly refused) with no errors.
+- ⬜ **Availability page** (`/trainer/availability`, next): the same editor with more room, its
+  own nav item, and an "open editor" link from the dashboard card.
+- ⬜ **One-off changes** ("off this thursday" / "block time off"): a new exceptions table,
+  honoured by slot generation, shown in the week grid, with the same booking-conflict warning.
 - ⬜ **Suggest another time** on a request (a counter-offer the client accepts or rejects).
 - ⬜ **Clients table:** roster with sessions remaining, next session, attendance %, flags — derived
   (package running low / no screening / etc.), not manually set.
@@ -458,8 +473,8 @@ coexists with the no-payment flow; and `/payments` and `/activity`. The error-ha
 (atomic purchase/booking, `fail(500)`s, error pages, reference ids) is done — see its bullet for the
 few known gaps.
 
-**What's left in Phase 8:** availability editing (weekly pattern, then one-off changes), suggest
-another time, the clients table, and the package editor.
+**What's left in Phase 8:** the availability page and one-off availability changes, suggest another
+time, the clients table, and the package editor. Coaches can now set their own weekly hours.
 
 ## Suggested near-term order
 
@@ -468,7 +483,6 @@ Stripe checkout, bookings management). Phase 8 (trainer portal) is the first har
 that — until it lands, `pending_approval` bookings sit idle with no one to approve them. Phases
 6, 7, 9, 10 otherwise proceed in roughly the listed order.
 
-**Immediate next:** availability editing in Phase 8 — coaches can't change their hours at all yet
-(they only come from the seed), which is the main thing between the trainer portal and real use.
-After that, Phase 5 (client reschedule / cancel) is the natural follow-on: its ledger rules depend
-on bookings reaching `confirmed`, which now happens.
+**Immediate next:** finish availability in Phase 8 — the `/trainer/availability` page, then
+one-off changes. After that, Phase 5 (client reschedule / cancel) is the natural follow-on: its
+ledger rules depend on bookings reaching `confirmed`, which now happens.
