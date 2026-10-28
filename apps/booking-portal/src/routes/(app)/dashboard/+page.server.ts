@@ -12,6 +12,8 @@ import {
   getCoachSessionsToClose,
   getCoachActiveClientStats,
   getCoachAvailabilitySlots,
+  getCoachPackages,
+  getCoachUpcomingActiveBookings,
   type CoachSession,
   type CoachPendingRequest,
 } from "$lib/server/queries";
@@ -55,6 +57,8 @@ const EMPTY_TRAINER_DATA = {
   activeClientStats: { count: 0, runningLow: 0 },
   availability: [] as Awaited<ReturnType<typeof getCoachAvailabilitySlots>>,
   weekStart: new Date(),
+  upcomingActive: [] as CoachSession[],
+  minSessionLength: null as number | null,
 };
 
 const getTrainerData = async (userId: string) => {
@@ -70,14 +74,23 @@ const getTrainerData = async (userId: string) => {
   const weekStart = zonedStartOfDay(now, coach.timezone, -daysSinceMonday);
   const weekEnd = zonedStartOfDay(now, coach.timezone, 7 - daysSinceMonday);
 
-  const [weekSessions, pendingRequests, sessionsToClose, activeClientStats, availability] =
-    await Promise.all([
-      getCoachSessionsBetween(coach.id, weekStart, weekEnd),
-      getCoachPendingRequests(coach.id),
-      getCoachSessionsToClose(coach.id),
-      getCoachActiveClientStats(coach.id),
-      getCoachAvailabilitySlots(coach.id),
-    ]);
+  const [
+    weekSessions,
+    pendingRequests,
+    sessionsToClose,
+    activeClientStats,
+    availability,
+    upcomingActive,
+    packages,
+  ] = await Promise.all([
+    getCoachSessionsBetween(coach.id, weekStart, weekEnd),
+    getCoachPendingRequests(coach.id),
+    getCoachSessionsToClose(coach.id),
+    getCoachActiveClientStats(coach.id),
+    getCoachAvailabilitySlots(coach.id),
+    getCoachUpcomingActiveBookings(coach.id),
+    getCoachPackages(coach.id),
+  ]);
 
   const todaySessions = weekSessions.filter(
     (s) => s.startsAt >= todayStart && s.startsAt < tomorrowStart,
@@ -93,6 +106,11 @@ const getTrainerData = async (userId: string) => {
     activeClientStats,
     availability,
     weekStart,
+    upcomingActive,
+    // Shortest session any active package sells — windows shorter than this
+    // only ever fit a free consult. `null` when there are no packages.
+    minSessionLength:
+      packages.length > 0 ? Math.min(...packages.map((p) => p.sessionLengthMin)) : null,
   };
 };
 

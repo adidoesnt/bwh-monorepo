@@ -1,1 +1,14 @@
 @import "@repo/tailwind-config/styles";
+
+/* A grid's hour label pinned to the left while its slots scroll sideways. The
+   shadow covers the gaps around it so scrolled slots don't show through. */
+@utility pinned-hour {
+  position: sticky;
+  left: 0;
+  z-index: 10;
+  background: var(--color-base-100);
+  box-shadow:
+    4px 0 0 var(--color-base-100),
+    0 -2px 0 var(--color-base-100),
+    0 2px 0 var(--color-base-100);
+}

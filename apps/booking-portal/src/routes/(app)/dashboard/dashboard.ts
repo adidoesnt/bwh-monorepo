@@ -99,6 +99,13 @@ const DAY_MS = 86_400_000;
 
 export type GridCellState = 'open' | 'booked' | 'requested' | 'closed';
 
+/** "Tessa Lim" → "Tessa L." — short enough for a grid cell. */
+const shortName = (fullName: string) => {
+	const [first, ...rest] = fullName.trim().split(/\s+/);
+	const last = rest.at(-1);
+	return last ? `${first} ${last[0]}.` : first;
+};
+
 const pad = (n: number) => String(n).padStart(2, '0');
 const clockLabel = (minute: number) => `${pad(Math.floor(minute / 60))}:${pad(minute % 60)}`;
 
@@ -127,7 +134,7 @@ export const getWeekGrid = (data: TrainerDashboardData, zone: string) => {
 			day: dayIndexOf(s.startsAt),
 			start: minuteOf(s.startsAt),
 			end: minuteOf(s.startsAt) + s.durationMin,
-			name: s.clientName.split(' ')[0],
+			name: shortName(s.clientName),
 			type: s.type
 		}))
 		.filter((o) => o.day >= 0 && o.day < 7);
@@ -159,8 +166,7 @@ export const getWeekGrid = (data: TrainerDashboardData, zone: string) => {
 			return {
 				state,
 				past,
-				// Name the client on a session's first cell only.
-				label: occupant && occupant.start >= minute ? occupant.name : null,
+				label: occupant?.name ?? null,
 				title: occupant
 					? `${occupant.name} · ${occupant.type} · ${occupant.state}`
 					: `${clockLabel(minute)} · ${state}`

@@ -1,3 +1,4 @@
+export { default as AvailabilityRangeEditor } from "./AvailabilityRangeEditor.svelte";
 export { default as CoachHeader } from "./CoachHeader.svelte";
 export { default as CoachSessionRow } from "./CoachSessionRow.svelte";
 export { default as DropdownControl } from "./DropdownControl.svelte";

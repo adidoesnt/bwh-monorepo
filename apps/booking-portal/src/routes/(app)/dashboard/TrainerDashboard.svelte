@@ -1,5 +1,6 @@
 <script lang="ts">
-	import { CoachSessionRow, StatCard } from '$lib/components';
+	import { AvailabilityRangeEditor, CoachSessionRow, StatCard } from '$lib/components';
+	import type { WeeklyWindow } from '$lib/utils/availabilityEditor';
 	import { formatTime, statusBadgeClass, statusLabel } from '$lib/utils/format';
 	import { getTrainerStats, getWeekGrid, type GridCellState, type TrainerDashboardData } from './dashboard';
 
@@ -10,7 +11,18 @@
 	const stats = $derived(getTrainerStats(data, zone));
 	const actionCount = $derived(data.pendingRequests.length + data.sessionsToClose.length);
 
+	let editingHours = $state(false);
+	// The editor's unsaved hours, so the range editor's preview can show them.
+	let draftHours = $state<WeeklyWindow[]>();
 	const weekGrid = $derived(getWeekGrid(data, zone));
+	const previewGrid = $derived(
+		getWeekGrid({ ...data, availability: draftHours ?? data.availability }, zone)
+	);
+
+	const startEditing = () => {
+		draftHours = undefined;
+		editingHours = true;
+	};
 
 	const CELL_CLASSES: Record<GridCellState, string> = {
 		open: 'bg-success/30',
@@ -102,56 +114,84 @@
 	</div>
 {/snippet}
 
-{#snippet availability()}
-	<div class="bg-base-100 border-base-300 flex flex-col gap-4 rounded-2xl border p-5">
-		<div class="flex flex-col">
-			<h2 class="font-headings text-xl">this week's availability</h2>
-			<p class="text-base-content/60 text-sm">your open hours, and what's booked or requested in them.</p>
-		</div>
-
-		<!-- TODO: make this editable (tap a cell to open/close it). Open questions first:
-		     - availability_slot is a weekly pattern, but this shows one week's bookings — a tap
-		       would change every week. One-off changes ("off this thursday") need an exceptions table.
-		     - closing a cell that already has a booking: block it, or close and keep the booking?
-		     - saving rewrites that weekday's windows; it needs the per-coach lock bookSession takes. -->
-		<div class="overflow-x-auto">
-			<div class="grid min-w-[36rem] grid-cols-[3.5rem_repeat(7,minmax(0,1fr))] gap-1 text-xs">
-				<span></span>
-				{#each weekGrid.days as d (d.label)}
-					<div class="pb-1 text-center {d.isToday ? 'text-accent font-medium' : 'text-base-content/60'}">
+{#snippet weekGridView(grid: ReturnType<typeof getWeekGrid>)}
+	<!-- Below xl the grid scrolls in both directions inside a capped height, with the
+	     day row and hour column pinned so only the slots move. -->
+	<div class="max-h-[70vh] overflow-auto xl:max-h-none">
+		<div class="grid min-w-xl grid-cols-[3.5rem_repeat(7,minmax(0,1fr))] gap-1 text-xs">
+			<div class="bg-base-100 sticky top-0 z-20 col-span-8 grid grid-cols-subgrid pb-1">
+				<span class="bg-base-100 sticky left-0"></span>
+				{#each grid.days as d (d.label)}
+					<div class="text-center {d.isToday ? 'text-accent font-medium' : 'text-base-content/60'}">
 						{d.label} {d.day}
 					</div>
 				{/each}
-
-				{#each weekGrid.rows as row (row.minute)}
-					{#if row.gapBefore}
-						<div class="col-span-8 h-2"></div>
-					{/if}
-					<span class="text-base-content/60 self-center font-mono">{row.label}</span>
-					{#each row.cells as cell, i (i)}
-						<div
-							class="h-7 truncate rounded-field px-1 text-center text-[10px] leading-7 {CELL_CLASSES[cell.state]} {cell.past
-								? 'opacity-40'
-								: ''}"
-							title={cell.title}
-						>
-							{cell.label ?? ''}
-						</div>
-					{/each}
-				{/each}
 			</div>
+
+			{#each grid.rows as row (row.minute)}
+				{#if row.gapBefore}
+					<div class="col-span-8 h-2"></div>
+				{/if}
+				<span class="pinned-hour text-base-content/60 flex items-center font-mono">{row.label}</span>
+				{#each row.cells as cell, i (i)}
+					<div
+						class="h-7 truncate rounded-field px-1 text-center text-[10px] leading-7 {CELL_CLASSES[cell.state]} {cell.past
+							? 'opacity-40'
+							: ''}"
+						title={cell.title}
+					>
+						{cell.label ?? ''}
+					</div>
+				{/each}
+			{/each}
+		</div>
+	</div>
+
+	<div class="text-base-content/60 flex flex-wrap items-center justify-between gap-3 text-xs">
+		<div class="flex flex-wrap gap-4">
+			{#each ['open', 'booked', 'requested', 'closed'] as const as state (state)}
+				<span class="flex items-center gap-1.5">
+					<span class="h-3 w-3 rounded-sm {CELL_CLASSES[state]}"></span>{state}
+				</span>
+			{/each}
+		</div>
+		<span class="font-mono">{grid.openHoursLeft} hours still open this week</span>
+	</div>
+{/snippet}
+
+{#snippet availability()}
+	<div class="bg-base-100 border-base-300 flex flex-col gap-4 rounded-2xl border p-5">
+		<div class="flex items-start justify-between gap-3">
+			<div class="flex flex-col">
+				<h2 class="font-headings text-xl">{editingHours ? 'your weekly hours' : "this week's availability"}</h2>
+				{#if !editingHours}
+					<p class="text-base-content/60 text-sm">your open hours, and what's booked or requested in them.</p>
+				{/if}
+			</div>
+			{#if !editingHours}
+				<button type="button" class="btn btn-sm shrink-0" onclick={startEditing}>edit weekly hours</button>
+			{/if}
 		</div>
 
-		<div class="text-base-content/60 flex flex-wrap items-center justify-between gap-3 text-xs">
-			<div class="flex flex-wrap gap-4">
-				{#each ['open', 'booked', 'requested', 'closed'] as const as state (state)}
-					<span class="flex items-center gap-1.5">
-						<span class="h-3 w-3 rounded-sm {CELL_CLASSES[state]}"></span>{state}
-					</span>
-				{/each}
-			</div>
-			<span class="font-mono">{weekGrid.openHoursLeft} hours still open this week</span>
-		</div>
+		{#if !editingHours}
+			{@render weekGridView(weekGrid)}
+		{:else}
+			<AvailabilityRangeEditor
+				windows={data.availability}
+				upcoming={data.upcomingActive}
+				{zone}
+				minSessionLength={data.minSessionLength}
+				onCancel={() => (editingHours = false)}
+				bind:draft={draftHours}
+			>
+				{#snippet preview()}
+					<div class="flex min-w-0 flex-col gap-3">
+						<p class="text-base-content/60 text-sm">preview — this week with your new hours</p>
+						{@render weekGridView(previewGrid)}
+					</div>
+				{/snippet}
+			</AvailabilityRangeEditor>
+		{/if}
 	</div>
 {/snippet}
 

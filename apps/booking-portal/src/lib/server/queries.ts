@@ -762,6 +762,23 @@ export const getCoachPendingRequestCount = async (coachId: string) => {
   return row.count;
 };
 
+/** Every future session still holding a slot (requested or confirmed), soonest
+ * first — what a change to the coach's weekly hours could land on. */
+export const getCoachUpcomingActiveBookings = async (coachId: string) => {
+  return db
+    .select(coachBookingFields)
+    .from(booking)
+    .innerJoin(user, eq(booking.clientId, user.id))
+    .where(
+      and(
+        eq(booking.coachId, coachId),
+        inArray(booking.status, UPCOMING_BOOKING_STATUSES),
+        gt(booking.startsAt, new Date()),
+      ),
+    )
+    .orderBy(asc(booking.startsAt));
+};
+
 /** Confirmed sessions whose start has passed — waiting on the coach to mark them
  * complete (nothing moves a booking to `completed` on its own). Oldest first. */
 export const getCoachSessionsToClose = async (coachId: string) => {
