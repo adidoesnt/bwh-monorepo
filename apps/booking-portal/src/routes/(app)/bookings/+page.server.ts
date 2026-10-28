@@ -1,6 +1,6 @@
 import { fail } from "@sveltejs/kit";
 import type { Actions, PageServerLoad } from "./$types";
-import { approveBooking, declineBooking } from "$lib/server/bookings";
+import { approveBooking, completeBooking, declineBooking } from "$lib/server/bookings";
 import { actionFailure } from "$lib/server/errors";
 import {
   getAllCoachTags,
@@ -144,6 +144,18 @@ export const actions: Actions = {
       if (!result.ok) return fail(409, { message: result.message });
     } catch (err) {
       return actionFailure(err, "we couldn't decline that request — please try again");
+    }
+  },
+
+  complete: async ({ locals, request }) => {
+    try {
+      const parsed = await parseCoachAction(locals, request);
+      if ("error" in parsed) return parsed.error;
+
+      const result = await completeBooking(parsed.bookingId, parsed.coach.id);
+      if (!result.ok) return fail(409, { message: result.message });
+    } catch (err) {
+      return actionFailure(err, "we couldn't mark that session complete — please try again");
     }
   },
 };

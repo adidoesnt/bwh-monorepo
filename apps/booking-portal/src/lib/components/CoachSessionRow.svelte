@@ -37,8 +37,14 @@
 
 	// Handles the result here rather than through the page's `form` prop, since
 	// this row also posts to /bookings from the dashboard.
+	const SUCCESS_MESSAGES: Record<string, () => string> = {
+		approve: () => `approved — ${firstName}'s session on ${when} is confirmed`,
+		decline: () => `declined ${firstName}'s request for ${when}`,
+		complete: () => `marked ${firstName}'s session on ${when} as complete`
+	};
+
 	const enhanceAction: SubmitFunction = ({ action }) => {
-		const declining = action.search.includes('decline');
+		const actionName = action.search.replace('?/', '');
 		submitting = true;
 		error = null;
 		return async ({ result }) => {
@@ -47,11 +53,7 @@
 			else if (result.type === 'error') error = 'something went wrong — please try again';
 			else {
 				resolved = true;
-				showToast(
-					declining
-						? `declined ${firstName}'s request for ${when}`
-						: `approved — ${firstName}'s session on ${when} is confirmed`
-				);
+				showToast(SUCCESS_MESSAGES[actionName]?.() ?? 'done');
 				await invalidateAll();
 			}
 			submitting = false;
@@ -85,8 +87,10 @@
 			{/if}
 		</div>
 		{#if isToClose}
-			<!-- Wired up in a later step. -->
-			<button type="button" class="btn btn-sm shrink-0" disabled>mark complete</button>
+			<form method="POST" action="/bookings?/complete" class="shrink-0" use:enhance={enhanceAction}>
+				<input type="hidden" name="bookingId" value={session.id} />
+				<button class="btn btn-sm" disabled={submitting}>mark complete</button>
+			</form>
 		{:else if !isRequest}
 			<span class="badge badge-sm {badge.className} font-body shrink-0">{badge.label}</span>
 		{/if}

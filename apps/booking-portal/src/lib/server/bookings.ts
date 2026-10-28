@@ -1,4 +1,4 @@
-import { and, eq, sql } from "drizzle-orm";
+import { and, eq, lte, sql } from "drizzle-orm";
 import {
   booking,
   packagePurchase,
@@ -171,3 +171,35 @@ export const declineBooking = (bookingId: string, coachId: string) =>
 
     return { ok: true as const };
   });
+
+/** Marks a session that's already started as completed. Nothing moves on the
+ * ledger — the session was spent when the coach approved it. */
+export const completeBooking = async (bookingId: string, coachId: string) => {
+  const [updated] = await db
+    .update(booking)
+    .set({ status: "completed" })
+    .where(
+      and(
+        eq(booking.id, bookingId),
+        eq(booking.coachId, coachId),
+        eq(booking.status, "confirmed"),
+        lte(booking.startsAt, new Date()),
+      ),
+    )
+    .returning({ id: booking.id });
+  if (updated) return { ok: true as const };
+
+  const [existing] = await db
+    .select({ status: booking.status })
+    .from(booking)
+    .where(and(eq(booking.id, bookingId), eq(booking.coachId, coachId)));
+
+  if (!existing) return { ok: false as const, message: "that session doesn't exist" };
+  if (existing.status === "completed") {
+    return { ok: false as const, message: "that session is already marked complete" };
+  }
+  if (existing.status !== "confirmed") {
+    return { ok: false as const, message: "only confirmed sessions can be marked complete" };
+  }
+  return { ok: false as const, message: "that session hasn't started yet" };
+};
