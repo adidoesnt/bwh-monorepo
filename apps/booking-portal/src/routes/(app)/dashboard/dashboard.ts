@@ -1,7 +1,8 @@
 import { dayLabel, formatFullDate, formatTime } from '$lib/utils/format';
 import type { PageData } from './$types';
 
-export const isClient = (data: PageData) => data.user.role === 'client';
+export type ClientDashboardData = Extract<PageData, { view: 'client' }>;
+export type TrainerDashboardData = Extract<PageData, { view: 'trainer' }>;
 
 const weeklyTrendLabel = (thisWeek: number, lastWeek: number) => {
 	const diff = thisWeek - lastWeek;
@@ -9,7 +10,7 @@ const weeklyTrendLabel = (thisWeek: number, lastWeek: number) => {
 	return `${Math.abs(diff)} ${diff > 0 ? 'more' : 'fewer'} than last week`;
 };
 
-export const getStats = (data: PageData, zone: string) => {
+export const getStats = (data: ClientDashboardData, zone: string) => {
 	const nextBooking = data.upcomingBookings[0] ?? null;
 
 	return [

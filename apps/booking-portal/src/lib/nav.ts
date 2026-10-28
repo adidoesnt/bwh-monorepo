@@ -35,7 +35,7 @@ const NAV: Record<Role, NavDef[]> = {
     { id: "help", label: "help", href: "/help", enabled: false },
   ],
   trainer: [
-    { id: "tdash", label: "today & requests", href: "/trainer", enabled: false, badgeKey: "trainerRequests" },
+    { id: "tdash", label: "dashboard", href: "/dashboard", enabled: true, badgeKey: "trainerRequests" },
     { id: "tclients", label: "my clients", href: "/trainer/clients", enabled: false, badgeKey: "trainerClients" },
     { id: "tprogress", label: "client progress", href: "/trainer/progress", enabled: false },
     { id: "tpayouts", label: "my payouts", href: "/trainer/payouts", enabled: false },

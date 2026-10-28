@@ -6,6 +6,7 @@ import {
   getClientRecentActivity,
   getClientCompletedSessionStats,
   getClientWeeklySessionCounts,
+  getCoachProfileByUserId,
 } from "$lib/server/queries";
 
 const UPCOMING_BOOKINGS_PREVIEW_COUNT = 3;
@@ -28,6 +29,7 @@ const getClientData = async (clientId: string) => {
   ]);
 
   return {
+    view: "client" as const,
     upcomingBookings,
     upcomingBookingsCount,
     activePackages,
@@ -37,13 +39,10 @@ const getClientData = async (clientId: string) => {
   };
 };
 
-const EMPTY_DASHBOARD_DATA = {
-  upcomingBookings: [],
-  upcomingBookingsCount: 0,
-  activePackages: [],
-  recentActivity: [],
-  completedSessionStats: { count: 0, since: null },
-  weeklySessionCounts: { thisWeek: 0, lastWeek: 0 },
+const getTrainerData = async (userId: string) => {
+  const coach = await getCoachProfileByUserId(userId);
+
+  return { view: "trainer" as const, coach };
 };
 
 export const load: PageServerLoad = async ({
@@ -56,12 +55,10 @@ export const load: PageServerLoad = async ({
   switch (user?.role) {
     case "client":
       return await getClientData(user.id);
-    case "admin":
-      console.warn("Admin dashboard not implemented yet!");
-      return EMPTY_DASHBOARD_DATA;
     case "trainer":
-      console.warn("Trainer dashboard not implemented yet!");
-      return EMPTY_DASHBOARD_DATA;
+      return await getTrainerData(user.id);
+    case "admin":
+      return { view: "admin" as const };
     default:
       throw new Error("Invalid role");
   }

@@ -10,8 +10,7 @@ const AUTH_PATH = "/";
 
 /**
  * Where each role lands after login and when it strays into another role's area.
- * The trainer/admin route trees don't exist yet (Phase 2/9/10) — until they do,
- * every role lands on /dashboard. Point these at "/trainer" / "/admin" once built.
+ * /dashboard renders a role-specific view, so every role shares it.
  */
 const HOME_BY_ROLE: Record<Role, string> = {
   client: "/dashboard",

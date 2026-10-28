@@ -634,6 +634,25 @@ export const getCoachSlotsForDate = async (
   );
 };
 
+/* Trainer Portal Queries */
+
+/** The coach profile a user owns, or `null` — a trainer account may not have one yet. */
+export const getCoachProfileByUserId = async (userId: string) => {
+  const [coach] = await db
+    .select({
+      id: coachProfile.id,
+      slug: coachProfile.slug,
+      name: user.name,
+      timezone: coachProfile.timezone,
+    })
+    .from(coachProfile)
+    .innerJoin(user, eq(coachProfile.userId, user.id))
+    .where(eq(coachProfile.userId, userId))
+    .limit(1);
+
+  return coach ?? null;
+};
+
 /* Coach Profile Page Queries */
 
 /** An active coach's profile fields by slug, or `null` if no such active coach exists. */
