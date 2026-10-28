@@ -140,7 +140,15 @@ Gates (form **and** re-checked server-side):
 - **Timezone** — client zone ≠ coach zone → only online session types.
 - **Screening** — no submitted PAR-Q → only `free consult`.
 - **Package expiry** — the start must be ≤ the chosen purchase's `expires_at`.
-- **Slot** — recomputed from the coach's weekly windows; stale / taken / past → rejected.
+- **Slot** — recomputed from the coach's hours for that date (weekly windows, plus that date's
+  extra hours, minus its time off — see `availability_exception` in `DATA-MODEL.md`); stale /
+  taken / past → rejected. This runs inside `bookSession`'s per-coach lock, the same lock saving
+  the coach's hours takes, so a request is checked against either the old hours or the new ones,
+  never a half-saved mix.
+
+Changing hours never touches existing bookings: a session already requested or booked in hours
+the coach closes (weekly, or as time off) stays as it is. The editor lists those sessions and asks
+for confirmation before saving; the coach declines or reschedules them separately.
 
 The slot check has no concept of travel time between in-person locations — a coach whose two
 back-to-back windows are at different addresses can still have both fill up. That's intentional:

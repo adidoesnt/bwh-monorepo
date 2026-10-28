@@ -31,6 +31,7 @@ erDiagram
     user ||--o{ account : ""
     user ||--o| coach_profile : "userId"
     coach_profile ||--o{ availability_slot : "coachId"
+    coach_profile ||--o{ availability_exception : "coachId"
     coach_profile ||--o{ package : "coachId"
     coach_profile ||--o{ booking : "coachId"
     user ||--o{ booking : "clientId"
@@ -68,6 +69,16 @@ erDiagram
         int weekday
         int start_min
         int end_min
+    }
+    availability_exception {
+        text id PK
+        text coach_id FK
+        text kind
+        date start_date
+        date end_date
+        int start_min
+        int end_min
+        text note
     }
     booking {
         text id PK

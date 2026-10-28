@@ -36,7 +36,18 @@ an account an admin created that hasn't set a password yet.
 - **`availability_slot`** — a recurring weekly open window: `coachId`,
   `weekday` (0 = Sunday … 6 = Saturday), `startMin`/`endMin` (minutes from
   midnight). Concrete bookable slots are derived from these at read time,
-  minus cells already covered by a `booking`.
+  adjusted by that date's `availability_exception`s, minus cells already
+  covered by a `booking`. Saved as merged windows (touching ranges join).
+- **`availability_exception`** — a one-off change to the weekly hours:
+  `coachId` (cascade), `kind` (`closed` = time off, `open` = extra hours),
+  `startDate`/`endDate` (`date`, inclusive, the coach's calendar dates),
+  `startMin`/`endMin` (applied on every date in the range; `0`–`1440` is all
+  day), `note` (optional). Check constraints enforce the kind, `endDate >=
+  startDate`, and `0 <= startMin < endMin <= 1440`. For a given date the open
+  hours are: weekly windows + `open` exceptions, then minus `closed` ones —
+  time off wins where they overlap. Exceptions never change existing
+  bookings. Entries whose `endDate` has passed are kept as a record; saving
+  the editor replaces only the upcoming ones.
 
 ## Booking (`schema/booking.ts`)
 
@@ -48,9 +59,10 @@ an account an admin created that hasn't set a password yet.
   (client's note at request time), `sessionNotes` (coach's, post-session),
   `clientReflection` (client's, post-session), `cancelledAt`.
 - **`BookingStatus`** — `pending_approval | pending_payment |
-  pending_verification | confirmed | completed | cancelled`. In practice a
-  booking only ever moves `pending_approval → confirmed → completed` (or
-  `→ cancelled` at any point before `completed`); `pending_payment` and
+  pending_verification | confirmed | completed | declined | cancelled`. In
+  practice a booking only ever moves `pending_approval → confirmed →
+  completed`, `pending_approval → declined` (the coach turned the request
+  down), or `→ cancelled` (the client called it off) before `completed`; `pending_payment` and
   `pending_verification` are reserved for a future in-flow payment step and
   aren't written today — money currently settles on the package-purchase
   side before a booking is confirmed.

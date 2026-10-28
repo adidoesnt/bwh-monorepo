@@ -363,42 +363,57 @@ Shared surfaces render per role instead of living under `/trainer/*`: `/dashboar
   confirm in a modal showing the full session and its effect on the package; success shows a
   toast and slides the row out. Verified against real data, including 3 concurrent approvals
   against a 2-session package (exactly 2 succeed).
-- ✅ **Read-only availability grid** on the dashboard: this week, Mon–Sun in the coach's zone,
-  30-minute rows (rows closed every day skipped), each cell open / booked / requested / closed,
-  past cells dimmed, the client as "Tessa L." on every slot a session covers, "N hours still open
+- ✅ **Week grid** (`$lib/components/WeekGrid.svelte`, logic in `$lib/utils/weekGrid.ts`) on the
+  dashboard and the availability page: this week, Mon–Sun in the coach's zone, 30-minute rows
+  (rows closed every day skipped), each cell open / booked / requested / time off / closed — each
+  day's hours being the weekly pattern adjusted by that date's one-off changes, "time off" (hatched,
+  `off-stripes` in `app.css`, labelled "off" with the note on hover) only where the coach would
+  otherwise be open — past cells dimmed, the client as "Tessa L." on every slot a session covers, "N hours still open
   this week". Below `xl` it scrolls both ways inside a capped height with the day row and hour
   column pinned (the `pinned-hour` utility in `app.css`).
 - ✅ **Fix found on the way:** a request whose start passed unanswered kept holding a session on
   its package forever (`getClientActivePackages` counted every `pending_approval` booking as a
   hold), blocking the client from booking again. Holds now only count future requests.
-- ✅ **Weekly hours editor** ("edit weekly hours" on the dashboard availability card) —
-  `$lib/components/AvailabilityRangeEditor.svelte`, logic in `$lib/utils/availabilityEditor.ts`:
-  - Edits the **weekly pattern** (`availability_slot`), so changes apply to every week.
-  - **Ranges, not cells.** One block per day: an open/closed toggle (closing remembers the hours
-    for reopening), then start/end dropdowns in 30-minute steps (ends up to "midnight"),
-    "+ add hours", ✕, and "copy to…" other days (with an "all weekdays" shortcut). A first
+- ✅ **Availability page** (`/trainer/availability`, "availability" in the trainer nav): read mode
+  shows the week grid and the upcoming one-off changes (first 5, then "show N more"); "edit hours"
+  (or `?edit=1` — the dashboard card's "edit hours" link) opens the editor; cancel or save returns
+  to read mode. Open to anyone with a coach profile, including an admin who coaches (who has no nav
+  link to it until Phase 9). A dashboard "quick edit" was built and then removed — it duplicated the
+  page and made every dashboard load fetch editor-only data.
+- ✅ **Hours editor** — `$lib/components/AvailabilityRangeEditor.svelte`, logic in
+  `$lib/utils/availabilityEditor.ts`, server side in `lib/server/availability.ts`:
+  - **Weekly hours** (`availability_slot`): one block per day — an open/closed toggle (closing
+    remembers the hours for reopening), start/end dropdowns in 30-minute steps (ends up to
+    "midnight"), "+ add hours", ✕, and "copy to…" other days (with "all weekdays"). A first
     version had coaches click/drag half-hour cells in a 48-row grid; a trainer couldn't work out
-    how it worked, so it was replaced (briefly kept behind a flag to compare, then removed).
-  - **Inline feedback:** "ends before it starts" / "overlaps other hours on this day"; a "too
-    short" note on a range no package session fits in (shorter than the coach's shortest active
-    package — only a free consult fits; skipped when they have no packages); and, under each
-    day, the upcoming sessions that fall in hours being closed.
-  - **Live preview:** the same week grid, showing this week with the new hours. Side by side on
-    `xl` (the preview sets the height, the day list scrolls), stacked below.
-  - **Saving** (`?/saveHours` on `/dashboard`, `saveWeeklyHours` in `lib/server/availability.ts`):
-    zod-validated (weekday 0–6, half-hour boundaries, end after start), merged, then the coach's
-    windows replaced in one transaction under the same per-coach lock as requests and approvals.
-    Bookings are never touched. If sessions fall in hours being closed, a "save your new hours?"
-    modal lists each one and asks for "save anyway"; otherwise it saves straight away. A toast
-    on success; leaving with unsaved changes asks first (in-app modal, or the browser's prompt
-    on close/reload).
-  - Verified against real data: clients see the new slots straight away; invalid input changes
-    nothing; and 10 runs racing a client request against closing that hour always ended
-    consistently (either booked first and kept, or cleanly refused) with no errors.
-- ⬜ **Availability page** (`/trainer/availability`, next): the same editor with more room, its
-  own nav item, and an "open editor" link from the dashboard card.
-- ⬜ **One-off changes** ("off this thursday" / "block time off"): a new exceptions table,
-  honoured by slot generation, shown in the week grid, with the same booking-conflict warning.
+    how it worked, so it was replaced with these ranges.
+  - **One-off changes** (`availability_exception`): time off or extra hours over a date range,
+    all day or between two times, with an optional note. Listed under a divider below the weekly
+    hours, edited in the same draft and saved in the same batch. An entry that would change
+    nothing on any of its dates (extra hours that are already open, time off over hours that are
+    already closed) can't be added, and an existing one that stops changing anything after a
+    weekly edit is flagged to remove — the server refuses both.
+  - **Inline feedback:** overlapping / reversed ranges; a "too short" note on a weekly range no
+    package session fits in (only a free consult fits; skipped with no packages); and the
+    upcoming sessions that would end up outside open hours — judged on each session's actual date
+    (weekly hours + one-off changes before vs after), shown under the day or under one-off changes.
+  - **Live preview:** the week grid with the draft applied. Side by side on `xl` (the preview
+    sets the height, the day list scrolls), stacked below.
+  - **Saving** (`?/saveHours` on `/trainer/availability`, `saveCoachHours`): zod-validated (real
+    calendar dates, half-hour times, entries ending today or later, notes ≤ 100 chars), then the
+    weekly windows and all *upcoming* one-off changes replaced in one transaction under the same
+    per-coach lock as requests and approvals. Ended entries are kept; a save without the one-offs
+    field leaves them alone. Bookings are never touched — if sessions would end up outside open
+    hours, a "save your new hours?" modal lists them and asks for "save anyway". A toast on
+    success; leaving with unsaved changes asks first.
+  - **Slot generation** (`getCoachSlots`) applies each date's one-off changes (extra hours added,
+    then time off removed — time off wins), so the client's booking form and `bookSession` both
+    honour them.
+  - Verified against real data: clients see weekly and one-off changes straight away (split
+    windows, all-day and multi-day time off, extra hours on a closed day); invalid input and
+    redundant entries are refused with nothing written; existing bookings in newly closed time
+    stay; and 10 runs each racing a client request against closing that hour — weekly or as time
+    off — always ended consistently (booked first and kept, or cleanly refused) with no errors.
 - ⬜ **Suggest another time** on a request (a counter-offer the client accepts or rejects).
 - ⬜ **Clients table:** roster with sessions remaining, next session, attendance %, flags — derived
   (package running low / no screening / etc.), not manually set.
@@ -436,7 +451,8 @@ Spread across the project rather than a single sprint.
 
 - Email/SMS reminders for upcoming sessions and pending approvals
 - Notifications/toasts wired to real events (payment received, etc.). A shared toast now exists
-  (`$lib/toast.svelte.ts` → `showToast(message)`, rendered once in the `(app)` layout) and is used
+  (`$lib/toast.svelte.ts` → `showToast(message)`, rendered once in the `(app)` layout; top-right
+  from `md`, full width below — all three toasts share that placement) and is used
   by the trainer's approve / decline / complete. The older "request sent" and "package purchased"
   toasts still use their own `?booked=1` / `?bought=1` URL-flag pattern — move them onto the shared
   one. Clients aren't yet told when a request is approved or declined beyond what their lists show.
@@ -473,8 +489,8 @@ coexists with the no-payment flow; and `/payments` and `/activity`. The error-ha
 (atomic purchase/booking, `fail(500)`s, error pages, reference ids) is done — see its bullet for the
 few known gaps.
 
-**What's left in Phase 8:** the availability page and one-off availability changes, suggest another
-time, the clients table, and the package editor. Coaches can now set their own weekly hours.
+**What's left in Phase 8:** suggest another time, the clients table, and the package editor.
+Availability is done: coaches set their weekly hours and one-off changes on `/trainer/availability`.
 
 ## Suggested near-term order
 
@@ -483,6 +499,6 @@ Stripe checkout, bookings management). Phase 8 (trainer portal) is the first har
 that — until it lands, `pending_approval` bookings sit idle with no one to approve them. Phases
 6, 7, 9, 10 otherwise proceed in roughly the listed order.
 
-**Immediate next:** finish availability in Phase 8 — the `/trainer/availability` page, then
-one-off changes. After that, Phase 5 (client reschedule / cancel) is the natural follow-on: its
-ledger rules depend on bookings reaching `confirmed`, which now happens.
+**Immediate next:** Phase 5 (client reschedule / cancel) — its ledger rules depend on bookings
+reaching `confirmed`, which now happens, and clients currently have no way to change or cancel a
+booking. The rest of Phase 8 (clients table, package editor, suggest another time) can follow.
