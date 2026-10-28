@@ -11,17 +11,6 @@ and git history, not assumptions — re-check before trusting a ✅ if much time
 
 **Legend:** ✅ done · 🚧 partial · ⬜ not started
 
-### About the estimates
-
-Hours assume **AI-assisted development** (a developer working with Claude Code or similar,
-steering and reviewing rather than hand-typing everything) — not unattended autonomous work and
-not traditional from-scratch estimates. They're focused dev-effort hours, not calendar time.
-Later phases are estimated faster than they'd otherwise be because schema shapes, form patterns,
-and the checkout skeleton get established early and reused. The riskiest line item to underestimate
-is real availability/slot computation in Phase 3 — everything downstream depends on it being
-correct, and it's the one piece with actual scheduling-logic complexity rather than
-CRUD-and-render.
-
 ---
 
 ## Phase 0 — Foundations ✅ done
@@ -40,7 +29,6 @@ CRUD-and-render.
 - ✅ `/dashboard` exists as a placeholder welcome page
 
 ## Phase 1 — Data model & roles ✅ done
-**Estimate: ~6h**
 
 The schema the rest of the roadmap fills in — see [`DATA-MODEL.md`](../../../packages/database/docs/DATA-MODEL.md)
 in `@repo/database` for the full reference.
@@ -64,17 +52,16 @@ in `@repo/database` for the full reference.
   tables).
 
 ## Phase 2 — Client dashboard shell & navigation ✅ done
-**Estimate: ~6h**
 
 *Design screens: global sidebar, "Client dashboard"*
 
 - ✅ Replace the placeholder `/dashboard` with the real app shell: role-aware sidebar nav
-  (dashboard / bookings / packages / payments / progress / help), logout — *2h*
+  (dashboard / bookings / packages / payments / progress / help), logout
 - ✅ Dashboard content: "hey {name}", stat cards (next session, active packages, sessions done,
   this week), "what's next" (upcoming bookings preview, capped to the soonest 3 with a "+N more"
   link to `/bookings` when there are more — row actions land once Phase 3/5 ship the routes to
   deep-link to), package carousel with per-purchase balance, recent-activity feed from
-  `session_ledger_entry` — *3h*
+  `session_ledger_entry`
   - ✅ The package carousel is `$lib/components/PackagesCarousel.svelte`, shared with `/packages`
     (see Phase 4) rather than duplicated. Each slide has a "request a session" button that
     deep-links to `/bookings/[slug]?package=<purchaseId>`, pre-selecting that purchase on the
@@ -83,10 +70,9 @@ in `@repo/database` for the full reference.
     fragment-jump scrolls the whole page, not just the carousel, which was a real regression caught
     and fixed this session.
 - ✅ Render dates in the viewer's timezone: `/dashboard` renders client-side (`ssr = false`) so
-  times show in the viewer's stored `user.timezone`, else the browser's — *1h*
+  times show in the viewer's stored `user.timezone`, else the browser's
 
 ## Phase 3 — Coach directory & booking request (client) 🚧 partial
-**Estimate: ~10h** (highest-risk phase to underestimate)
 
 *Design screens: "Bookings" → choose coach, coach profile / book panel*
 
@@ -181,7 +167,6 @@ sessions that haven't actually been consumed. Verified against a real seeded pen
 (Tessa/Nadia's "starter": `balance: 3, holds: 1, bookable: 2`), not synthetic data.
 
 ## Phase 4 — Package browsing, purchase & Stripe payments (client) 🚧 partial
-**Estimate: ~9.5h** (~5h remaining — Stripe flow + `/payments` + `/activity`)
 
 *Design screen: checkout modal (review → pay → processing/confirmed)*
 
@@ -214,15 +199,14 @@ Stripe flow:  buy → Stripe Checkout → processing (webhook in flight) → pur
   new client with no history gets the popularity branch, verified against real seed data for both
   branches) · **browse packages** (the same server-side searchable/tag-filterable/sortable/
   paginated coach directory `/bookings` uses, reused via `getCoachDirectoryPage` +
-  `parseCoachDirectoryParams`, linking into `/packages/[slug]` instead of the booking flow) — *2h*
+  `parseCoachDirectoryParams`, linking into `/packages/[slug]` instead of the booking flow)
 - ✅ `/packages/[slug]`: lists a coach's active package offerings; each has a real `?/buy` action
   (`use:enhance`) that inserts the `package_purchase` row and an immediate `+N` `purchase` ledger
   entry — **no Stripe wiring yet**, so sessions land as soon as the purchase row does, same spirit
   as how the booking form writes real `pending_approval` rows without payment infra. Verified
   end-to-end: a real purchase produced the right `package_purchase` + ledger rows and balance; the
   action's gates (missing/foreign-coach/inactive `packageId`) correctly reject. `/packages` shows a
-  one-shot "package purchased" toast via `?bought=1`, mirroring `/bookings`' `?booked=1` pattern —
-  *2h*
+  one-shot "package purchased" toast via `?bought=1`, mirroring `/bookings`' `?booked=1` pattern
 - ✅ Per-package "activity" (`session_ledger_entry` history scoped to that one purchase, via
   `getPurchaseLedgerEntries`) — an inline expand/collapse on each carousel slide, not a floating
   popover. daisyUI's `.dropdown` was tried first but depends on the CSS Anchor Positioning API
@@ -230,7 +214,7 @@ Stripe flow:  buy → Stripe Checkout → processing (webhook in flight) → pur
   than fight that (a manual `position: absolute` + click-outside overlay was also tried and is a
   viable fallback if a floating panel is wanted elsewhere later), it's a plain `$state` toggle that
   expands in normal flow. Worth remembering if Phase 8's trainer portal reaches for a `.dropdown`
-  inside a similarly cramped layout — *0.5h*
+  inside a similarly cramped layout
 - ✅ **Buying a package inline from the booking form** (`/bookings/[slug]`) when the client has no
   active package with that coach (no-payment flow). The dead-end message is replaced by the coach's
   packages; click one to select it and a "buy this package" button appears in its card. `?/buy` is
@@ -239,7 +223,7 @@ Stripe flow:  buy → Stripe Checkout → processing (webhook in flight) → pur
   and the normal package picker takes over with an inline "purchased" confirmation. `use:enhance`
   on both forms, and the button disables while a request is in flight so a double-click can't buy
   twice. Only `packageId` is trusted from the form, revalidated against the page's coach. Verified
-  against real data (purchase + ledger rows, gates) — *2h*
+  against real data (purchase + ledger rows, gates)
 - ✅ **`MAX_ACTIVE_PACKAGES = 5`** (`config.ts`, hardcoded until Phase 9) enforced for the
   no-payment flow in one shared place: `getPurchaseBlockReason` (`lib/server/packages.ts`), backed by
   `getClientActivePackageCount`, enforced atomically by `buyPackage` for both `?/buy` actions (409 at
@@ -248,7 +232,7 @@ Stripe flow:  buy → Stripe Checkout → processing (webhook in flight) → pur
   rejected from both pages with nothing written, and under concurrent load (see the error handling
   bullet). **Stripe flow will add:** "held" also counts pending purchase-
   invoices, and the check runs when the Checkout Session is *created*, not in the webhook (money
-  has already moved by then) — *0.5h*
+  has already moved by then)
 - ✅ **Error handling pass** (`chore/error-handling-pass`), covering purchases *and* session
   requests:
   - **Atomic purchase.** `purchasePackage`'s two inserts run in one transaction (a failure between
@@ -284,13 +268,12 @@ Stripe flow:  buy → Stripe Checkout → processing (webhook in flight) → pur
     by reading code and probing endpoints, not in a browser.
 - ⬜ **Stripe flow:** `?/buy` creates a Stripe Checkout Session for the package total instead of
   calling `purchasePackage` (metadata: client + package id), writes an `invoice` row
-  (`status: pending`, `stripe_checkout_session_id`), and redirects to Stripe's hosted checkout —
-  *2h*
+  (`status: pending`, `stripe_checkout_session_id`), and redirects to Stripe's hosted checkout
 - ⬜ Webhook (`src/routes/webhooks/stripe/+server.ts`): verifies the Stripe signature, handles
   `checkout.session.completed` — creates the `package_purchase` the same way `purchasePackage`
   does today (snapshotting `sessionsGranted`, `sessionLengthMin`, `expiresAt`), writes the `+N`
   `purchase` ledger entry, flips the invoice to `paid`. A failed/expired session flips the invoice
-  to a failed state instead — *2.5h*
+  to a failed state instead
 - **Under consideration, not decided:** disallowing more than *one* active package **per coach**
   at a time (separate from the global 5-package cap above). Nothing in the schema or Phase 3's
   booking form currently prevents a client holding two simultaneous active purchases with the same
@@ -298,12 +281,11 @@ Stripe flow:  buy → Stripe Checkout → processing (webhook in flight) → pur
   soonest-expiring first. If this gets restricted, it belongs here (`?/buy` is what would reject
   the second purchase), not in the booking form itself.
 - `/payments` — invoice table (number, date, description, amount, status) + stats (total paid /
-  count / processing) + cancellation-policy blurb. No saved payment methods — *0.5h*
+  count / processing) + cancellation-policy blurb. No saved payment methods
 - `/activity` — full `session_ledger_entry` log, chronological, per-purchase running balance on
-  each row, coach filter chips, 20/page client-side pagination — *0.5h*
+  each row, coach filter chips, 20/page client-side pagination
 
 ## Phase 5 — Bookings management (client) ⬜
-**Estimate: ~5.5h**
 
 *Design screen: "Bookings" list, upcoming/past/all tabs*
 
@@ -330,79 +312,74 @@ State machine: [`BOOKING-LIFECYCLE.md`](BOOKING-LIFECYCLE.md).
   | `confirmed` | < 24h | session forfeited — the `−1` stands, nothing else |
 
 ## Phase 6 — Intake / PAR-Q health screening ⬜
-**Estimate: ~4.5h**
 
 *Design screen: "Intake PAR-Q"*
 
 - Multi-step form (progress bar, PAR-Q questions), writes `intake_response` and flips
-  `submitted_at` — *2.5h*
+  `submitted_at`
 - Booking-side gate (only a free consult bookable without a submitted PAR-Q) is Phase 3's
   concern; this phase scopes visibility to client + assigned coach only (PDPA — don't surface to
-  admin by default) — *1.5h*
+  admin by default)
 
 ## Phase 7 — Progress tracking (client) ⬜
-**Estimate: ~7.5h**
 
 *Design screen: "Progress"*
 
-- Stat tiles, chart with metric tabs, backed by `progress_entry` — *2.5h*
-- Measurements list, "log this week's numbers" entry form — *2h*
-- Check-in photos — private storage (client + assigned coach only) — *3h*
+- Stat tiles, chart with metric tabs, backed by `progress_entry`
+- Measurements list, "log this week's numbers" entry form
+- Check-in photos — private storage (client + assigned coach only)
 
 ## Phase 8 — Trainer (coach) portal ⬜
-**Estimate: ~10h**
 
 *Design screens: "Trainer dashboard", "Trainer clients"*
 
 - Dashboard: today's schedule, pending requests (approve / suggest another time — approve flips
-  booking to `confirmed` and consumes a session `−1` from the client's purchase) — *2h*
+  booking to `confirmed` and consumes a session `−1` from the client's purchase)
 - Weekly availability grid: tap to toggle open/closed; booked cells derived from real bookings,
-  not manually set — *3h*
+  not manually set
 - Clients table: roster with sessions remaining, next session, attendance %, flags — derived
-  (package running low / no screening / etc.), not manually set — *2.5h*
+  (package running low / no screening / etc.), not manually set
 - Package editor: CRUD the packages clients buy from this coach — session count, length,
   per-session price, validity days; deactivate without deleting (past purchases keep their
-  snapshot) — *2.5h*
+  snapshot)
 
 ## Phase 9 — Admin portal ⬜
-**Estimate: ~8h** **+ ~2h** ("preview as", deferred)
 
 *Design screens: "Admin overview", "Admin users"*
 
-- Overview: revenue by coach, utilization, all-bookings table — *3h*
+- Overview: revenue by coach, utilization, all-bookings table
 - Settings: make the hardcoded policy limits editable — `CANCELLATION_WINDOW_HOURS` (24) and
   `MAX_ACTIVE_PACKAGES` (5) — plus the platform commission rate + payout ledger. Package
-  pricing/validity is coach-owned (Phase 8 editor), not admin — *2h*
-- Users: role management (client/trainer/admin), invite flow, audit log of role changes — *3h*
-- "Preview as" mode (admin viewing the app as a client/trainer) — *2h, defer until the client and
+  pricing/validity is coach-owned (Phase 8 editor), not admin
+- Users: role management (client/trainer/admin), invite flow, audit log of role changes
+- "Preview as" mode (admin viewing the app as a client/trainer) — *defer until the client and
   trainer surfaces are stable, since it just re-renders them with a banner*
 
 ## Phase 10 — Help / support ⬜
-**Estimate: ~3h** (canned) **+ ~4-6h** (real AI assistant, deferred)
 
 *Design screen: "Help and support"*
 
-- Chat UI backed by `chat_message`, canned/FAQ-suggestion responses — *2.5h*
-- Escalate-to-coach and WhatsApp link (static, just needs the coach's real contact info) — *0.5h*
-- Real AI assistant grounded on FAQs + account data — *4-6h, highest-effort/lowest-priority piece
+- Chat UI backed by `chat_message`, canned/FAQ-suggestion responses
+- Escalate-to-coach and WhatsApp link (static, just needs the coach's real contact info)
+- Real AI assistant grounded on FAQs + account data — *highest-effort/lowest-priority piece
   of the mock, defer*
 
 ## Phase 11 — Polish & hardening ⬜
-**Estimate: ~14h**, spread across the project rather than a single sprint
+Spread across the project rather than a single sprint.
 
-- Email/SMS reminders for upcoming sessions and pending approvals — *3h*
+- Email/SMS reminders for upcoming sessions and pending approvals
 - Notifications/toasts wired to real events (payment received, etc.) — the pattern's first
   instance already exists (a "request sent" toast after `/bookings/[slug]`'s `?/request` redirect,
-  via a `?booked=1` flag stripped from the URL after showing) — *1.5h remaining*
-- Accessibility and responsive pass against the prototype's breakpoints — *3h*
+  via a `?booked=1` flag stripped from the URL after showing)
+- Accessibility and responsive pass against the prototype's breakpoints
 - Test coverage for booking / session-ledger / cancellation logic and the Stripe webhook (real
-  money and scheduling correctness at stake) — *4h*. The concurrency checks that proved the purchase
+  money and scheduling correctness at stake). The concurrency checks that proved the purchase
   cap and double-booking fixes (Phase 4) were throwaway scripts, not committed tests; they're the
   first candidates to turn into real ones, since the failure they guard against is silent.
 - Production deploy pipeline: pick a concrete SvelteKit adapter (adapter-auto can't detect one),
   and set the prod env — `BETTER_AUTH_SECRET` is **required** (dev + `vite build` fall back to a
   throwaway value; real prod runtime throws without it — see `src/lib/server/config.ts`), plus
-  `STRIPE_SECRET_KEY` / `STRIPE_WEBHOOK_SECRET` from Phase 4 — *2h*
+  `STRIPE_SECRET_KEY` / `STRIPE_WEBHOOK_SECRET` from Phase 4
 
 ---
 
@@ -440,15 +417,3 @@ that — until it lands, `pending_approval` bookings sit idle with no one to app
 is Phase 8 (trainer portal — completes the booking loop end to end) or the Stripe flow (needs test
 keys, a webhook secret and the Stripe CLI first). The error-handling pass is finished on
 `chore/error-handling-pass`.
-
-## Total estimated effort
-
-| Scope | Estimate |
-| :-- | :-- |
-| Critical path (Phases 1–5) | ~38.5h |
-| Full client + trainer + admin core (Phases 1–10, excluding deferred items) | ~90h |
-| Deferred items (real AI assistant, "preview as") | ~6-8h |
-| Polish & hardening (Phase 11) | ~14h |
-| **End-to-end** | **~110-112h**, i.e. roughly 3 weeks of focused solo AI-assisted work |
-
-Treat these as planning inputs, not commitments.
