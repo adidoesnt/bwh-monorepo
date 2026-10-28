@@ -653,6 +653,149 @@ export const getCoachProfileByUserId = async (userId: string) => {
   return coach ?? null;
 };
 
+/** Summed ledger balance per purchase. */
+const getPurchaseBalances = async (purchaseIds: string[]) => {
+  if (purchaseIds.length === 0) return new Map<string, number>();
+
+  const rows = await db
+    .select({
+      purchaseId: sessionLedgerEntry.purchaseId,
+      balance: sql<number>`sum(${sessionLedgerEntry.delta})`.mapWith(Number),
+    })
+    .from(sessionLedgerEntry)
+    .where(inArray(sessionLedgerEntry.purchaseId, purchaseIds))
+    .groupBy(sessionLedgerEntry.purchaseId);
+
+  return new Map(rows.map((r) => [r.purchaseId, r.balance]));
+};
+
+const coachBookingFields = {
+  id: booking.id,
+  type: booking.type,
+  location: booking.location,
+  startsAt: booking.startsAt,
+  durationMin: booking.durationMin,
+  status: booking.status,
+  clientNote: booking.clientNote,
+  clientName: user.name,
+};
+
+/** A coach's confirmed and completed sessions starting in `[from, to)`, soonest first. */
+export const getCoachSessionsBetween = async (
+  coachId: string,
+  from: Date,
+  to: Date,
+) => {
+  return db
+    .select(coachBookingFields)
+    .from(booking)
+    .innerJoin(user, eq(booking.clientId, user.id))
+    .where(
+      and(
+        eq(booking.coachId, coachId),
+        inArray(booking.status, ["confirmed", "completed"]),
+        gte(booking.startsAt, from),
+        lt(booking.startsAt, to),
+      ),
+    )
+    .orderBy(asc(booking.startsAt));
+};
+
+export type CoachSession = Awaited<
+  ReturnType<typeof getCoachSessionsBetween>
+>[number];
+
+const pendingRequestConditions = (coachId: string) =>
+  and(
+    eq(booking.coachId, coachId),
+    eq(booking.status, "pending_approval"),
+    gt(booking.startsAt, new Date()),
+  );
+
+/** Future requests awaiting the coach, soonest first, each with the package it
+ * draws from and that purchase's current balance (`null` for a free consult). */
+export const getCoachPendingRequests = async (coachId: string) => {
+  const rows = await db
+    .select({
+      ...coachBookingFields,
+      createdAt: booking.createdAt,
+      purchaseId: booking.packagePurchaseId,
+      packageName: packageOffering.name,
+    })
+    .from(booking)
+    .innerJoin(user, eq(booking.clientId, user.id))
+    .leftJoin(packagePurchase, eq(booking.packagePurchaseId, packagePurchase.id))
+    .leftJoin(packageOffering, eq(packagePurchase.packageId, packageOffering.id))
+    .where(pendingRequestConditions(coachId))
+    .orderBy(asc(booking.startsAt));
+
+  const balances = await getPurchaseBalances(
+    rows.flatMap((r) => (r.purchaseId ? [r.purchaseId] : [])),
+  );
+
+  return rows.map((r) => ({
+    ...r,
+    balance: r.purchaseId ? (balances.get(r.purchaseId) ?? 0) : null,
+  }));
+};
+
+export type CoachPendingRequest = Awaited<
+  ReturnType<typeof getCoachPendingRequests>
+>[number];
+
+export const getCoachPendingRequestCount = async (coachId: string) => {
+  const [row] = await db
+    .select({ count: sql<number>`count(*)`.mapWith(Number) })
+    .from(booking)
+    .where(pendingRequestConditions(coachId));
+
+  return row.count;
+};
+
+/** Confirmed sessions whose start has passed — waiting on the coach to mark them
+ * complete (nothing moves a booking to `completed` on its own). Oldest first. */
+export const getCoachSessionsToClose = async (coachId: string) => {
+  return db
+    .select(coachBookingFields)
+    .from(booking)
+    .innerJoin(user, eq(booking.clientId, user.id))
+    .where(
+      and(
+        eq(booking.coachId, coachId),
+        eq(booking.status, "confirmed"),
+        lt(booking.startsAt, new Date()),
+      ),
+    )
+    .orderBy(asc(booking.startsAt));
+};
+
+/** Clients holding a non-expired purchase with sessions left on it, and how many
+ * of them are down to their last session across this coach's packages. */
+export const getCoachActiveClientStats = async (coachId: string) => {
+  const purchases = await db
+    .select({ purchaseId: packagePurchase.id, clientId: packagePurchase.clientId })
+    .from(packagePurchase)
+    .innerJoin(packageOffering, eq(packagePurchase.packageId, packageOffering.id))
+    .where(
+      and(
+        eq(packageOffering.coachId, coachId),
+        gt(packagePurchase.expiresAt, new Date()),
+      ),
+    );
+
+  const balances = await getPurchaseBalances(purchases.map((p) => p.purchaseId));
+
+  const balanceByClient = new Map<string, number>();
+  for (const p of purchases) {
+    const balance = balances.get(p.purchaseId) ?? 0;
+    balanceByClient.set(p.clientId, (balanceByClient.get(p.clientId) ?? 0) + balance);
+  }
+
+  const active = [...balanceByClient.values()].filter((b) => b > 0);
+
+  return { count: active.length, runningLow: active.filter((b) => b <= 1).length };
+};
+
 /* Coach Profile Page Queries */
 
 /** An active coach's profile fields by slug, or `null` if no such active coach exists. */

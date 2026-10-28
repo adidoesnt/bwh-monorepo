@@ -43,3 +43,52 @@ export const getStats = (data: ClientDashboardData, zone: string) => {
 		}
 	];
 };
+
+const sessionEnd = (s: { startsAt: Date; durationMin: number }) =>
+	new Date(s.startsAt.getTime() + s.durationMin * 60_000);
+
+const timeAgo = (date: Date) => {
+	const hours = Math.floor((Date.now() - date.getTime()) / 3_600_000);
+	if (hours < 1) return 'under an hour ago';
+	if (hours < 48) return `${hours} ${hours === 1 ? 'hour' : 'hours'} ago`;
+	return `${Math.floor(hours / 24)} days ago`;
+};
+
+export const getTrainerStats = (data: TrainerDashboardData, zone: string) => {
+	const today = data.todaySessions;
+	const oldestRequest = data.pendingRequests.reduce<Date | null>(
+		(oldest, r) => (oldest === null || r.createdAt < oldest ? r.createdAt : oldest),
+		null
+	);
+	const completedThisWeek = data.weekSessions.filter((s) => s.status === 'completed').length;
+
+	return [
+		{
+			label: 'today',
+			value: String(today.length),
+			sub:
+				today.length > 0
+					? `${formatTime(today[0].startsAt, zone)} – ${formatTime(sessionEnd(today[today.length - 1]), zone)}`
+					: 'nothing booked'
+		},
+		{
+			label: 'this week',
+			value: String(data.weekSessions.length),
+			sub: `${completedThisWeek} done so far`
+		},
+		{
+			label: 'requests waiting',
+			value: String(data.pendingRequests.length),
+			sub: oldestRequest ? `oldest ${timeAgo(oldestRequest)}` : 'all caught up'
+		},
+		// TODO: swap for this month's revenue once the Stripe flow exists.
+		{
+			label: 'active clients',
+			value: String(data.activeClientStats.count),
+			sub:
+				data.activeClientStats.runningLow > 0
+					? `${data.activeClientStats.runningLow} running low`
+					: 'none running low'
+		}
+	];
+};

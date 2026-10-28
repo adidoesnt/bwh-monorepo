@@ -17,7 +17,7 @@ export type NavBadges = {
   bookings?: string | null;
   packages?: string | null;
   intake?: string | null;
-  trainerRequests?: string | null;
+  trainerActions?: string | null;
   trainerClients?: string | null;
 };
 
@@ -35,10 +35,10 @@ const NAV: Record<Role, NavDef[]> = {
     { id: "help", label: "help", href: "/help", enabled: false },
   ],
   trainer: [
-    { id: "tdash", label: "dashboard", href: "/dashboard", enabled: true, badgeKey: "trainerRequests" },
-    { id: "tclients", label: "my clients", href: "/trainer/clients", enabled: false, badgeKey: "trainerClients" },
+    { id: "tdash", label: "dashboard", href: "/dashboard", enabled: true, badgeKey: "trainerActions" },
+    { id: "tclients", label: "clients", href: "/trainer/clients", enabled: false, badgeKey: "trainerClients" },
     { id: "tprogress", label: "client progress", href: "/trainer/progress", enabled: false },
-    { id: "tpayouts", label: "my payouts", href: "/trainer/payouts", enabled: false },
+    { id: "tpayouts", label: "payouts", href: "/trainer/payouts", enabled: false },
     { id: "help", label: "help", href: "/help", enabled: false },
   ],
   admin: [

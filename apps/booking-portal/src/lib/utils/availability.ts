@@ -61,6 +61,20 @@ export const zonedTimeToUtc = (
 	return new Date(guess.getTime() - offsetErrorMs);
 };
 
+/** Midnight in `zone` of the calendar day `addDays` after the one `date` falls on there. */
+export const zonedStartOfDay = (date: Date, zone: string, addDays = 0): Date => {
+	const { year, month, day } = zonedDateParts(date, zone);
+	const target = new Date(Date.UTC(year, month - 1, day + addDays));
+	return zonedTimeToUtc(
+		target.getUTCFullYear(),
+		target.getUTCMonth() + 1,
+		target.getUTCDate(),
+		0,
+		0,
+		zone,
+	);
+};
+
 export type AvailabilityWindow = { startMin: number; endMin: number };
 export type ActiveBooking = { startsAt: Date; durationMin: number };
 export type Slot = { start: Date; available: boolean };

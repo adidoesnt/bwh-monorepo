@@ -1,15 +1,32 @@
 import type { NavBadges, Role } from "$lib/nav";
-import { getClientActionableBookingCount, getClientActivePackages } from "./queries";
+import {
+  getClientActionableBookingCount,
+  getClientActivePackages,
+  getCoachPendingRequestCount,
+  getCoachProfileByUserId,
+  getCoachSessionsToClose,
+} from "./queries";
+
+const countBadge = (count: number) => (count > 0 ? String(count) : null);
 
 /** Badge counts for the sidebar, scoped to what each role actually sees. */
 export const getNavBadges = async (role: Role, userId: string): Promise<NavBadges> => {
+  if (role === "trainer") {
+    const coach = await getCoachProfileByUserId(userId);
+    if (!coach) return {};
+
+    const [requests, toClose] = await Promise.all([
+      getCoachPendingRequestCount(coach.id),
+      getCoachSessionsToClose(coach.id),
+    ]);
+
+    return { trainerActions: countBadge(requests + toClose.length) };
+  }
+
   if (role !== "client") return {};
 
-  const bookingsCount = await getClientActionableBookingCount(userId);
-  const bookings = bookingsCount > 0 ? String(bookingsCount) : null;
-
-  const packagesCount = (await getClientActivePackages(userId)).length;
-  const packages = packagesCount > 0 ? String(packagesCount) : null;
+  const bookings = countBadge(await getClientActionableBookingCount(userId));
+  const packages = countBadge((await getClientActivePackages(userId)).length);
 
   return { bookings, packages };
 };

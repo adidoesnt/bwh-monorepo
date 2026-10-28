@@ -1,20 +1,12 @@
 <script lang="ts">
 	import { dayNumber, formatTime, monthAbbrev, statusBadgeClass, statusLabel } from '$lib/utils/format';
-	import { PackagesCarousel, RecentActivity } from '$lib/components';
+	import { PackagesCarousel, RecentActivity, StatCard } from '$lib/components';
 	import { getStats, type ClientDashboardData } from './dashboard';
 
 	let { data, zone }: { data: ClientDashboardData; zone: string } = $props();
 
 	const stats = $derived(getStats(data, zone));
 </script>
-
-{#snippet statCard(stat: { label: string; value: string; sub: string })}
-	<div class="bg-base-100 border-base-300 rounded-2xl border p-4">
-		<div class="text-base-content/60 text-sm">{stat.label}</div>
-		<div class="font-headings text-2xl">{stat.value}</div>
-		<div class="text-base-content/50 text-xs">{stat.sub}</div>
-	</div>
-{/snippet}
 
 {#snippet whatsNext()}
 	<div class="bg-base-100 border-base-300 flex flex-col gap-4 rounded-2xl border p-5">
@@ -67,7 +59,7 @@
 
 <div class="grid grid-cols-2 gap-4 md:grid-cols-4">
 	{#each stats as stat (stat.label)}
-		{@render statCard(stat)}
+		<StatCard {stat} />
 	{/each}
 </div>
 

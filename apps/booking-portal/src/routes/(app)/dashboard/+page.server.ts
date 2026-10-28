@@ -7,7 +7,14 @@ import {
   getClientCompletedSessionStats,
   getClientWeeklySessionCounts,
   getCoachProfileByUserId,
+  getCoachSessionsBetween,
+  getCoachPendingRequests,
+  getCoachSessionsToClose,
+  getCoachActiveClientStats,
+  type CoachSession,
+  type CoachPendingRequest,
 } from "$lib/server/queries";
+import { zonedDateParts, zonedStartOfDay } from "$lib/utils/availability";
 
 const UPCOMING_BOOKINGS_PREVIEW_COUNT = 3;
 
@@ -39,10 +46,48 @@ const getClientData = async (clientId: string) => {
   };
 };
 
+const EMPTY_TRAINER_DATA = {
+  weekSessions: [] as CoachSession[],
+  todaySessions: [] as CoachSession[],
+  pendingRequests: [] as CoachPendingRequest[],
+  sessionsToClose: [] as CoachSession[],
+  activeClientStats: { count: 0, runningLow: 0 },
+};
+
 const getTrainerData = async (userId: string) => {
   const coach = await getCoachProfileByUserId(userId);
+  if (!coach) return { view: "trainer" as const, coach, ...EMPTY_TRAINER_DATA };
 
-  return { view: "trainer" as const, coach };
+  // "Today" and "this week" (Monday–Sunday) are the coach's, not the server's.
+  const now = new Date();
+  const { weekday } = zonedDateParts(now, coach.timezone);
+  const daysSinceMonday = (weekday + 6) % 7;
+  const todayStart = zonedStartOfDay(now, coach.timezone);
+  const tomorrowStart = zonedStartOfDay(now, coach.timezone, 1);
+  const weekStart = zonedStartOfDay(now, coach.timezone, -daysSinceMonday);
+  const weekEnd = zonedStartOfDay(now, coach.timezone, 7 - daysSinceMonday);
+
+  const [weekSessions, pendingRequests, sessionsToClose, activeClientStats] =
+    await Promise.all([
+      getCoachSessionsBetween(coach.id, weekStart, weekEnd),
+      getCoachPendingRequests(coach.id),
+      getCoachSessionsToClose(coach.id),
+      getCoachActiveClientStats(coach.id),
+    ]);
+
+  const todaySessions = weekSessions.filter(
+    (s) => s.startsAt >= todayStart && s.startsAt < tomorrowStart,
+  );
+
+  return {
+    view: "trainer" as const,
+    coach,
+    weekSessions,
+    todaySessions,
+    pendingRequests,
+    sessionsToClose,
+    activeClientStats,
+  };
 };
 
 export const load: PageServerLoad = async ({
