@@ -10,11 +10,27 @@
 	// The coach's own zone, matching the dashboard.
 	const zone = $derived(data.coach?.timezone ?? 'Asia/Singapore');
 
-	const FILTERS = [
-		{ id: null, label: 'all', count: () => data.bucketCounts.awaitingAction },
-		{ id: 'requests', label: 'requests', count: () => data.bucketCounts.requests },
-		{ id: 'to_close', label: 'to close out', count: () => data.bucketCounts.toClose }
-	];
+	const FILTER_LABELS: Record<string, string> = {
+		requests: 'requests',
+		to_close: 'to close out',
+		completed: 'completed',
+		declined: 'declined',
+		lapsed: 'lapsed'
+	};
+	const BUCKET_FILTERS: Record<string, (keyof typeof data.bucketCounts.filters)[]> = {
+		awaiting_action: ['requests', 'to_close'],
+		history: ['completed', 'declined', 'lapsed']
+	};
+
+	const filters = $derived.by(() => {
+		const ids = BUCKET_FILTERS[data.bucket];
+		if (!ids) return [];
+		const total = ids.reduce((sum, id) => sum + data.bucketCounts.filters[id], 0);
+		return [
+			{ id: null, label: 'all', count: total },
+			...ids.map((id) => ({ id, label: FILTER_LABELS[id], count: data.bucketCounts.filters[id] }))
+		];
+	});
 
 	let search = $state(page.url.searchParams.get('q') ?? '');
 	let searchDebounceTimer: ReturnType<typeof setTimeout> | undefined;
@@ -47,7 +63,7 @@
 
 <div class="flex flex-col">
 	<h1 class="font-headings text-3xl">sessions</h1>
-	<p class="text-base-content/60">your upcoming sessions, requests waiting on you, and past sessions.</p>
+	<p class="text-base-content/60">your upcoming sessions, requests waiting on you, and your session history.</p>
 </div>
 
 {#if !data.coach}
@@ -80,9 +96,9 @@
 			{/each}
 		</div>
 
-		{#if data.bucket === 'awaiting_action'}
+		{#if filters.length > 0}
 			<div class="flex gap-2 overflow-x-auto pb-1">
-				{#each FILTERS as f (f.label)}
+				{#each filters as f (f.label)}
 					<button
 						type="button"
 						class="btn btn-sm shrink-0 rounded-full font-normal {data.filter === f.id
@@ -90,7 +106,7 @@
 							: 'border-base-300 bg-base-100 text-base-content/70'}"
 						onclick={() => setFilter(f.id)}
 					>
-						{f.label} · {f.count()}
+						{f.label} · {f.count}
 					</button>
 				{/each}
 			</div>

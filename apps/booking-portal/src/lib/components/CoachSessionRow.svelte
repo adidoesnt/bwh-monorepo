@@ -5,7 +5,7 @@
 	import { slide } from 'svelte/transition';
 	import { showToast } from '$lib/toast.svelte';
 	import { isNetworkFailure, NETWORK_ERROR_MESSAGE } from '$lib/utils/forms';
-	import { dayLabel, dayNumber, formatTime, monthAbbrev, statusBadgeClass, statusLabel } from '$lib/utils/format';
+	import { bookingBadge, dayLabel, dayNumber, formatTime, monthAbbrev } from '$lib/utils/format';
 
 	type Session = {
 		id: string;
@@ -24,8 +24,7 @@
 	const isPast = $derived(session.startsAt.getTime() < Date.now());
 	const isRequest = $derived(session.status === 'pending_approval' && !isPast);
 	const isToClose = $derived(session.status === 'confirmed' && isPast);
-	// A request whose slot came and went without an answer.
-	const isLapsed = $derived(session.status === 'pending_approval' && isPast);
+	const badge = $derived(bookingBadge(session.status, session.startsAt));
 
 	let submitting = $state(false);
 	let confirmingDecline = $state(false);
@@ -88,12 +87,8 @@
 		{#if isToClose}
 			<!-- Wired up in a later step. -->
 			<button type="button" class="btn btn-sm shrink-0" disabled>mark complete</button>
-		{:else if isLapsed}
-			<span class="badge badge-sm badge-ghost font-body shrink-0">lapsed</span>
 		{:else if !isRequest}
-			<span class="badge badge-sm {statusBadgeClass(session.status)} font-body shrink-0"
-				>{statusLabel(session.status)}</span
-			>
+			<span class="badge badge-sm {badge.className} font-body shrink-0">{badge.label}</span>
 		{/if}
 	</div>
 	{#if isRequest && session.clientNote}

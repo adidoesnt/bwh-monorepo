@@ -9,9 +9,9 @@ import {
   ilike,
   inArray,
   lt,
-  ne,
   or,
   sql,
+  type SQL,
 } from "drizzle-orm";
 import {
   availabilitySlot,
@@ -284,16 +284,24 @@ export const getClientWeeklySessionCounts = async (clientId: string) => {
 
 /* Client Bookings Page Queries */
 
-export type BookingBucket = "upcoming" | "awaiting_action" | "past";
+export type BookingBucket = "upcoming" | "awaiting_action" | "history";
 
-/** Date-first, status-second bucketing — see BOOKING-LIFECYCLE.md. */
+/** Everything that's finished, from the client's side: any session whose start
+ * has passed (bar a cancellation), plus declined requests whatever their date. */
+const clientHistoryCondition = () =>
+  or(
+    and(
+      inArray(booking.status, ["pending_approval", "confirmed", "completed"]),
+      lt(booking.startsAt, new Date()),
+    ),
+    eq(booking.status, "declined"),
+  );
+
+/** Status-and-date bucketing — see BOOKING-LIFECYCLE.md. */
 const bucketCondition = (bucket: BookingBucket) => {
   switch (bucket) {
-    case "past":
-      return and(
-        ne(booking.status, "cancelled"),
-        lt(booking.startsAt, new Date()),
-      );
+    case "history":
+      return clientHistoryCondition();
     case "awaiting_action":
       return and(
         eq(booking.status, "pending_approval"),
@@ -335,7 +343,7 @@ export const getClientBookingsPage = async ({
     .innerJoin(coachProfile, eq(booking.coachId, coachProfile.id))
     .innerJoin(user, eq(coachProfile.userId, user.id))
     .where(and(eq(booking.clientId, clientId), bucketCondition(bucket)))
-    .orderBy(bucket === "past" ? desc(booking.startsAt) : asc(booking.startsAt))
+    .orderBy(bucket === "history" ? desc(booking.startsAt) : asc(booking.startsAt))
     .limit(pageSize)
     .offset((page - 1) * pageSize);
 
@@ -359,7 +367,7 @@ export const getClientBookingBucketCounts = async (clientId: string) => {
         sql<number>`count(*) filter (where ${booking.status} = 'pending_approval' and ${booking.startsAt} >= now())`.mapWith(
           Number,
         ),
-      past: sql<number>`count(*) filter (where ${booking.status} <> 'cancelled' and ${booking.startsAt} < now())`.mapWith(
+      history: sql<number>`count(*) filter (where ${clientHistoryCondition()})`.mapWith(
         Number,
       ),
     })
@@ -369,8 +377,8 @@ export const getClientBookingBucketCounts = async (clientId: string) => {
   return row;
 };
 
-/** Count for the `bookings` nav badge — non-cancelled bookings that aren't in
- * the past, i.e. everything that'd land in "upcoming" or "awaiting action". */
+/** Count for the `bookings` nav badge — pending or confirmed bookings that
+ * aren't in the past, i.e. everything that'd land in "upcoming" or "awaiting action". */
 export const getClientActionableBookingCount = async (clientId: string) => {
   const [row] = await db
     .select({ count: sql<number>`count(*)`.mapWith(Number) })
@@ -378,7 +386,7 @@ export const getClientActionableBookingCount = async (clientId: string) => {
     .where(
       and(
         eq(booking.clientId, clientId),
-        ne(booking.status, "cancelled"),
+        inArray(booking.status, UPCOMING_BOOKING_STATUSES),
         gte(booking.startsAt, new Date()),
       ),
     );
@@ -798,35 +806,46 @@ export const getCoachActiveClientStats = async (coachId: string) => {
   return { count: active.length, runningLow: active.filter((b) => b <= 1).length };
 };
 
-export type CoachBookingFilter = "requests" | "to_close";
+export type CoachBookingFilter =
+  | "requests"
+  | "to_close"
+  | "completed"
+  | "declined"
+  | "lapsed";
 
-/** A coach's version of the client's bucketing: a confirmed session that's
- * already started still needs closing out, so it sits in `awaiting_action`
- * (filter `to_close`) next to future requests (filter `requests`). */
+/** The filter chips each tab offers; a tab with no filter shows them all. */
+export const COACH_BUCKET_FILTERS: Record<BookingBucket, CoachBookingFilter[]> = {
+  upcoming: [],
+  awaiting_action: ["requests", "to_close"],
+  history: ["completed", "declined", "lapsed"],
+};
+
+/** A coach's version of the client's bucketing. A confirmed session that's
+ * already started still needs closing out, so it waits in `awaiting_action`
+ * next to future requests; a request whose start passed unanswered has lapsed. */
+const coachFilterConditions = (): Record<CoachBookingFilter, SQL | undefined> => {
+  const now = new Date();
+  return {
+    requests: and(eq(booking.status, "pending_approval"), gte(booking.startsAt, now)),
+    to_close: and(eq(booking.status, "confirmed"), lt(booking.startsAt, now)),
+    completed: eq(booking.status, "completed"),
+    declined: eq(booking.status, "declined"),
+    lapsed: and(eq(booking.status, "pending_approval"), lt(booking.startsAt, now)),
+  };
+};
+
 const coachBucketCondition = (
   bucket: BookingBucket,
   filter?: CoachBookingFilter,
 ) => {
-  const now = new Date();
-  const requests = and(
-    eq(booking.status, "pending_approval"),
-    gte(booking.startsAt, now),
-  );
-  const toClose = and(eq(booking.status, "confirmed"), lt(booking.startsAt, now));
-
-  switch (bucket) {
-    case "upcoming":
-      return and(eq(booking.status, "confirmed"), gte(booking.startsAt, now));
-    case "awaiting_action":
-      if (filter === "requests") return requests;
-      if (filter === "to_close") return toClose;
-      return or(requests, toClose);
-    case "past":
-      return and(
-        inArray(booking.status, ["completed", "pending_approval"]),
-        lt(booking.startsAt, now),
-      );
+  if (bucket === "upcoming") {
+    return and(eq(booking.status, "confirmed"), gte(booking.startsAt, new Date()));
   }
+
+  const conditions = coachFilterConditions();
+  const filters = COACH_BUCKET_FILTERS[bucket];
+  if (filter && filters.includes(filter)) return conditions[filter];
+  return or(...filters.map((f) => conditions[f]));
 };
 
 const clientNameCondition = (search?: string) =>
@@ -869,7 +888,7 @@ export const getCoachBookingsPage = async ({
       ),
     )
     .orderBy(
-      ...(bucket === "past"
+      ...(bucket === "history"
         ? [desc(booking.startsAt)]
         : [desc(sql`${booking.status} = 'pending_approval'`), asc(booking.startsAt)]),
     )
@@ -889,34 +908,36 @@ export const getCoachBookingsPage = async ({
   };
 };
 
-/** Counts per tab, plus the `awaiting_action` split for its filter chips. */
+/** Counts per tab, plus a count per filter chip. */
 export const getCoachBookingBucketCounts = async (
   coachId: string,
   search?: string,
 ) => {
+  const conditions = coachFilterConditions();
+  const countWhere = (condition: SQL | undefined) =>
+    sql<number>`count(*) filter (where ${condition})`.mapWith(Number);
+
   const [row] = await db
     .select({
-      upcoming:
-        sql<number>`count(*) filter (where ${booking.status} = 'confirmed' and ${booking.startsAt} >= now())`.mapWith(
-          Number,
-        ),
-      requests:
-        sql<number>`count(*) filter (where ${booking.status} = 'pending_approval' and ${booking.startsAt} >= now())`.mapWith(
-          Number,
-        ),
-      toClose:
-        sql<number>`count(*) filter (where ${booking.status} = 'confirmed' and ${booking.startsAt} < now())`.mapWith(
-          Number,
-        ),
-      past: sql<number>`count(*) filter (where ${booking.status} in ('completed', 'pending_approval') and ${booking.startsAt} < now())`.mapWith(
-        Number,
-      ),
+      upcoming: countWhere(coachBucketCondition("upcoming")),
+      requests: countWhere(conditions.requests),
+      to_close: countWhere(conditions.to_close),
+      completed: countWhere(conditions.completed),
+      declined: countWhere(conditions.declined),
+      lapsed: countWhere(conditions.lapsed),
     })
     .from(booking)
     .innerJoin(user, eq(booking.clientId, user.id))
     .where(and(eq(booking.coachId, coachId), clientNameCondition(search)));
 
-  return { ...row, awaitingAction: row.requests + row.toClose };
+  const { upcoming, ...filters } = row;
+
+  return {
+    upcoming,
+    awaitingAction: filters.requests + filters.to_close,
+    history: filters.completed + filters.declined + filters.lapsed,
+    filters,
+  };
 };
 
 /* Coach Profile Page Queries */

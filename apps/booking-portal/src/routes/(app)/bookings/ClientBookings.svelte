@@ -5,12 +5,11 @@
 	import { DropdownControl, Pager } from '$lib/components';
 	import { PAGE_SIZE_OPTIONS, SORT_OPTIONS } from '$lib/utils/coachDirectory';
 	import {
+		bookingBadge,
 		dayNumber,
 		formatPriceCents,
 		formatTime,
 		monthAbbrev,
-		statusBadgeClass,
-		statusLabel,
 		viewerZone
 	} from '$lib/utils/format';
 	import { totalPages } from '$lib/utils/pagination';
@@ -110,6 +109,7 @@
 		{:else}
 			<div class="flex flex-col gap-2">
 				{#each data.bookingsPage.bookings as b (b.id)}
+					{@const badge = bookingBadge(b.status, b.startsAt)}
 					<div class="bg-base-200 border-base-300 flex flex-col gap-3 rounded-field border p-3">
 						<div class="flex items-center gap-3">
 							<div
@@ -124,11 +124,9 @@
 									{formatTime(b.startsAt, zone)} · {b.coachName} · {b.location}
 								</div>
 							</div>
-							<span class="badge badge-sm {statusBadgeClass(b.status)} font-body shrink-0"
-								>{statusLabel(b.status)}</span
-							>
+							<span class="badge badge-sm {badge.className} font-body shrink-0">{badge.label}</span>
 						</div>
-						{#if data.bucket !== 'past'}
+						{#if data.bucket !== 'history'}
 							<div class="flex gap-2">
 								<button type="button" class="btn btn-outline btn-xs" disabled title="coming soon">
 									reschedule

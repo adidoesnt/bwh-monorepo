@@ -19,6 +19,7 @@ stateDiagram-v2
     [*] --> pending_approval: request
 
     pending_approval --> confirmed: coach approves<br/>consumes 1 session
+    pending_approval --> declined: coach declines
     confirmed --> completed: session happens
 
     pending_approval --> pending_approval: reschedule
@@ -29,6 +30,7 @@ stateDiagram-v2
     confirmed --> cancelled: cancel <24h — session forfeited
 
     completed --> [*]
+    declined --> [*]
     cancelled --> [*]
 
     note right of confirmed
@@ -43,25 +45,34 @@ stateDiagram-v2
 | `pending_approval` | Requested; a session is held against an active package (or it's a free consult). Waiting on the coach. | yes |
 | `confirmed` | Approved — on both calendars, one session drawn from the package. | yes |
 | `completed` | Session happened. | no (past) |
-| `cancelled` | Called off. Hidden from the client's list. | no |
+| `declined` | The coach turned the request down. Nothing was consumed. Shown in history on both sides. | no |
+| `cancelled` | Called off by the client. Hidden from the client's list. | no |
 
 "Occupies a slot" = the status is in `ACTIVE_BOOKING_STATUSES`, so `availability.ts` blocks that
 time for other bookings.
 
-**`/bookings`'s three tabs (upcoming / awaiting action / past) are a display grouping, not a 1:1
-read of `status`.** A `confirmed` booking whose `startsAt` has already gone by doesn't
+**`/bookings`'s three tabs (upcoming / awaiting action / history) are a display grouping, not a
+1:1 read of `status`.** A `confirmed` booking whose `startsAt` has already gone by doesn't
 auto-transition to `completed` — nothing does that except a coach explicitly marking the session
 complete (trainer portal). Completion is deliberately a coach action, not just the clock running
 out, since it may eventually need to distinguish a no-show from a session that happened.
 
-So a booking's tab is resolved **date first, status second**, checked in this order, so every
-booking lands in exactly one tab:
+A `pending_approval` request whose start passes without an answer has **lapsed**: it can't be
+approved any more, holds no session against its package, and shows as "lapsed" in history.
 
-1. `startsAt` is in the past → **past** (any non-cancelled status — this is what puts a
-   past-due-but-still-`confirmed` booking here, and also catches a `pending_approval` request
-   whose slot came and went without the coach ever approving it)
-2. else `status === 'pending_approval'` → **awaiting action**
-3. else (`confirmed`, future) → **upcoming**
+Every booking lands in exactly one tab. The client and coach views differ only in where a
+past-due `confirmed` booking goes — it's done from the client's side, but still waiting on the
+coach to close it out.
+
+| Tab | Client | Coach |
+| :-- | :-- | :-- |
+| **upcoming** | `confirmed`, future | `confirmed`, future |
+| **awaiting action** | `pending_approval`, future | `pending_approval`, future (*requests*) + `confirmed`, past (*to close out*) |
+| **history** | `confirmed` / `completed` / lapsed, past + `declined` (any date) | `completed` + lapsed + `declined` (any date) |
+
+`cancelled` bookings appear in no tab yet (client cancellation is the next bookings phase).
+History sorts newest first; the coach's history has *completed / declined / lapsed* filter chips,
+and *awaiting action* has *requests / to close out*.
 
 Because the tabs are mutually exclusive by construction, the nav badge count
 (`upcoming.length + awaitingAction.length`) can't double-count a booking that would otherwise
@@ -180,6 +191,8 @@ Writes `booking.client_reflection` (client's post-session note). Allowed when th
 
 ## Trainer actions
 
-Approve (`pending_approval → confirmed`, consumes a session), mark complete, and trainer-initiated
-cancel/decline. Package purchases need no trainer review — the Stripe webhook resolves them on
+Approve (`pending_approval → confirmed`, consumes a session), decline (`pending_approval →
+declined`, nothing to return since nothing was consumed), mark complete, and trainer-initiated
+cancel. Approve and decline run under the same per-coach lock as `?/request` and re-check that the
+request is still pending and in the future; approve also re-checks the package has a session left. Package purchases need no trainer review — the Stripe webhook resolves them on
 its own.

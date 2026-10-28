@@ -14,7 +14,8 @@ export type SessionType =
 /**
  * `pending_payment` / `pending_verification` are reserved for a future
  * in-flow payment step; money currently moves on the package-purchase side,
- * so a booking only ever goes approval → confirmed.
+ * so a booking only ever goes approval → confirmed. `declined` is the coach
+ * turning a request down; `cancelled` is the client calling a booking off.
  */
 export type BookingStatus =
   | "pending_approval"
@@ -22,6 +23,7 @@ export type BookingStatus =
   | "pending_verification"
   | "confirmed"
   | "completed"
+  | "declined"
   | "cancelled";
 
 /** A single training session, in any stage from request to completed/cancelled. */

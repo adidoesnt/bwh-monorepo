@@ -11,11 +11,12 @@ import {
   getCoachDirectoryPage,
   getCoachProfileByUserId,
   parseCoachDirectoryParams,
+  COACH_BUCKET_FILTERS,
   type BookingBucket,
   type CoachBookingFilter,
 } from "$lib/server/queries";
 
-const BOOKING_BUCKETS: BookingBucket[] = ["upcoming", "awaiting_action", "past"];
+const BOOKING_BUCKETS: BookingBucket[] = ["upcoming", "awaiting_action", "history"];
 
 const parseBookingBucket = (url: URL): BookingBucket => {
   const tab = url.searchParams.get("tab");
@@ -48,8 +49,6 @@ const getClientData = async (clientId: string, url: URL) => {
   };
 };
 
-const COACH_BOOKING_FILTERS: CoachBookingFilter[] = ["requests", "to_close"];
-
 const parsePage = (url: URL): number => {
   const page = Number(url.searchParams.get("page"));
   return Number.isInteger(page) && page > 0 ? page : 1;
@@ -57,11 +56,8 @@ const parsePage = (url: URL): number => {
 
 const getTrainerData = async (userId: string, url: URL) => {
   const bucket = parseBookingBucket(url);
-  const rawFilter = url.searchParams.get("filter");
-  const filter =
-    bucket === "awaiting_action" && COACH_BOOKING_FILTERS.includes(rawFilter as CoachBookingFilter)
-      ? (rawFilter as CoachBookingFilter)
-      : null;
+  const rawFilter = url.searchParams.get("filter") as CoachBookingFilter;
+  const filter = COACH_BUCKET_FILTERS[bucket].includes(rawFilter) ? rawFilter : null;
   const search = url.searchParams.get("q") || undefined;
 
   const coach = await getCoachProfileByUserId(userId);
@@ -72,7 +68,12 @@ const getTrainerData = async (userId: string, url: URL) => {
       bucket,
       filter,
       bookingsPage: { bookings: [], totalCount: 0 },
-      bucketCounts: { upcoming: 0, requests: 0, toClose: 0, awaitingAction: 0, past: 0 },
+      bucketCounts: {
+        upcoming: 0,
+        awaitingAction: 0,
+        history: 0,
+        filters: { requests: 0, to_close: 0, completed: 0, declined: 0, lapsed: 0 },
+      },
     };
   }
 

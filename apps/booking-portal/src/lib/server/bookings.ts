@@ -155,7 +155,8 @@ export const approveBooking = (
   });
 
 /** Declines a request. Nothing was spent at request time, so there's no
- * ledger entry — cancelling it is what releases the client's hold. */
+ * ledger entry — moving it out of `pending_approval` is what releases the
+ * client's hold. */
 export const declineBooking = (bookingId: string, coachId: string) =>
   db.transaction(async (tx) => {
     await lockCoach(tx, coachId);
@@ -165,7 +166,7 @@ export const declineBooking = (bookingId: string, coachId: string) =>
 
     await tx
       .update(booking)
-      .set({ status: "cancelled", cancelledAt: new Date() })
+      .set({ status: "declined" })
       .where(eq(booking.id, bookingId));
 
     return { ok: true as const };
