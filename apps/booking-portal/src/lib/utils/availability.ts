@@ -76,6 +76,59 @@ export const zonedStartOfDay = (date: Date, zone: string, addDays = 0): Date => 
 };
 
 export type AvailabilityWindow = { startMin: number; endMin: number };
+
+/** `YYYY-MM-DD` for the calendar day `date` falls on in `zone` — the format
+ * `availability_exception`'s dates use, so they compare as strings. */
+export const zonedDateKey = (date: Date, zone: string) => {
+	const { year, month, day } = zonedDateParts(date, zone);
+	return `${year}-${String(month).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
+};
+
+export type DayException = {
+	kind: "closed" | "open";
+	startDate: string;
+	endDate: string;
+	startMin: number;
+	endMin: number;
+};
+
+export const exceptionsOn = <T extends DayException>(exceptions: T[], dateKey: string) =>
+	exceptions.filter((e) => e.startDate <= dateKey && dateKey <= e.endDate);
+
+/** Sorted, with touching or overlapping ranges merged into one. */
+export const mergeWindows = (windows: AvailabilityWindow[]): AvailabilityWindow[] => {
+	const merged: AvailabilityWindow[] = [];
+	for (const w of [...windows].sort((a, b) => a.startMin - b.startMin)) {
+		const last = merged.at(-1);
+		if (last && w.startMin <= last.endMin) last.endMin = Math.max(last.endMin, w.endMin);
+		else merged.push({ ...w });
+	}
+	return merged;
+};
+
+/** `windows` with `cut` taken out — a window can split in two. */
+export const subtractWindow = (windows: AvailabilityWindow[], cut: AvailabilityWindow) =>
+	windows.flatMap((w) => {
+		if (cut.endMin <= w.startMin || w.endMin <= cut.startMin) return [w];
+		const parts: AvailabilityWindow[] = [];
+		if (w.startMin < cut.startMin) parts.push({ startMin: w.startMin, endMin: cut.startMin });
+		if (cut.endMin < w.endMin) parts.push({ startMin: cut.endMin, endMin: w.endMin });
+		return parts;
+	});
+
+/** One day's open hours: the weekly windows plus that day's extra hours, minus
+ * its time off — time off wins where they overlap. */
+export const applyExceptions = (
+	weekly: AvailabilityWindow[],
+	exceptions: DayException[],
+): AvailabilityWindow[] => {
+	const opened = mergeWindows([...weekly, ...exceptions.filter((e) => e.kind === "open")]);
+	return exceptions
+		.filter((e) => e.kind === "closed")
+		.reduce((open, cut) => subtractWindow(open, cut), opened)
+		.map(({ startMin, endMin }) => ({ startMin, endMin }));
+};
+
 export type ActiveBooking = { startsAt: Date; durationMin: number };
 export type Slot = { start: Date; available: boolean };
 

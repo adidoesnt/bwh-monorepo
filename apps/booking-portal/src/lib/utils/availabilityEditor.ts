@@ -1,4 +1,10 @@
-import { zonedDateParts } from "./availability";
+import {
+	applyExceptions,
+	exceptionsOn,
+	zonedDateKey,
+	zonedDateParts,
+	type DayException,
+} from "./availability";
 
 export const CELL_MIN = 30;
 export const CELLS_PER_DAY = (24 * 60) / CELL_MIN;
@@ -42,28 +48,6 @@ export const cellsToWindows = (cells: WeekCells): WeeklyWindow[] => {
 /** Windows no package session fits in — clients could only book a free consult there. */
 export const shortWindows = (windows: WeeklyWindow[], minSessionLength: number | null) =>
 	minSessionLength === null ? [] : windows.filter((w) => w.endMin - w.startMin < minSessionLength);
-
-export type PlacedBooking<T> = { booking: T; weekday: number; cells: number[] };
-
-/** Where each upcoming booking falls on the weekly pattern, in the coach's zone. */
-export const placeBookings = <T extends { startsAt: Date; durationMin: number }>(
-	bookings: T[],
-	zone: string,
-): PlacedBooking<T>[] =>
-	bookings.map((booking) => {
-		const { weekday, hour, minute } = zonedDateParts(booking.startsAt, zone);
-		const start = hour * 60 + minute;
-		const cells: number[] = [];
-		for (let i = Math.floor(start / CELL_MIN); i * CELL_MIN < start + booking.durationMin; i++) {
-			if (i < CELLS_PER_DAY) cells.push(i);
-		}
-		return { booking, weekday, cells };
-	});
-
-/** Upcoming bookings sitting in hours this edit closes. They stay booked; the
- * coach is told before saving. */
-export const conflictingBookings = <T>(placed: PlacedBooking<T>[], before: WeekCells, after: WeekCells) =>
-	placed.filter((p) => p.cells.some((i) => before[p.weekday][i] && !after[p.weekday][i]));
 
 export const clockLabel = (minute: number) =>
 	`${String(Math.floor(minute / 60)).padStart(2, "0")}:${String(minute % 60).padStart(2, "0")}`;
@@ -116,3 +100,71 @@ export const nextRange = (ranges: TimeRange[]): TimeRange => {
 	const startMin = Math.min(last.endMin + 60, 24 * 60 - 60);
 	return { startMin, endMin: Math.min(startMin + 60, 24 * 60) };
 };
+
+/* One-off changes ("off 24–31 dec", "open this sunday") — `availability_exception` rows. */
+
+export type OneOffChange = DayException & { note: string | null };
+
+export const ALL_DAY = { startMin: 0, endMin: 24 * 60 };
+
+/** How many upcoming one-off changes show before "show N more". */
+export const ONE_OFF_PREVIEW_COUNT = 5;
+
+const oneOffKey = (o: OneOffChange) =>
+	[o.kind, o.startDate, o.endDate, o.startMin, o.endMin, o.note ?? ""].join("|");
+
+/** Entries added plus entries removed between two lists. */
+export const countOneOffChanges = (before: OneOffChange[], after: OneOffChange[]) => {
+	const a = before.map(oneOffKey);
+	const b = after.map(oneOffKey);
+	return a.filter((k) => !b.includes(k)).length + b.filter((k) => !a.includes(k)).length;
+};
+
+const DATE_FORMAT = new Intl.DateTimeFormat("en-GB", {
+	weekday: "short",
+	day: "numeric",
+	month: "short",
+	timeZone: "UTC",
+});
+
+/** "Fri 6 Nov" for a `YYYY-MM-DD` key — the key is already the coach's date. */
+export const formatDateKey = (key: string) => DATE_FORMAT.format(new Date(`${key}T00:00:00Z`));
+
+export const oneOffDatesLabel = (o: OneOffChange) =>
+	o.startDate === o.endDate
+		? formatDateKey(o.startDate)
+		: `${formatDateKey(o.startDate)} – ${formatDateKey(o.endDate)}`;
+
+export const oneOffTimesLabel = (o: OneOffChange) =>
+	o.startMin === ALL_DAY.startMin && o.endMin === ALL_DAY.endMin
+		? "all day"
+		: `${clockLabel(o.startMin)}–${o.endMin === ALL_DAY.endMin ? "midnight" : clockLabel(o.endMin)}`;
+
+export type CoachHours = { windows: WeeklyWindow[]; oneOffs: DayException[] };
+
+/** Whether a session's own date and time sit inside the coach's open hours —
+ * the weekly pattern for that weekday, adjusted by that date's one-off changes. */
+const isWithinHours = (
+	session: { startsAt: Date; durationMin: number },
+	hours: CoachHours,
+	zone: string,
+) => {
+	const { weekday, hour, minute } = zonedDateParts(session.startsAt, zone);
+	const start = hour * 60 + minute;
+	const end = start + session.durationMin;
+	const open = applyExceptions(
+		hours.windows.filter((w) => w.weekday === weekday),
+		exceptionsOn(hours.oneOffs, zonedDateKey(session.startsAt, zone)),
+	);
+	return open.some((w) => w.startMin <= start && end <= w.endMin);
+};
+
+/** Upcoming sessions that were inside open hours before an edit and aren't
+ * after it. They stay booked; the coach is told before saving. */
+export const sessionsLosingHours = <T extends { startsAt: Date; durationMin: number }>(
+	sessions: T[],
+	before: CoachHours,
+	after: CoachHours,
+	zone: string,
+) =>
+	sessions.filter((s) => isWithinHours(s, before, zone) && !isWithinHours(s, after, zone));

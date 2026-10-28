@@ -4,20 +4,25 @@
 	import { beforeNavigate, goto, invalidateAll } from '$app/navigation';
 	import type { SubmitFunction } from '@sveltejs/kit';
 	import { showToast } from '$lib/toast.svelte';
+	import { zonedDateParts } from '$lib/utils/availability';
 	import { dayLabel, formatTime } from '$lib/utils/format';
 	import { isNetworkFailure, NETWORK_ERROR_MESSAGE } from '$lib/utils/forms';
 	import {
+		ALL_DAY,
 		EDITOR_WEEKDAYS,
+		ONE_OFF_PREVIEW_COUNT,
 		TIME_OPTIONS,
 		WEEKDAY_LABELS,
-		conflictingBookings,
+		countOneOffChanges,
 		nextRange,
-		placeBookings,
+		oneOffDatesLabel,
+		oneOffTimesLabel,
 		rangeErrors,
 		rangesToWindows,
+		sessionsLosingHours,
 		shortWindows,
-		windowsToCells,
 		windowsToRanges,
+		type OneOffChange,
 		type TimeRange,
 		type WeeklyWindow
 	} from '$lib/utils/availabilityEditor';
@@ -32,6 +37,8 @@
 
 	let {
 		windows,
+		oneOffs,
+		today,
 		upcoming,
 		zone,
 		minSessionLength,
@@ -39,9 +46,14 @@
 		onSaved,
 		saveAction = '/trainer/availability?/saveHours',
 		preview,
-		draft = $bindable()
+		draft = $bindable(),
+		draftOneOffs = $bindable()
 	}: {
 		windows: WeeklyWindow[];
+		/** Upcoming one-off changes (time off / extra hours). */
+		oneOffs: OneOffChange[];
+		/** The coach's date, `YYYY-MM-DD` — one-off changes can't start before it. */
+		today: string;
 		upcoming: UpcomingBooking[];
 		zone: string;
 		minSessionLength: number | null;
@@ -54,6 +66,8 @@
 		preview?: Snippet;
 		/** The windows this edit would save. */
 		draft?: WeeklyWindow[];
+		/** The one-off changes this edit would save. */
+		draftOneOffs?: OneOffChange[];
 	} = $props();
 
 	const WEEKDAY_SET = [1, 2, 3, 4, 5];
@@ -66,9 +80,14 @@
 	// A closed day remembers its hours, so reopening it puts them back.
 	const closedHours: TimeRange[][] = Array.from({ length: 7 }, () => []);
 
+	const cloneOneOffs = (list: OneOffChange[]) => list.map((o) => ({ ...o }));
+	const originalOneOffs = untrack(() => cloneOneOffs(oneOffs));
+	let entries = $state(cloneOneOffs(originalOneOffs));
+
 	const draftWindows = $derived(rangesToWindows(ranges));
 	$effect(() => {
 		draft = draftWindows;
+		draftOneOffs = entries;
 	});
 
 	const errors = $derived(ranges.map(rangeErrors));
@@ -83,10 +102,20 @@
 		EDITOR_WEEKDAYS.filter((w) => dayKey(originalWindows, w) !== dayKey(draftWindows, w))
 	);
 
-	const placed = $derived(placeBookings(upcoming, zone));
+	// Sessions whose own date and time stop being open hours. Ones caused by a
+	// weekly change are shown under that day; the rest under one-off changes.
+	const before = { windows: originalWindows, oneOffs: originalOneOffs };
 	const conflicts = $derived(
-		conflictingBookings(placed, windowsToCells(originalWindows), windowsToCells(draftWindows))
+		sessionsLosingHours(upcoming, before, { windows: draftWindows, oneOffs: entries }, zone)
 	);
+	const weeklyConflicts = $derived(
+		sessionsLosingHours(upcoming, before, { windows: draftWindows, oneOffs: originalOneOffs }, zone)
+	);
+	const conflictsOn = (weekday: number) =>
+		conflicts.filter(
+			(c) => weeklyConflicts.includes(c) && zonedDateParts(c.startsAt, zone).weekday === weekday
+		);
+	const oneOffConflicts = $derived(conflicts.filter((c) => !weeklyConflicts.includes(c)));
 	const short = $derived(shortWindows(draftWindows, minSessionLength));
 	const isShort = (weekday: number, r: TimeRange) =>
 		short.some((w) => w.weekday === weekday && w.startMin <= r.startMin && r.endMin <= w.endMin);
@@ -118,12 +147,78 @@
 		copyingFrom = null;
 	};
 
+	const oneOffChanges = $derived(countOneOffChanges(originalOneOffs, entries));
+	let showAllEntries = $state(false);
+	const visibleEntries = $derived(showAllEntries ? entries : entries.slice(0, ONE_OFF_PREVIEW_COUNT));
+
+	// Adding a one-off change: time off defaults to the whole day, extra hours to a morning.
+	let adding = $state(false);
+	let newKind = $state<'closed' | 'open'>('closed');
+	let newStart = $state('');
+	let newEnd = $state('');
+	let newAllDay = $state(true);
+	let newFrom = $state(9 * 60);
+	let newTo = $state(12 * 60);
+	let newNote = $state('');
+
+	const startAdding = () => {
+		newKind = 'closed';
+		newStart = today;
+		newEnd = '';
+		newAllDay = true;
+		newFrom = 9 * 60;
+		newTo = 12 * 60;
+		newNote = '';
+		adding = true;
+	};
+	const setKind = (kind: 'closed' | 'open') => {
+		newKind = kind;
+		newAllDay = kind === 'closed';
+	};
+	const addError = $derived(
+		!newStart
+			? 'pick a date'
+			: newStart < today
+				? 'pick today or later'
+				: newEnd && newEnd < newStart
+					? 'the end date is before the start'
+					: !newAllDay && newTo <= newFrom
+						? 'ends before it starts'
+						: null
+	);
+	const addEntry = () => {
+		if (addError) return;
+		const range = newAllDay ? ALL_DAY : { startMin: newFrom, endMin: newTo };
+		entries.push({
+			kind: newKind,
+			startDate: newStart,
+			endDate: newEnd || newStart,
+			...range,
+			note: newNote.trim() || null
+		});
+		entries.sort((a, b) => a.startDate.localeCompare(b.startDate) || a.startMin - b.startMin);
+		// Make sure the new entry is visible even if it sorts below the cap.
+		if (entries.length > ONE_OFF_PREVIEW_COUNT) showAllEntries = true;
+		adding = false;
+	};
+	const removeEntry = (i: number) => entries.splice(i, 1);
+
 	const cancel = () => {
 		ranges = clone(original);
+		entries = cloneOneOffs(originalOneOffs);
+		adding = false;
 		onCancel?.();
 	};
 
-	const dirty = $derived(changedDays.length > 0);
+	const changeSummary = $derived(
+		[
+			changedDays.length > 0 && changedDays.map((w) => WEEKDAY_LABELS[w]).join(', '),
+			oneOffChanges > 0 && `${oneOffChanges} one-off ${oneOffChanges === 1 ? 'change' : 'changes'}`
+		]
+			.filter(Boolean)
+			.join(' · ')
+	);
+	const dirty = $derived(changedDays.length > 0 || oneOffChanges > 0);
 	let saving = $state(false);
 	// Set once saved or discarded, so leaving afterwards isn't stopped.
 	let saved = false;
@@ -145,7 +240,7 @@
 			else if (result.type === 'failure') saveError = String(result.data?.message ?? 'something went wrong');
 			else if (result.type === 'error') saveError = 'something went wrong — please try again';
 			else {
-				showToast('weekly hours saved');
+				showToast('hours saved');
 				await invalidateAll();
 				saved = true;
 				onSaved?.();
@@ -189,7 +284,7 @@
 			>
 				{#each EDITOR_WEEKDAYS as weekday (weekday)}
 					{@const open = ranges[weekday].length > 0}
-					{@const dayConflicts = conflicts.filter((c) => c.weekday === weekday)}
+					{@const dayConflicts = conflictsOn(weekday)}
 					<div class="flex flex-col gap-2 p-3">
 						<div class="flex items-center justify-between gap-2">
 							<label class="flex cursor-pointer items-center gap-2">
@@ -314,7 +409,7 @@
 									{dayConflicts.length === 1 ? 'a session falls' : `${dayConflicts.length} sessions fall`} in hours
 									you're closing — {dayConflicts.length === 1 ? 'it stays' : 'they stay'} booked:
 								</span>
-								{#each dayConflicts as { booking } (booking.id)}
+								{#each dayConflicts as booking (booking.id)}
 									<span>
 										{booking.clientName} · {dayLabel(booking.startsAt, zone)} at {formatTime(booking.startsAt, zone)} ·
 										{booking.status === 'confirmed' ? 'booked' : 'requested'}
@@ -334,6 +429,143 @@
 		{/if}
 	</div>
 
+	<hr class="border-base-300" />
+
+	<div class="flex flex-col gap-3">
+		<div class="flex items-start justify-between gap-3">
+			<div class="flex flex-col">
+				<h3 class="font-headings text-lg">one-off changes</h3>
+				<p class="text-base-content/60 text-sm">time off, or extra hours on specific dates.</p>
+			</div>
+			{#if !adding}
+				<button type="button" class="btn btn-ghost btn-sm shrink-0" onclick={startAdding}>+ add</button>
+			{/if}
+		</div>
+
+		{#if adding}
+			<div class="bg-base-200 flex flex-col gap-3 rounded-field p-3 text-sm">
+				<div class="flex gap-2">
+					{#each [['closed', 'time off'], ['open', 'extra hours']] as const as [kind, label] (kind)}
+						<button
+							type="button"
+							class="btn btn-xs rounded-full font-normal {newKind === kind
+								? 'btn-neutral'
+								: 'border-base-300 bg-base-100 text-base-content/70'}"
+							onclick={() => setKind(kind)}
+						>
+							{label}
+						</button>
+					{/each}
+				</div>
+				<div class="flex flex-wrap items-end gap-3">
+					<label class="flex flex-col gap-1">
+						<span class="text-base-content/60 text-xs">from</span>
+						<input type="date" class="input input-sm w-40" min={today} bind:value={newStart} />
+					</label>
+					<label class="flex flex-col gap-1">
+						<span class="text-base-content/60 text-xs">to (optional)</span>
+						<input type="date" class="input input-sm w-40" min={newStart || today} bind:value={newEnd} />
+					</label>
+				</div>
+				<div class="flex flex-wrap items-center gap-3">
+					<label class="flex cursor-pointer items-center gap-2">
+						<input type="checkbox" class="toggle toggle-sm" bind:checked={newAllDay} />
+						all day
+					</label>
+					{#if !newAllDay}
+						<div class="flex items-center gap-2">
+							<select class="select select-sm w-24" aria-label="from" bind:value={newFrom}>
+								{#each START_OPTIONS as option (option.value)}
+									<option value={option.value}>{option.label}</option>
+								{/each}
+							</select>
+							<span class="text-base-content/50">–</span>
+							<select class="select select-sm w-24" aria-label="to" bind:value={newTo}>
+								{#each END_OPTIONS as option (option.value)}
+									<option value={option.value}>{option.label}</option>
+								{/each}
+							</select>
+						</div>
+					{/if}
+				</div>
+				<input
+					type="text"
+					class="input input-sm w-full max-w-sm"
+					maxlength="100"
+					placeholder="note (optional) — e.g. holiday"
+					bind:value={newNote}
+				/>
+				{#if addError}
+					<span class="text-error text-xs">{addError}</span>
+				{/if}
+				<div class="flex gap-2">
+					<button type="button" class="btn btn-accent btn-xs" disabled={!!addError} onclick={addEntry}>
+						add
+					</button>
+					<button type="button" class="btn btn-ghost btn-xs" onclick={() => (adding = false)}>cancel</button>
+				</div>
+			</div>
+		{/if}
+
+		{#if entries.length === 0}
+			{#if !adding}
+				<p class="text-base-content/50 text-sm">nothing coming up.</p>
+			{/if}
+		{:else}
+			<ul class="border-base-300 divide-base-300 divide-y rounded-field border">
+				{#each visibleEntries as entry, i (i)}
+					<li class="flex items-center gap-3 px-3 py-2.5">
+						<span
+							class="badge badge-sm font-body shrink-0 {entry.kind === 'closed'
+								? 'badge-neutral'
+								: 'badge-success'}"
+						>
+							{entry.kind === 'closed' ? 'time off' : 'extra hours'}
+						</span>
+						<div class="min-w-0 flex-1">
+							<div class="text-sm">{oneOffDatesLabel(entry)} · {oneOffTimesLabel(entry)}</div>
+							{#if entry.note}
+								<div class="text-base-content/60 truncate text-xs">{entry.note}</div>
+							{/if}
+						</div>
+						<button
+							type="button"
+							class="btn btn-ghost btn-sm btn-square"
+							aria-label="remove this change"
+							onclick={() => removeEntry(i)}
+						>
+							✕
+						</button>
+					</li>
+				{/each}
+			</ul>
+			{#if entries.length > ONE_OFF_PREVIEW_COUNT}
+				<button
+					type="button"
+					class="text-accent self-start text-sm hover:underline"
+					onclick={() => (showAllEntries = !showAllEntries)}
+				>
+					{showAllEntries ? 'show fewer' : `show ${entries.length - ONE_OFF_PREVIEW_COUNT} more`}
+				</button>
+			{/if}
+		{/if}
+
+		{#if oneOffConflicts.length > 0}
+			<div class="border-error bg-error/10 flex flex-col gap-1 rounded-field border p-2 text-xs">
+				<span class="font-medium">
+					{oneOffConflicts.length === 1 ? 'a session falls' : `${oneOffConflicts.length} sessions fall`} outside
+					your hours after these changes — {oneOffConflicts.length === 1 ? 'it stays' : 'they stay'} booked:
+				</span>
+				{#each oneOffConflicts as booking (booking.id)}
+					<span>
+						{booking.clientName} · {dayLabel(booking.startsAt, zone)} at {formatTime(booking.startsAt, zone)} ·
+						{booking.status === 'confirmed' ? 'booked' : 'requested'}
+					</span>
+				{/each}
+			</div>
+		{/if}
+	</div>
+
 	<form
 		bind:this={saveForm}
 		method="POST"
@@ -342,6 +574,7 @@
 		use:enhance={enhanceSave}
 	>
 		<input type="hidden" name="windows" value={JSON.stringify(draftWindows)} />
+		<input type="hidden" name="oneOffs" value={JSON.stringify(entries)} />
 		<span class="text-base-content/60 text-sm">
 			{#if saveError}
 				<span class="text-error">{saveError}</span>
@@ -350,7 +583,7 @@
 			{:else if !dirty}
 				no changes yet
 			{:else}
-				unsaved changes to {changedDays.map((w) => WEEKDAY_LABELS[w]).join(', ')}
+				unsaved changes to {changeSummary}
 			{/if}
 			{#if conflicts.length > 0}
 				<span class="text-error">
@@ -380,7 +613,7 @@
 			closing:
 		</p>
 		<ul class="bg-base-200 border-base-300 divide-base-300 divide-y rounded-field border text-sm">
-			{#each conflicts as { booking } (booking.id)}
+			{#each conflicts as booking (booking.id)}
 				<li class="flex items-center justify-between gap-3 px-4 py-2.5">
 					<span>
 						{booking.clientName} · {dayLabel(booking.startsAt, zone)} at {formatTime(booking.startsAt, zone)}
@@ -413,7 +646,7 @@
 	<div class="modal-box bg-base-100 flex flex-col gap-4 rounded-2xl">
 		<h3 class="font-headings text-xl">discard your changes?</h3>
 		<p class="text-base-content/70 text-sm">
-			you've changed your hours for {changedDays.map((w) => WEEKDAY_LABELS[w]).join(', ')} but haven't saved.
+			you've made changes ({changeSummary}) but haven't saved them.
 		</p>
 		<div class="modal-action mt-0">
 			<button type="button" class="btn btn-sm btn-ghost" onclick={() => leaveDialog?.close()}>keep editing</button>

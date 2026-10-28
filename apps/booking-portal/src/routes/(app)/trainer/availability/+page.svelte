@@ -2,7 +2,13 @@
 	import { goto } from '$app/navigation';
 	import { page } from '$app/state';
 	import { AvailabilityRangeEditor, WeekGrid } from '$lib/components';
-	import type { WeeklyWindow } from '$lib/utils/availabilityEditor';
+	import {
+		ONE_OFF_PREVIEW_COUNT,
+		oneOffDatesLabel,
+		oneOffTimesLabel,
+		type OneOffChange,
+		type WeeklyWindow
+	} from '$lib/utils/availabilityEditor';
 	import { getWeekGrid } from '$lib/utils/weekGrid';
 	import type { PageProps } from './$types';
 
@@ -18,6 +24,12 @@
 	};
 
 	let draftHours = $state<WeeklyWindow[]>();
+	let draftOneOffs = $state<OneOffChange[]>();
+
+	let showAllOneOffs = $state(false);
+	const visibleOneOffs = $derived(
+		data.coach && !showAllOneOffs ? data.oneOffs.slice(0, ONE_OFF_PREVIEW_COUNT) : (data.oneOffs ?? [])
+	);
 </script>
 
 <div class="mx-auto flex max-w-6xl flex-col gap-8 p-6 md:p-10">
@@ -47,17 +59,58 @@
 
 			{#if !editing}
 				<WeekGrid grid={getWeekGrid(data, zone)} />
+
+				<hr class="border-base-300" />
+
+				<div class="flex flex-col gap-2">
+					<h3 class="font-headings text-lg">one-off changes</h3>
+					{#if data.oneOffs.length === 0}
+						<p class="text-base-content/50 text-sm">nothing coming up.</p>
+					{:else}
+						<ul class="border-base-300 divide-base-300 divide-y rounded-field border">
+							{#each visibleOneOffs as entry (entry.id)}
+								<li class="flex items-center gap-3 px-3 py-2.5">
+									<span
+										class="badge badge-sm font-body shrink-0 {entry.kind === 'closed'
+											? 'badge-neutral'
+											: 'badge-success'}"
+									>
+										{entry.kind === 'closed' ? 'time off' : 'extra hours'}
+									</span>
+									<div class="min-w-0 flex-1">
+										<div class="text-sm">{oneOffDatesLabel(entry)} · {oneOffTimesLabel(entry)}</div>
+										{#if entry.note}
+											<div class="text-base-content/60 truncate text-xs">{entry.note}</div>
+										{/if}
+									</div>
+								</li>
+							{/each}
+						</ul>
+						{#if data.oneOffs.length > ONE_OFF_PREVIEW_COUNT}
+							<button
+								type="button"
+								class="text-accent self-start text-sm hover:underline"
+								onclick={() => (showAllOneOffs = !showAllOneOffs)}
+							>
+								{showAllOneOffs ? 'show fewer' : `show ${data.oneOffs.length - ONE_OFF_PREVIEW_COUNT} more`}
+							</button>
+						{/if}
+					{/if}
+				</div>
 			{:else}
 				<!-- Re-created after a save so it starts from the newly saved hours. -->
-				{#key data.availability}
+				{#key [data.availability, data.oneOffs]}
 					<AvailabilityRangeEditor
 						windows={data.availability}
+						oneOffs={data.oneOffs}
+						today={data.today}
 						upcoming={data.upcomingActive}
 						{zone}
 						minSessionLength={data.minSessionLength}
 						onCancel={() => setEditing(false)}
 						onSaved={() => setEditing(false)}
 						bind:draft={draftHours}
+						bind:draftOneOffs
 					>
 						{#snippet preview()}
 							<div class="flex min-w-0 flex-col gap-3">

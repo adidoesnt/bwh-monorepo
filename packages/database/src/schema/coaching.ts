@@ -1,12 +1,14 @@
-import { relations } from "drizzle-orm";
+import { relations, sql } from "drizzle-orm";
 import {
   pgTable,
   text,
   integer,
   boolean,
+  date,
   timestamp,
   index,
   uniqueIndex,
+  check,
 } from "drizzle-orm/pg-core";
 import { createId } from "./id";
 import { user } from "./auth";
@@ -74,12 +76,59 @@ export const availabilitySlot = pgTable(
   (table) => [index("availability_slot_coachId_idx").on(table.coachId)],
 );
 
+/** `closed` takes time off the weekly hours; `open` adds hours they don't normally have. */
+export type AvailabilityExceptionKind = "closed" | "open";
+
+/**
+ * A one-off change to a coach's weekly hours — "off 24–31 dec", "open this
+ * sunday morning". Applies `start_min`–`end_min` on every date from
+ * `start_date` to `end_date` (inclusive); 0–1440 is the whole day. Dates and
+ * minutes are wall-clock in the coach's zone, like `availability_slot`. Slot
+ * generation adds `open` hours to the day's windows, then removes `closed`
+ * ones, so time off wins where they overlap. Existing bookings are never
+ * changed by an exception.
+ */
+export const availabilityException = pgTable(
+  "availability_exception",
+  {
+    id: text("id").primaryKey().$defaultFn(createId),
+    coachId: text("coach_id")
+      .notNull()
+      .references(() => coachProfile.id, { onDelete: "cascade" }),
+    kind: text("kind").$type<AvailabilityExceptionKind>().notNull(),
+    startDate: date("start_date").notNull(),
+    endDate: date("end_date").notNull(),
+    startMin: integer("start_min").notNull(),
+    endMin: integer("end_min").notNull(),
+    /** Optional label for the coach, e.g. "holiday". */
+    note: text("note"),
+    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+  },
+  (table) => [
+    index("availability_exception_coachId_endDate_idx").on(table.coachId, table.endDate),
+    check("availability_exception_kind_check", sql`${table.kind} in ('closed', 'open')`),
+    check("availability_exception_dates_check", sql`${table.endDate} >= ${table.startDate}`),
+    check(
+      "availability_exception_minutes_check",
+      sql`${table.startMin} >= 0 and ${table.endMin} <= 1440 and ${table.startMin} < ${table.endMin}`,
+    ),
+  ],
+);
+
 export const coachProfileRelations = relations(coachProfile, ({ one, many }) => ({
   user: one(user, {
     fields: [coachProfile.userId],
     references: [user.id],
   }),
   availability: many(availabilitySlot),
+  availabilityExceptions: many(availabilityException),
+}));
+
+export const availabilityExceptionRelations = relations(availabilityException, ({ one }) => ({
+  coach: one(coachProfile, {
+    fields: [availabilityException.coachId],
+    references: [coachProfile.id],
+  }),
 }));
 
 export const availabilitySlotRelations = relations(

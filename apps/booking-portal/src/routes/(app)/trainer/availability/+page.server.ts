@@ -15,7 +15,7 @@ export const load: PageServerLoad = async ({ locals }) => {
   const [weekSessions, pendingRequests, hoursEditor] = await Promise.all([
     getCoachSessionsBetween(coach.id, weekStart, weekEnd),
     getCoachPendingRequests(coach.id),
-    getHoursEditorData(coach.id),
+    getHoursEditorData(coach.id, coach.timezone),
   ]);
 
   return { coach, weekStart, weekSessions, pendingRequests, ...hoursEditor };

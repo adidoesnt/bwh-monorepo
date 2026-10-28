@@ -9,11 +9,13 @@ import {
   ilike,
   inArray,
   lt,
+  lte,
   or,
   sql,
   type SQL,
 } from "drizzle-orm";
 import {
+  availabilityException,
   availabilitySlot,
   booking,
   coachProfile,
@@ -25,7 +27,10 @@ import {
   type SessionType,
 } from "@repo/database/schema";
 import {
+  applyExceptions,
+  exceptionsOn,
   slotsForDay,
+  zonedDateKey,
   zonedDateParts,
   zonedTimeToUtc,
   type Slot,
@@ -534,6 +539,35 @@ export const getCoachAvailabilitySlots = async (
 
 /** A coach's non-cancelled, non-completed bookings starting in `[from, to)` —
  * the sessions that occupy a calendar slot and block others from being offered. */
+/** A coach's one-off changes touching any date from `fromDate` to `toDate`
+ * (inclusive, `YYYY-MM-DD` in the coach's zone). */
+export const getCoachAvailabilityExceptions = async (
+  coachId: string,
+  fromDate: string,
+  toDate: string,
+  executor: DbExecutor = db,
+) => {
+  return executor
+    .select({
+      id: availabilityException.id,
+      kind: availabilityException.kind,
+      startDate: availabilityException.startDate,
+      endDate: availabilityException.endDate,
+      startMin: availabilityException.startMin,
+      endMin: availabilityException.endMin,
+      note: availabilityException.note,
+    })
+    .from(availabilityException)
+    .where(
+      and(
+        eq(availabilityException.coachId, coachId),
+        lte(availabilityException.startDate, toDate),
+        gte(availabilityException.endDate, fromDate),
+      ),
+    )
+    .orderBy(asc(availabilityException.startDate), asc(availabilityException.startMin));
+};
+
 export const getCoachActiveBookings = async (
   coachId: string,
   from: Date,
@@ -573,8 +607,14 @@ export const getCoachSlots = async (
   },
   executor: DbExecutor = db,
 ) => {
-  const [availabilitySlots, existingBookings] = await Promise.all([
+  const [availabilitySlots, exceptions, existingBookings] = await Promise.all([
     getCoachAvailabilitySlots(coachId, executor),
+    getCoachAvailabilityExceptions(
+      coachId,
+      zonedDateKey(from, zone),
+      zonedDateKey(new Date(to.getTime() - 1), zone),
+      executor,
+    ),
     getCoachActiveBookings(coachId, from, to, executor),
   ]);
 
@@ -595,7 +635,11 @@ export const getCoachSlots = async (
     cursor = new Date(cursor.getTime() + 86_400_000)
   ) {
     const { year, month, day, weekday } = zonedDateParts(cursor, zone);
-    const windows = windowsByWeekday.get(weekday) ?? [];
+    // One-off extra hours and time off for this date adjust the weekly hours.
+    const windows = applyExceptions(
+      windowsByWeekday.get(weekday) ?? [],
+      exceptionsOn(exceptions, zonedDateKey(cursor, zone)),
+    );
     if (windows.length === 0) continue;
 
     slots.push(

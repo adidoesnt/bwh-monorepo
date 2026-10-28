@@ -243,8 +243,8 @@
 </div>
 
 {#if showBoughtToast}
-	<div class="toast toast-top toast-center z-50">
-		<div class="alert alert-success rounded-2xl">
+	<div class="toast toast-top toast-center z-50 w-full md:toast-end md:w-auto">
+		<div class="alert alert-success w-full rounded-2xl md:w-auto">
 			<span>package purchased — sessions are ready to book.</span>
 		</div>
 	</div>
