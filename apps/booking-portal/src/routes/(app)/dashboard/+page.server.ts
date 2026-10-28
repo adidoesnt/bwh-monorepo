@@ -11,6 +11,7 @@ import {
   getCoachPendingRequests,
   getCoachSessionsToClose,
   getCoachActiveClientStats,
+  getCoachAvailabilitySlots,
   type CoachSession,
   type CoachPendingRequest,
 } from "$lib/server/queries";
@@ -52,6 +53,8 @@ const EMPTY_TRAINER_DATA = {
   pendingRequests: [] as CoachPendingRequest[],
   sessionsToClose: [] as CoachSession[],
   activeClientStats: { count: 0, runningLow: 0 },
+  availability: [] as Awaited<ReturnType<typeof getCoachAvailabilitySlots>>,
+  weekStart: new Date(),
 };
 
 const getTrainerData = async (userId: string) => {
@@ -67,12 +70,13 @@ const getTrainerData = async (userId: string) => {
   const weekStart = zonedStartOfDay(now, coach.timezone, -daysSinceMonday);
   const weekEnd = zonedStartOfDay(now, coach.timezone, 7 - daysSinceMonday);
 
-  const [weekSessions, pendingRequests, sessionsToClose, activeClientStats] =
+  const [weekSessions, pendingRequests, sessionsToClose, activeClientStats, availability] =
     await Promise.all([
       getCoachSessionsBetween(coach.id, weekStart, weekEnd),
       getCoachPendingRequests(coach.id),
       getCoachSessionsToClose(coach.id),
       getCoachActiveClientStats(coach.id),
+      getCoachAvailabilitySlots(coach.id),
     ]);
 
   const todaySessions = weekSessions.filter(
@@ -87,6 +91,8 @@ const getTrainerData = async (userId: string) => {
     pendingRequests,
     sessionsToClose,
     activeClientStats,
+    availability,
+    weekStart,
   };
 };
 

@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { CoachSessionRow, StatCard } from '$lib/components';
 	import { formatTime, statusBadgeClass, statusLabel } from '$lib/utils/format';
-	import { getTrainerStats, type TrainerDashboardData } from './dashboard';
+	import { getTrainerStats, getWeekGrid, type GridCellState, type TrainerDashboardData } from './dashboard';
 
 	let { data }: { data: TrainerDashboardData } = $props();
 
@@ -9,6 +9,15 @@
 	const zone = $derived(data.coach?.timezone ?? 'Asia/Singapore');
 	const stats = $derived(getTrainerStats(data, zone));
 	const actionCount = $derived(data.pendingRequests.length + data.sessionsToClose.length);
+
+	const weekGrid = $derived(getWeekGrid(data, zone));
+
+	const CELL_CLASSES: Record<GridCellState, string> = {
+		open: 'bg-success/30',
+		booked: 'bg-neutral text-neutral-content',
+		requested: 'bg-warning/50',
+		closed: 'border border-base-300'
+	};
 
 	const PREVIEW_COUNT = 3;
 	const AWAITING_ACTION_HREF = '/bookings?tab=awaiting_action';
@@ -93,6 +102,59 @@
 	</div>
 {/snippet}
 
+{#snippet availability()}
+	<div class="bg-base-100 border-base-300 flex flex-col gap-4 rounded-2xl border p-5">
+		<div class="flex flex-col">
+			<h2 class="font-headings text-xl">this week's availability</h2>
+			<p class="text-base-content/60 text-sm">your open hours, and what's booked or requested in them.</p>
+		</div>
+
+		<!-- TODO: make this editable (tap a cell to open/close it). Open questions first:
+		     - availability_slot is a weekly pattern, but this shows one week's bookings — a tap
+		       would change every week. One-off changes ("off this thursday") need an exceptions table.
+		     - closing a cell that already has a booking: block it, or close and keep the booking?
+		     - saving rewrites that weekday's windows; it needs the per-coach lock bookSession takes. -->
+		<div class="overflow-x-auto">
+			<div class="grid min-w-[36rem] grid-cols-[3.5rem_repeat(7,minmax(0,1fr))] gap-1 text-xs">
+				<span></span>
+				{#each weekGrid.days as d (d.label)}
+					<div class="pb-1 text-center {d.isToday ? 'text-accent font-medium' : 'text-base-content/60'}">
+						{d.label} {d.day}
+					</div>
+				{/each}
+
+				{#each weekGrid.rows as row (row.minute)}
+					{#if row.gapBefore}
+						<div class="col-span-8 h-2"></div>
+					{/if}
+					<span class="text-base-content/60 self-center font-mono">{row.label}</span>
+					{#each row.cells as cell, i (i)}
+						<div
+							class="h-7 truncate rounded-field px-1 text-center text-[10px] leading-7 {CELL_CLASSES[cell.state]} {cell.past
+								? 'opacity-40'
+								: ''}"
+							title={cell.title}
+						>
+							{cell.label ?? ''}
+						</div>
+					{/each}
+				{/each}
+			</div>
+		</div>
+
+		<div class="text-base-content/60 flex flex-wrap items-center justify-between gap-3 text-xs">
+			<div class="flex flex-wrap gap-4">
+				{#each ['open', 'booked', 'requested', 'closed'] as const as state (state)}
+					<span class="flex items-center gap-1.5">
+						<span class="h-3 w-3 rounded-sm {CELL_CLASSES[state]}"></span>{state}
+					</span>
+				{/each}
+			</div>
+			<span class="font-mono">{weekGrid.openHoursLeft} hours still open this week</span>
+		</div>
+	</div>
+{/snippet}
+
 {#if !data.coach}
 	<p class="text-base-content/60 max-w-sm">
 		you don't have a coach profile yet — ask an admin to set one up before clients can book you.
@@ -108,4 +170,6 @@
 		{@render today()}
 		{@render needsAction()}
 	</div>
+
+	{@render availability()}
 {/if}
