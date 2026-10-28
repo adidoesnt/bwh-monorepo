@@ -58,7 +58,7 @@
 			</div>
 
 			{#if !editing}
-				<WeekGrid grid={getWeekGrid(data, zone)} />
+				<WeekGrid grid={getWeekGrid({ ...data, oneOffs: data.weekOneOffs }, zone)} />
 
 				<hr class="border-base-300" />
 
@@ -116,7 +116,18 @@
 							<div class="flex min-w-0 flex-col gap-3">
 								<p class="text-base-content/60 text-sm">preview — this week with your new hours</p>
 								<WeekGrid
-									grid={getWeekGrid({ ...data, availability: draftHours ?? data.availability }, zone)}
+									grid={getWeekGrid(
+										{
+											...data,
+											availability: draftHours ?? data.availability,
+											// This week's entries that already ended aren't in the editor, so keep them.
+											oneOffs: [
+												...data.weekOneOffs.filter((o) => o.endDate < data.today),
+												...(draftOneOffs ?? data.oneOffs)
+											]
+										},
+										zone
+									)}
 								/>
 							</div>
 						{/snippet}

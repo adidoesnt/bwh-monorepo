@@ -19,6 +19,7 @@
 		oneOffTimesLabel,
 		rangeErrors,
 		rangesToWindows,
+		redundantOneOffReason,
 		sessionsLosingHours,
 		shortWindows,
 		windowsToRanges,
@@ -91,7 +92,6 @@
 	});
 
 	const errors = $derived(ranges.map(rangeErrors));
-	const hasErrors = $derived(errors.some((day) => day.some(Boolean)));
 
 	const dayKey = (list: WeeklyWindow[], weekday: number) =>
 		list
@@ -148,8 +148,22 @@
 	};
 
 	const oneOffChanges = $derived(countOneOffChanges(originalOneOffs, entries));
+	// An entry can stop changing anything after a weekly edit (e.g. extra sunday
+	// hours once sundays open every week). The server refuses those, so flag them here.
+	const entryErrors = $derived(
+		entries.map((e, i) =>
+			redundantOneOffReason(e, draftWindows, entries.filter((_, j) => j !== i))
+		)
+	);
+	const hasErrors = $derived(
+		errors.some((day) => day.some(Boolean)) || entryErrors.some(Boolean)
+	);
 	let showAllEntries = $state(false);
-	const visibleEntries = $derived(showAllEntries ? entries : entries.slice(0, ONE_OFF_PREVIEW_COUNT));
+	const visibleEntries = $derived(
+		showAllEntries || entryErrors.some((e, i) => e && i >= ONE_OFF_PREVIEW_COUNT)
+			? entries
+			: entries.slice(0, ONE_OFF_PREVIEW_COUNT)
+	);
 
 	// Adding a one-off change: time off defaults to the whole day, extra hours to a morning.
 	let adding = $state(false);
@@ -175,6 +189,13 @@
 		newKind = kind;
 		newAllDay = kind === 'closed';
 	};
+	const newEntry = $derived<OneOffChange>({
+		kind: newKind,
+		startDate: newStart,
+		endDate: newEnd || newStart,
+		...(newAllDay ? ALL_DAY : { startMin: newFrom, endMin: newTo }),
+		note: newNote.trim() || null
+	});
 	const addError = $derived(
 		!newStart
 			? 'pick a date'
@@ -184,18 +205,12 @@
 					? 'the end date is before the start'
 					: !newAllDay && newTo <= newFrom
 						? 'ends before it starts'
-						: null
+						: // Checked against the draft, so it reflects unsaved weekly changes too.
+							redundantOneOffReason(newEntry, draftWindows, entries)
 	);
 	const addEntry = () => {
 		if (addError) return;
-		const range = newAllDay ? ALL_DAY : { startMin: newFrom, endMin: newTo };
-		entries.push({
-			kind: newKind,
-			startDate: newStart,
-			endDate: newEnd || newStart,
-			...range,
-			note: newNote.trim() || null
-		});
+		entries.push({ ...newEntry });
 		entries.sort((a, b) => a.startDate.localeCompare(b.startDate) || a.startMin - b.startMin);
 		// Make sure the new entry is visible even if it sorts below the cap.
 		if (entries.length > ONE_OFF_PREVIEW_COUNT) showAllEntries = true;
@@ -526,6 +541,9 @@
 							<div class="text-sm">{oneOffDatesLabel(entry)} · {oneOffTimesLabel(entry)}</div>
 							{#if entry.note}
 								<div class="text-base-content/60 truncate text-xs">{entry.note}</div>
+							{/if}
+							{#if entryErrors[i]}
+								<div class="text-error text-xs">{entryErrors[i]} — this no longer changes anything, remove it</div>
 							{/if}
 						</div>
 						<button

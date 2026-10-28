@@ -12,3 +12,12 @@
     0 -2px 0 var(--color-base-100),
     0 2px 0 var(--color-base-100);
 }
+
+/* Hatching for time a coach has taken off, in the week grid. */
+@utility off-stripes {
+  background: repeating-linear-gradient(
+    45deg,
+    color-mix(in oklab, var(--color-base-content) 12%, transparent) 0 4px,
+    transparent 4px 8px
+  );
+}

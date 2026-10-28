@@ -1,4 +1,12 @@
-import { zonedDateParts, zonedStartOfDay } from '$lib/utils/availability';
+import {
+	applyExceptions,
+	exceptionsOn,
+	zonedDateKey,
+	zonedDateParts,
+	zonedStartOfDay,
+	type AvailabilityWindow,
+	type DayException
+} from '$lib/utils/availability';
 import { clockLabel, type WeeklyWindow } from '$lib/utils/availabilityEditor';
 import { dayNumber, weekdayAbbrev } from '$lib/utils/format';
 
@@ -11,12 +19,17 @@ export type WeekGridInput = {
 	weekSessions: GridSession[];
 	/** Requests still awaiting the coach (any week; only this week's are drawn). */
 	pendingRequests: GridSession[];
+	/** One-off changes touching this week (time off / extra hours). */
+	oneOffs?: (DayException & { note?: string | null })[];
 };
 
 const CELL_MIN = 30;
 const DAY_MS = 86_400_000;
 
-export type GridCellState = 'open' | 'booked' | 'requested' | 'closed';
+export type GridCellState = 'open' | 'booked' | 'requested' | 'off' | 'closed';
+
+const within = (windows: AvailabilityWindow[], start: number, end: number) =>
+	windows.some((w) => w.startMin < end && w.endMin > start);
 
 /** "Tessa Lim" → "Tessa L." — short enough for a grid cell. */
 const shortName = (fullName: string) => {
@@ -26,8 +39,10 @@ const shortName = (fullName: string) => {
 };
 
 /** This week (Monday–Sunday, coach's zone) as 30-minute rows, each cell open /
- * booked / requested / closed. Rows closed every day are skipped; `gapBefore`
- * marks where that happened. */
+ * booked / requested / off / closed. Each day's hours are the weekly pattern
+ * adjusted by that date's one-off changes; "off" marks time the coach would
+ * otherwise be open but has taken off. Rows closed every day are skipped;
+ * `gapBefore` marks where that happened. */
 export const getWeekGrid = (data: WeekGridInput, zone: string) => {
 	const now = Date.now();
 	const days = Array.from({ length: 7 }, (_, i) => zonedStartOfDay(data.weekStart, zone, i));
@@ -55,11 +70,28 @@ export const getWeekGrid = (data: WeekGridInput, zone: string) => {
 		}))
 		.filter((o) => o.day >= 0 && o.day < 7);
 
+	const oneOffs = data.oneOffs ?? [];
+	const hours = days.map((day, i) => {
+		const dayOneOffs = exceptionsOn(oneOffs, zonedDateKey(day, zone));
+		const weekly = data.availability.filter((w) => w.weekday === weekdays[i]);
+		return {
+			open: applyExceptions(weekly, dayOneOffs),
+			// What would be open with this date's extra hours but none of its time off.
+			openBeforeTimeOff: applyExceptions(
+				weekly,
+				dayOneOffs.filter((o) => o.kind === 'open')
+			),
+			timeOff: dayOneOffs.filter((o) => o.kind === 'closed')
+		};
+	});
+	const isOff = (i: number, start: number, end: number) =>
+		within(hours[i].openBeforeTimeOff, start, end) && !within(hours[i].open, start, end);
+
 	const rowMinutes = new Set<number>();
 	const addRange = (start: number, end: number) => {
 		for (let m = Math.floor(start / CELL_MIN) * CELL_MIN; m < end; m += CELL_MIN) rowMinutes.add(m);
 	};
-	data.availability.forEach((w) => addRange(w.startMin, w.endMin));
+	hours.forEach((h) => h.openBeforeTimeOff.forEach((w) => addRange(w.startMin, w.endMin)));
 	occupied.forEach((o) => addRange(o.start, o.end));
 
 	let openCellsLeft = 0;
@@ -73,19 +105,26 @@ export const getWeekGrid = (data: WeekGridInput, zone: string) => {
 			const cellEnd = minute + CELL_MIN;
 			const past = day.getTime() + cellEnd * 60_000 <= now;
 			const occupant = occupied.find((o) => o.day === i && o.start < cellEnd && o.end > minute);
-			const inWindow = data.availability.some(
-				(w) => w.weekday === weekdays[i] && w.startMin < cellEnd && w.endMin > minute
-			);
-			const state: GridCellState = occupant?.state ?? (inWindow ? 'open' : 'closed');
+			const off = isOff(i, minute, cellEnd);
+			const state: GridCellState =
+				occupant?.state ??
+				(within(hours[i].open, minute, cellEnd) ? 'open' : off ? 'off' : 'closed');
 			if (state === 'open' && !past) openCellsLeft++;
+
+			const offNote = off
+				? hours[i].timeOff.find((o) => o.startMin < cellEnd && o.endMin > minute)?.note
+				: null;
+			const offStartsHere = off && !isOff(i, minute - CELL_MIN, minute);
 
 			return {
 				state,
 				past,
-				label: occupant?.name ?? null,
+				label: occupant?.name ?? (state === 'off' && offStartsHere ? 'off' : null),
 				title: occupant
 					? `${occupant.name} · ${occupant.type} · ${occupant.state}`
-					: `${clockLabel(minute)} · ${state}`
+					: state === 'off'
+						? `${clockLabel(minute)} · time off${offNote ? ` · ${offNote}` : ''}`
+						: `${clockLabel(minute)} · ${state}`
 			};
 		})
 	}));
@@ -97,6 +136,7 @@ export const getWeekGrid = (data: WeekGridInput, zone: string) => {
 			isToday: d.getTime() === todayStart
 		})),
 		rows,
-		openHoursLeft: openCellsLeft / 2
+		openHoursLeft: openCellsLeft / 2,
+		hasTimeOff: rows.some((r) => r.cells.some((c) => c.state === 'off'))
 	};
 };

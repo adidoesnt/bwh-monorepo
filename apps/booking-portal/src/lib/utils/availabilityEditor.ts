@@ -168,3 +168,32 @@ export const sessionsLosingHours = <T extends { startsAt: Date; durationMin: num
 	zone: string,
 ) =>
 	sessions.filter((s) => isWithinHours(s, before, zone) && !isWithinHours(s, after, zone));
+
+/** Longest stretch of dates checked for a single entry — enough for any real holiday. */
+const MAX_CHECKED_DAYS = 366;
+
+/** Why a new one-off change would make no difference on any of its dates, or
+ * `null` if it changes something. Each date is compared with its hours without
+ * the entry: the weekly pattern plus the other one-off changes. */
+export const redundantOneOffReason = (
+	entry: OneOffChange,
+	windows: WeeklyWindow[],
+	others: OneOffChange[],
+): string | null => {
+	const start = new Date(`${entry.startDate}T00:00:00Z`);
+	const end = new Date(`${entry.endDate}T00:00:00Z`);
+	for (let n = 0, d = start; d <= end && n < MAX_CHECKED_DAYS; n++, d = new Date(d.getTime() + 86_400_000)) {
+		const key = d.toISOString().slice(0, 10);
+		const weekly = windows.filter((w) => w.weekday === d.getUTCDay());
+		const before = applyExceptions(weekly, exceptionsOn(others, key));
+		const after = applyExceptions(weekly, exceptionsOn([...others, entry], key));
+		if (JSON.stringify(before) !== JSON.stringify(after)) return null;
+	}
+
+	const times = oneOffTimesLabel(entry);
+	const single = entry.startDate === entry.endDate;
+	const on = single ? `on ${formatDateKey(entry.startDate)}` : null;
+	return entry.kind === "open"
+		? `you're already open ${times} ${on ?? "on all of those days"}`
+		: `you're not open ${times === "all day" ? "at all" : times} ${on ?? "on any of those days"} anyway`;
+};

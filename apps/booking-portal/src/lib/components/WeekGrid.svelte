@@ -7,8 +7,22 @@
 		open: 'bg-success/30',
 		booked: 'bg-neutral text-neutral-content',
 		requested: 'bg-warning/50',
+		off: 'off-stripes border border-base-300 text-base-content/60',
 		closed: 'border border-base-300'
 	};
+
+	const LEGEND_LABELS: Record<GridCellState, string> = {
+		open: 'open',
+		booked: 'booked',
+		requested: 'requested',
+		off: 'time off',
+		closed: 'closed'
+	};
+	const legend = $derived<GridCellState[]>(
+		grid.hasTimeOff
+			? ['open', 'booked', 'requested', 'off', 'closed']
+			: ['open', 'booked', 'requested', 'closed']
+	);
 </script>
 
 <!-- Below xl the grid scrolls in both directions inside a capped height, with the
@@ -45,9 +59,9 @@
 
 <div class="text-base-content/60 flex flex-wrap items-center justify-between gap-3 text-xs">
 	<div class="flex flex-wrap gap-4">
-		{#each ['open', 'booked', 'requested', 'closed'] as const as state (state)}
+		{#each legend as state (state)}
 			<span class="flex items-center gap-1.5">
-				<span class="h-3 w-3 rounded-sm {CELL_CLASSES[state]}"></span>{state}
+				<span class="h-3 w-3 rounded-sm {CELL_CLASSES[state]}"></span>{LEGEND_LABELS[state]}
 			</span>
 		{/each}
 	</div>

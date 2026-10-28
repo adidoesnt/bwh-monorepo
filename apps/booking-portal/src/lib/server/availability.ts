@@ -5,6 +5,7 @@ import { availabilityException, availabilitySlot } from "@repo/database/schema";
 import { zonedDateKey, zonedDateParts, zonedStartOfDay } from "$lib/utils/availability";
 import {
   cellsToWindows,
+  redundantOneOffReason,
   windowsToCells,
   type OneOffChange,
   type WeeklyWindow,
@@ -30,6 +31,18 @@ export const coachWeekBounds = (zone: string, now = new Date()) => {
     weekEnd: zonedStartOfDay(now, zone, 7 - daysSinceMonday),
   };
 };
+
+/** One-off changes touching the week `coachWeekBounds` returned — for the week grid. */
+export const getCoachWeekOneOffs = (
+  coachId: string,
+  zone: string,
+  { weekStart, weekEnd }: { weekStart: Date; weekEnd: Date },
+) =>
+  getCoachAvailabilityExceptions(
+    coachId,
+    zonedDateKey(weekStart, zone),
+    zonedDateKey(new Date(weekEnd.getTime() - 1), zone),
+  );
 
 /** Upcoming one-off changes: everything not already over, so an entry that
  * started before today but runs on is still shown and editable. */
@@ -150,6 +163,13 @@ export const saveHoursAction = async ({ locals, request }: RequestEvent) => {
     const today = zonedDateKey(new Date(), coach.timezone);
     if (oneOffs?.some((o) => o.endDate < today)) {
       return fail(400, { message: "one-off changes have to end today or later" });
+    }
+    // Every entry has to change something, judged against the rest of what's being saved.
+    const redundant = oneOffs
+      ?.map((o, i) => redundantOneOffReason(o, windows, oneOffs.filter((_, j) => j !== i)))
+      .find(Boolean);
+    if (redundant) {
+      return fail(400, { message: `${redundant} — remove that one-off change and save again` });
     }
 
     await saveCoachHours(coach.id, windows, oneOffs, today);

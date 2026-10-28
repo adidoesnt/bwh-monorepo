@@ -1,5 +1,5 @@
 import type { PageServerLoad } from "./$types";
-import { coachWeekBounds } from "$lib/server/availability";
+import { coachWeekBounds, getCoachWeekOneOffs } from "$lib/server/availability";
 import {
   getClientUpcomingBookings,
   getClientUpcomingBookingsCount,
@@ -55,21 +55,24 @@ const EMPTY_TRAINER_DATA = {
   activeClientStats: { count: 0, runningLow: 0 },
   weekStart: new Date(),
   availability: [] as Awaited<ReturnType<typeof getCoachAvailabilitySlots>>,
+  weekOneOffs: [] as Awaited<ReturnType<typeof getCoachWeekOneOffs>>,
 };
 
 const getTrainerData = async (userId: string) => {
   const coach = await getCoachProfileByUserId(userId);
   if (!coach) return { view: "trainer" as const, coach, ...EMPTY_TRAINER_DATA };
 
-  const { todayStart, tomorrowStart, weekStart, weekEnd } = coachWeekBounds(coach.timezone);
+  const week = coachWeekBounds(coach.timezone);
+  const { todayStart, tomorrowStart, weekStart, weekEnd } = week;
 
-  const [weekSessions, pendingRequests, sessionsToClose, activeClientStats, availability] =
+  const [weekSessions, pendingRequests, sessionsToClose, activeClientStats, availability, weekOneOffs] =
     await Promise.all([
       getCoachSessionsBetween(coach.id, weekStart, weekEnd),
       getCoachPendingRequests(coach.id),
       getCoachSessionsToClose(coach.id),
       getCoachActiveClientStats(coach.id),
       getCoachAvailabilitySlots(coach.id),
+      getCoachWeekOneOffs(coach.id, coach.timezone, week),
     ]);
 
   const todaySessions = weekSessions.filter(
@@ -86,6 +89,7 @@ const getTrainerData = async (userId: string) => {
     activeClientStats,
     weekStart,
     availability,
+    weekOneOffs,
   };
 };
 

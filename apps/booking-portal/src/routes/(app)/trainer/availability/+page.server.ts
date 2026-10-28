@@ -1,5 +1,10 @@
 import type { Actions, PageServerLoad } from "./$types";
-import { coachWeekBounds, getHoursEditorData, saveHoursAction } from "$lib/server/availability";
+import {
+  coachWeekBounds,
+  getCoachWeekOneOffs,
+  getHoursEditorData,
+  saveHoursAction,
+} from "$lib/server/availability";
 import {
   getCoachPendingRequests,
   getCoachProfileByUserId,
@@ -11,14 +16,22 @@ export const load: PageServerLoad = async ({ locals }) => {
   const coach = locals.user ? await getCoachProfileByUserId(locals.user.id) : null;
   if (!coach) return { coach: null };
 
-  const { weekStart, weekEnd } = coachWeekBounds(coach.timezone);
-  const [weekSessions, pendingRequests, hoursEditor] = await Promise.all([
-    getCoachSessionsBetween(coach.id, weekStart, weekEnd),
+  const week = coachWeekBounds(coach.timezone);
+  const [weekSessions, pendingRequests, weekOneOffs, hoursEditor] = await Promise.all([
+    getCoachSessionsBetween(coach.id, week.weekStart, week.weekEnd),
     getCoachPendingRequests(coach.id),
+    getCoachWeekOneOffs(coach.id, coach.timezone, week),
     getHoursEditorData(coach.id, coach.timezone),
   ]);
 
-  return { coach, weekStart, weekSessions, pendingRequests, ...hoursEditor };
+  return {
+    coach,
+    weekStart: week.weekStart,
+    weekSessions,
+    pendingRequests,
+    weekOneOffs,
+    ...hoursEditor,
+  };
 };
 
 export const actions: Actions = {

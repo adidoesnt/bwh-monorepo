@@ -11,7 +11,7 @@
 	const stats = $derived(getTrainerStats(data, zone));
 	const actionCount = $derived(data.pendingRequests.length + data.sessionsToClose.length);
 
-	const weekGrid = $derived(getWeekGrid(data, zone));
+	const weekGrid = $derived(getWeekGrid({ ...data, oneOffs: data.weekOneOffs }, zone));
 
 	const PREVIEW_COUNT = 3;
 	const AWAITING_ACTION_HREF = '/bookings?tab=awaiting_action';
