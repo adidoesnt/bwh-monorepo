@@ -29,7 +29,7 @@
 		{#if toast.current}
 			{#key toast.current.id}
 				<div class="toast toast-top toast-center z-50">
-					<div class="alert alert-success">
+					<div class="alert alert-success rounded-2xl">
 						<span>{toast.current.message}</span>
 					</div>
 				</div>

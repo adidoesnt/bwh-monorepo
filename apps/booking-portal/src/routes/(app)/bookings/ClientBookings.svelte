@@ -256,7 +256,7 @@
 
 {#if showBookedToast}
 	<div class="toast toast-top toast-center z-50">
-		<div class="alert alert-success">
+		<div class="alert alert-success rounded-2xl">
 			<span>request sent — your coach will approve it soon.</span>
 		</div>
 	</div>

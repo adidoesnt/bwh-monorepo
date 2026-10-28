@@ -244,7 +244,7 @@
 
 {#if showBoughtToast}
 	<div class="toast toast-top toast-center z-50">
-		<div class="alert alert-success">
+		<div class="alert alert-success rounded-2xl">
 			<span>package purchased — sessions are ready to book.</span>
 		</div>
 	</div>
