@@ -287,31 +287,44 @@ Stripe flow:  buy → Stripe Checkout → processing (webhook in flight) → pur
 - `/activity` — full `session_ledger_entry` log, chronological, per-purchase running balance on
   each row, coach filter chips, 20/page client-side pagination
 
-## Phase 5 — Bookings management (client) ⬜
+## Phase 5 — Bookings management (client) 🚧 partial
 
 *Design screen: "Bookings" list, upcoming/past/all tabs*
 
 State machine: [`BOOKING-LIFECYCLE.md`](BOOKING-LIFECYCLE.md).
 
-- List stays on `/bookings` (combined with the coach directory, not split). Every booking row
-  opens one manage-session modal showing the actions valid for that booking's state. Which actions
-  are valid (`cancelOutcome`, `canReschedule`) is worked out server-side in
-  `lib/server/bookings.ts` and returned on each row; the actions re-check it under the coach lock.
+- ✅ List stays on `/bookings` (combined with the coach directory, not split). Every booking row
+  opens one manage-session modal showing the booking's details and the actions valid for its
+  state. Which actions are valid (`cancelOutcome`, `canReschedule`, `canReflect`) is worked out
+  server-side in `lib/server/bookings.ts` and returned on each row; the actions re-check it under
+  the coach lock.
 - Per-row actions:
   - **reschedule** — reuses the coach page's live slot grid via
-    `/bookings/[slug]?reschedule=<id>` (same coach; the type, package and length stay fixed).
-    Re-validates the slot (excluding the booking's own slot) and re-applies the cross-zone / PAR-Q
-    / package-expiry gates.
-    - A `pending_approval` request just moves to the new time.
-    - A `confirmed` booking keeps its time: the new one is a **proposal** (`booking_proposal`) the
-      coach accepts or declines, with an optional reason (the client sees a fallback when it's
-      empty). Both times are held until then, so a decline leaves the original session as it
-      was. One live proposal per booking — proposing again replaces it; the client can withdraw.
-      No ledger movement: the session stays spent throughout. Blocked inside the 24h window.
-  - **cancel** — voids the booking; no cash refunds since a package is bought as a block. Clears
-    any live proposal.
-  - **your notes** — client-authored post-session reflection (`booking.client_reflection`),
-    past / `completed` bookings only, shown inline on the row.
+    `/bookings/[slug]?reschedule=<id>` (same coach; the type, package and length stay fixed, and
+    the type / package / location / note fields are hidden). Re-validates the slot (excluding the
+    booking's own slot and its own hold on the package) and re-applies the cross-zone / PAR-Q /
+    package-expiry gates. The current time shows as "· now" and can't be picked.
+    - ✅ A `pending_approval` request just moves to the new time (`rescheduleBooking`), then lands
+      on *awaiting action* with a "moved" toast. Verified: moving overlapping its own slot, on a
+      package whose only session is its own hold; same time / taken / outside hours / confirmed /
+      someone else's refused; 10 runs racing a move against the coach approving always ended
+      confirmed with one `−1`, at either the old or the new time.
+    - ⬜ A `confirmed` booking keeps its time: the new one is a **proposal** (`booking_proposal`)
+      the other side accepts or declines, with an optional reason (the proposer sees a fallback
+      when it's empty). Both times are held until then, so a decline leaves the original session
+      as it was. One live proposal per booking — proposing again replaces it; the proposer can
+      withdraw. No ledger movement: the session stays spent throughout. Blocked inside the 24h
+      window. Built for either side proposing (`proposedBy`), so the coach's "suggest another
+      time" (Phase 8) is mostly UI on top. The same migration adds `booking.cancelled_by` /
+      `cancel_reason` for Phase 8's coach cancel, so there's one migration rather than two.
+  - ✅ **cancel** — voids the booking; no cash refunds since a package is bought as a block.
+    Clears any live proposal. The form posts the outcome the client was shown; if it no longer
+    holds (window passed, coach just approved) the cancel is refused rather than surprising them.
+    Verified: all three outcomes against the ledger, the stale-modal refusal, and 10 runs racing
+    a cancel against the coach approving (never a cancel that loses a spent session).
+  - ✅ **your notes** — client-authored post-session reflection (`booking.client_reflection`,
+    ≤ 1000 chars, empty clears it) on sessions that happened (`completed`, or `confirmed` and
+    started), shown inline on the row ("+ add your notes" when empty).
 - Cancellation policy (`CANCELLATION_WINDOW_HOURS = 24`, hardcoded until Phase 9), measured from
   the booking's current time, not a proposed one:
 
@@ -321,14 +334,14 @@ State machine: [`BOOKING-LIFECYCLE.md`](BOOKING-LIFECYCLE.md).
   | `confirmed` | ≥ 24h | session returned to the purchase (`+1` ledger entry) |
   | `confirmed` | < 24h | session forfeited — the `−1` stands, nothing else |
 
-- **Cancelled bookings show in history on both sides**, labelled "cancelled" or "late cancel ·
-  session forfeited" — derived from the booking's net ledger delta (`−1` = forfeited), no extra
-  column. The coach's history gets a *cancelled* filter chip.
-- **Coach side of reschedules:** a confirmed booking with a live client proposal moves to the
+- ✅ **Cancelled bookings show in history on both sides**, badged "cancelled" or "late cancel" —
+  derived from the booking's net ledger delta (`−1` = forfeited), no extra column. The client's
+  modal explains which; the coach's history has a *cancelled* filter chip.
+- ⬜ **Coach side of reschedules:** a confirmed booking with a live client proposal moves to the
   coach's *awaiting action* tab under a *reschedules* chip (counted in the nav badge), with
   accept / decline (+ optional reason). The week grid shows the proposed time as requested.
-- Suggested build order: cancel (+ the manage modal) → your notes → cancelled in both histories →
-  reschedule of pending requests → proposals for confirmed bookings (migration + coach side).
+- Build order: ✅ cancel (+ the manage modal) → ✅ your notes → ✅ cancelled in both histories →
+  ✅ reschedule of pending requests → ⬜ proposals for confirmed bookings (migration + coach side).
 
 ## Phase 6 — Intake / PAR-Q health screening ⬜
 
@@ -431,8 +444,15 @@ Shared surfaces render per role instead of living under `/trainer/*`: `/dashboar
     redundant entries are refused with nothing written; existing bookings in newly closed time
     stay; and 10 runs each racing a client request against closing that hour — weekly or as time
     off — always ended consistently (booked first and kept, or cleanly refused) with no errors.
-- ⬜ **Suggest another time** on a request (a counter-offer the client accepts or rejects) — a
-  `booking_proposal` with `proposedBy = coach`, reusing Phase 5's reschedule proposals.
+- ⬜ **Suggest another time** — on a pending request (a counter-offer) or a confirmed session (the
+  coach needs to move it). A `booking_proposal` with `proposedBy = coach`, reusing Phase 5's
+  proposals: the client accepts or declines, and a confirmed session keeps its time until they do.
+- ⬜ **Coach cancel** — for a session the coach can't make at all. Always returns the session
+  (`+1 returned_in_time`) whatever the notice — a coach's cancellation never costs the client.
+  Sets `booking.cancelled_by = 'coach'` (added in Phase 5's migration) and an optional
+  `cancel_reason` shown to the client; history reads "cancelled by {coach}". Same lock and
+  re-read as the client's cancel. Until Phase 12 exists the client only finds out next time they
+  open the app, so the UI should prompt the coach to message them too.
 - ⬜ **Clients table:** roster with sessions remaining, next session, attendance %, flags — derived
   (package running low / no screening / etc.), not manually set.
 - ⬜ **Package editor:** CRUD the packages clients buy from this coach — session count, length,
@@ -467,13 +487,11 @@ Shared surfaces render per role instead of living under `/trainer/*`: `/dashboar
 ## Phase 11 — Polish & hardening ⬜
 Spread across the project rather than a single sprint.
 
-- Email/SMS reminders for upcoming sessions and pending approvals
-- Notifications/toasts wired to real events (payment received, etc.). A shared toast now exists
-  (`$lib/toast.svelte.ts` → `showToast(message)`, rendered once in the `(app)` layout; top-right
-  from `md`, full width below — all three toasts share that placement) and is used
-  by the trainer's approve / decline / complete. The older "request sent" and "package purchased"
-  toasts still use their own `?booked=1` / `?bought=1` URL-flag pattern — move them onto the shared
-  one. Clients aren't yet told when a request is approved or declined beyond what their lists show.
+- In-app toasts: a shared toast exists (`$lib/toast.svelte.ts` → `showToast(message, variant)`,
+  `success` or `error`, rendered once in the `(app)` layout; top-right from `md`, full width
+  below). The bookings page's `?booked=1` / `?moved=1` flags now go through it; the "package
+  purchased" toast still uses its own `?bought=1` pattern — move it onto the shared one. (Telling
+  people about things that happened while they weren't looking is Phase 12.)
 - Accessibility and responsive pass against the prototype's breakpoints
 - Test coverage for booking / session-ledger / cancellation logic and the Stripe webhook (real
   money and scheduling correctness at stake). The concurrency checks that proved the purchase
@@ -483,6 +501,30 @@ Spread across the project rather than a single sprint.
   and set the prod env — `BETTER_AUTH_SECRET` is **required** (dev + `vite build` fall back to a
   throwaway value; real prod runtime throws without it — see `src/lib/server/config.ts`), plus
   `STRIPE_SECRET_KEY` / `STRIPE_WEBHOOK_SECRET` from Phase 4
+
+## Phase 12 — Notifications ⬜
+
+Numbered last to avoid renumbering the phases code comments refer to, but needed earlier — see
+"Suggested near-term order". Today nobody is told anything: a client learns a request was
+approved, declined or moved, or that their coach cancelled, only by opening the app.
+
+- **Events** (each to the other side of the booking):
+  - to the coach — new request, request moved, reschedule proposed / withdrawn, client cancelled
+    (flagging late cancels)
+  - to the client — request approved / declined, proposal accepted / declined (with the reason),
+    coach proposed a new time, coach cancelled (with the reason), package purchased
+  - reminders — session tomorrow (both sides); requests still unanswered close to their start
+    (coach); package running low or expiring soon (client)
+- **Channels:** email first (pick a transactional provider). An in-app inbox / bell with an
+  unread count is a cheap second, since it needs no provider. SMS / WhatsApp later, if at all.
+- **Delivery:** write a `notification` row in the same transaction as the change that caused it
+  (an outbox), and send from it afterwards — so a failed send never rolls back a booking, and a
+  rolled-back booking never sends. Retries and "sent" state live on the row; the same rows back
+  the in-app inbox.
+- **Preferences:** per-user opt-outs per event type on the account page; reminders and
+  coach-initiated changes on by default.
+- **Copy:** templates in the brand voice, with times in the recipient's own timezone (clients and
+  coaches can be in different zones).
 
 ---
 
@@ -496,7 +538,12 @@ except the Stripe flow:** browsing packages (suggested + full coach directory), 
 log are all real and verified against real data — for the **no-payment flow**. **Phase 8 partly
 done:** the booking loop now works end to end — a client requests, the coach approves (spending a
 session) or declines, and marks it complete afterwards — through the trainer dashboard and sessions
-page, with a read-only availability grid.
+page, with a read-only availability grid. **Phase 5 mostly done:** clients cancel (with the 24h
+policy on the ledger), write notes on past sessions, see cancellations in history (as do coaches),
+and move pending requests to a new time.
+
+**What's left in Phase 5:** proposals for moving confirmed sessions — the `booking_proposal`
+migration, the client proposing, and the coach accepting / declining with a reason.
 
 **What's left in Phase 3:** opening the coach profile inline (shallow routing) instead of only as
 a full page; the coach directory's "next free" line and `soonest`/`most open slots` sort (the
@@ -507,7 +554,8 @@ coexists with the no-payment flow; and `/payments` and `/activity`. The error-ha
 (atomic purchase/booking, `fail(500)`s, error pages, reference ids) is done — see its bullet for the
 few known gaps.
 
-**What's left in Phase 8:** suggest another time, the clients table, and the package editor.
+**What's left in Phase 8:** suggest another time, coach cancel, the clients table, and the
+package editor.
 Availability is done: coaches set their weekly hours and one-off changes on `/trainer/availability`.
 
 ## Suggested near-term order
@@ -517,6 +565,8 @@ Stripe checkout, bookings management). Phase 8 (trainer portal) is the first har
 that — until it lands, `pending_approval` bookings sit idle with no one to approve them. Phases
 6, 7, 9, 10 otherwise proceed in roughly the listed order.
 
-**Immediate next:** Phase 5 (client reschedule / cancel) — its ledger rules depend on bookings
-reaching `confirmed`, which now happens, and clients currently have no way to change or cancel a
-booking. The rest of Phase 8 (clients table, package editor, suggest another time) can follow.
+**Immediate next:** finish Phase 5 (proposals for confirmed bookings). Then Phase 8's coach cancel
+and suggest another time, which reuse it. **Phase 12 (notifications) should follow soon after** —
+once coaches can cancel or move sessions, a client who isn't told is worse off than before; at
+minimum the coach-initiated events and the session-tomorrow reminder. The rest of Phase 8 (clients
+table, package editor) can go either side of it.

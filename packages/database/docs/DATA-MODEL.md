@@ -57,7 +57,9 @@ an account an admin created that hasn't set a password yet.
   `startsAt`, `durationMin`, `packagePurchaseId` (nullable — null means a
   free consult, not drawn from any purchase), `status`, `clientNote`
   (client's note at request time), `sessionNotes` (coach's, post-session),
-  `clientReflection` (client's, post-session), `cancelledAt`.
+  `clientReflection` (client's, post-session), `cancelledAt`. *Planned (Phase 5's
+  proposal migration):* `cancelledBy` (`client | coach`) and `cancelReason` (optional, a
+  coach's note to the client when they cancel).
 - **`BookingStatus`** — `pending_approval | pending_payment |
   pending_verification | confirmed | completed | declined | cancelled`. In
   practice a booking only ever moves `pending_approval → confirmed →
@@ -67,8 +69,8 @@ an account an admin created that hasn't set a password yet.
   aren't written today — money currently settles on the package-purchase
   side before a booking is confirmed.
 - **`booking_proposal`** *(planned, Phase 5)* — a request to move a
-  confirmed booking to a new time, which the other side accepts or
-  declines; the booking keeps its current time until then. Fields:
+  confirmed booking to a new time, which the other side (client or coach)
+  accepts or declines; the booking keeps its current time until then. Fields:
   `bookingId` (cascade), `startsAt` (the proposed time; duration follows
   the booking), `proposedBy` (`client | coach` — coach proposals are the
   trainer portal's "suggest another time"), `status` (`pending | accepted |

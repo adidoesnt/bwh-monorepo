@@ -23,12 +23,13 @@ stateDiagram-v2
     pending_approval --> declined: coach declines
     confirmed --> completed: session happens
 
-    pending_approval --> pending_approval: reschedule
-    confirmed --> confirmed: coach accepts a reschedule ≥24h<br/>moves to the proposed time
+    pending_approval --> pending_approval: client moves the request
+    confirmed --> confirmed: a reschedule proposal is accepted<br/>moves to the proposed time
 
-    pending_approval --> cancelled: cancel
-    confirmed --> cancelled: cancel ≥24h — session returned
-    confirmed --> cancelled: cancel <24h — session forfeited
+    pending_approval --> cancelled: client cancels
+    confirmed --> cancelled: client cancels ≥24h — session returned
+    confirmed --> cancelled: client cancels <24h — session forfeited
+    confirmed --> cancelled: coach cancels — session always returned
 
     completed --> [*]
     declined --> [*]
@@ -47,7 +48,7 @@ stateDiagram-v2
 | `confirmed` | Approved — on both calendars, one session drawn from the package. | yes, plus a live proposal's time |
 | `completed` | Session happened. | no (past) |
 | `declined` | The coach turned the request down. Nothing was consumed. Shown in history on both sides. | no |
-| `cancelled` | Called off by the client. Shown in history on both sides. | no |
+| `cancelled` | Called off by the client or the coach (`cancelled_by`). Shown in history on both sides. | no |
 
 "Occupies a slot" = the status is in `ACTIVE_BOOKING_STATUSES`, so `availability.ts` blocks that
 time for other bookings. A confirmed booking's live reschedule proposal blocks its proposed time
@@ -68,12 +69,14 @@ coach to close it out.
 
 | Tab | Client | Coach |
 | :-- | :-- | :-- |
-| **upcoming** | `confirmed`, future (a live proposal shows on the row as "reschedule pending") | `confirmed`, future, no live client proposal |
-| **awaiting action** | `pending_approval`, future | `pending_approval`, future (*requests*) + `confirmed`, future, live client proposal (*reschedules*) + `confirmed`, past (*to close out*) |
+| **upcoming** | `confirmed`, future, no live coach proposal (a live proposal of the client's shows on the row as "reschedule pending") | `confirmed`, future, no live client proposal (a live proposal of the coach's shows on the row) |
+| **awaiting action** | `pending_approval`, future + `confirmed`, future, live coach proposal | `pending_approval`, future (*requests*) + `confirmed`, future, live client proposal (*reschedules*) + `confirmed`, past (*to close out*) |
 | **history** | `confirmed` / `completed` / lapsed, past + `declined` / `cancelled` (any date) | `completed` + lapsed + `declined` / `cancelled` (any date) |
 
-A cancelled booking is labelled "cancelled", or "late cancel · session forfeited" when its net
-ledger delta is `−1` (a confirmed booking cancelled inside 24h — see `?/cancel`). History sorts
+A cancelled booking is labelled "cancelled", "late cancel" when its net ledger delta is `−1` (a
+confirmed booking the client cancelled inside 24h — see `?/cancel`), or "cancelled by {coach}"
+when `cancelled_by = 'coach'`. Whoever is waiting on a live proposal finds it under *awaiting
+action*: a client proposal waits on the coach, a coach proposal waits on the client. History sorts
 newest first; the coach's history has *completed / declined / cancelled / lapsed* filter chips,
 and *awaiting action* has *requests / reschedules / to close out*.
 
@@ -184,16 +187,18 @@ slot is excluded from "busy", and so is its own hold on the package.
 | `confirmed`, <24h out | **no** | — | — |
 | `completed` / `declined` / `cancelled` | no | — | — |
 
-A confirmed booking is never put at risk by asking to move it: the coach answers the proposal,
-and until then both times are held.
+A confirmed booking is never put at risk by asking to move it: the other side answers the
+proposal, and until then both times are held. Either side can propose (`proposed_by`) — the
+client from `?/reschedule`, the coach from "suggest another time" (Phase 8) — and the same
+accept / decline / withdraw rules apply with the roles swapped.
 
 ```mermaid
 stateDiagram-v2
     direction LR
-    [*] --> pending: client proposes a new time
-    pending --> accepted: coach accepts<br/>booking.startsAt = proposed time
-    pending --> declined: coach declines<br/>optional reason, original time stands
-    pending --> withdrawn: client withdraws, re-proposes,<br/>or cancels the booking
+    [*] --> pending: one side proposes a new time
+    pending --> accepted: the other side accepts<br/>booking.startsAt = proposed time
+    pending --> declined: the other side declines<br/>optional reason, original time stands
+    pending --> withdrawn: the proposer withdraws or re-proposes,<br/>or the booking is cancelled
     accepted --> [*]
     declined --> [*]
     withdrawn --> [*]
@@ -207,12 +212,13 @@ stateDiagram-v2
   accepted.
 - **Holding both times:** a live proposal's time counts as busy in `getCoachActiveBookings`, so no
   one else can book it while the coach decides.
-- **Accept** (under the coach lock) re-checks the proposal is still live and is the one the coach
-  saw (the form posts its id), the package doesn't expire before the new time, and the new slot
-  is still within the coach's hours. Then `booking.startsAt` moves and the old time is freed.
-- **Decline** takes an optional reason (`response_note`). The client's row shows "{coach} couldn't
-  do {time}" with the reason, or a fallback ("your original time is still on") when it's empty,
-  until they propose again or the session passes.
+- **Accept** (under the coach lock) re-checks the proposal is still live and is the one the
+  responder saw (the form posts its id), the package doesn't expire before the new time, and the
+  new slot is still within the coach's hours. Then `booking.startsAt` moves and the old time is
+  freed.
+- **Decline** takes an optional reason (`response_note`). The proposer's row shows "{name}
+  couldn't do {time}" with the reason, or a fallback ("your original time is still on") when it's
+  empty, until they propose again or the session passes.
 
 ## `?/cancel` — `cancelBooking()` (`src/lib/server/bookings.ts`)
 
@@ -230,6 +236,17 @@ any live proposal. `cancelOutcome(status, startsAt)`:
 
 `CANCELLATION_WINDOW_HOURS = 24`, hardcoded until the admin settings phase.
 
+Sets `cancelled_by = 'client'` once that column exists (Phase 5's proposal migration).
+
+### Coach cancel (Phase 8)
+
+For a session the coach can't make at all (moving it is a proposal instead). The window doesn't
+apply: **a coach's cancellation always returns the session** — a confirmed booking gets the `+1
+returned_in_time`, a pending request had nothing spent. Sets `cancelled_by = 'coach'` and an
+optional `cancel_reason` the client sees ("{coach} cancelled: {reason}"). Same lock, re-read and
+proposal withdrawal as the client's cancel. Until notifications exist (Phase 12) the client only
+finds out by opening the app.
+
 ## `?/reflect` — not a state change
 
 Writes `booking.client_reflection` (client's post-session note; empty clears it, ≤ 1000 chars).
@@ -240,7 +257,8 @@ on a lapsed request, a decline or a cancellation (`canReflect`). No ledger / inv
 
 Approve (`pending_approval → confirmed`, consumes a session), decline (`pending_approval →
 declined`, nothing to return since nothing was consumed), accept / decline a reschedule proposal
-(see `?/reschedule`), mark complete, and trainer-initiated cancel. Approve and decline run under
+or make one of their own (see `?/reschedule`), mark complete, and cancel (always returns the
+session — see "Coach cancel"). Approve and decline run under
 the same per-coach lock as `?/request` and re-check that the request is still pending and in the
 future; approve also re-checks the package has a session left. Package purchases need no trainer
 review — the Stripe webhook resolves them on its own.
