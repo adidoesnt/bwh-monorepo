@@ -10,12 +10,15 @@ import {
   getCoachProfileByUserId,
   getCoachSessionsBetween,
   getCoachPendingRequests,
+  getCoachRescheduleRequests,
   getCoachSessionsToClose,
   getCoachActiveClientStats,
   getCoachAvailabilitySlots,
   type CoachSession,
   type CoachPendingRequest,
+  type CoachRescheduleRequest,
 } from "$lib/server/queries";
+import { proposedGridTimes } from "$lib/utils/weekGrid";
 
 const UPCOMING_BOOKINGS_PREVIEW_COUNT = 3;
 
@@ -51,6 +54,8 @@ const EMPTY_TRAINER_DATA = {
   weekSessions: [] as CoachSession[],
   todaySessions: [] as CoachSession[],
   pendingRequests: [] as CoachPendingRequest[],
+  rescheduleRequests: [] as CoachRescheduleRequest[],
+  proposedTimes: [] as ReturnType<typeof proposedGridTimes>,
   sessionsToClose: [] as CoachSession[],
   activeClientStats: { count: 0, runningLow: 0 },
   weekStart: new Date(),
@@ -65,15 +70,23 @@ const getTrainerData = async (userId: string) => {
   const week = coachWeekBounds(coach.timezone);
   const { todayStart, tomorrowStart, weekStart, weekEnd } = week;
 
-  const [weekSessions, pendingRequests, sessionsToClose, activeClientStats, availability, weekOneOffs] =
-    await Promise.all([
-      getCoachSessionsBetween(coach.id, weekStart, weekEnd),
-      getCoachPendingRequests(coach.id),
-      getCoachSessionsToClose(coach.id),
-      getCoachActiveClientStats(coach.id),
-      getCoachAvailabilitySlots(coach.id),
-      getCoachWeekOneOffs(coach.id, coach.timezone, week),
-    ]);
+  const [
+    weekSessions,
+    pendingRequests,
+    rescheduleRequests,
+    sessionsToClose,
+    activeClientStats,
+    availability,
+    weekOneOffs,
+  ] = await Promise.all([
+    getCoachSessionsBetween(coach.id, weekStart, weekEnd),
+    getCoachPendingRequests(coach.id),
+    getCoachRescheduleRequests(coach.id),
+    getCoachSessionsToClose(coach.id),
+    getCoachActiveClientStats(coach.id),
+    getCoachAvailabilitySlots(coach.id),
+    getCoachWeekOneOffs(coach.id, coach.timezone, week),
+  ]);
 
   const todaySessions = weekSessions.filter(
     (s) => s.startsAt >= todayStart && s.startsAt < tomorrowStart,
@@ -85,6 +98,8 @@ const getTrainerData = async (userId: string) => {
     weekSessions,
     todaySessions,
     pendingRequests,
+    rescheduleRequests,
+    proposedTimes: proposedGridTimes(rescheduleRequests),
     sessionsToClose,
     activeClientStats,
     weekStart,

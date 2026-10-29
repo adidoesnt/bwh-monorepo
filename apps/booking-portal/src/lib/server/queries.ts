@@ -11,6 +11,7 @@ import {
   lt,
   lte,
   ne,
+  not,
   or,
   sql,
   type SQL,
@@ -997,6 +998,7 @@ export const getCoachActiveClientStats = async (coachId: string) => {
 
 export type CoachBookingFilter =
   | "requests"
+  | "reschedules"
   | "to_close"
   | "completed"
   | "declined"
@@ -1006,17 +1008,27 @@ export type CoachBookingFilter =
 /** The filter chips each tab offers; a tab with no filter shows them all. */
 export const COACH_BUCKET_FILTERS: Record<BookingBucket, CoachBookingFilter[]> = {
   upcoming: [],
-  awaiting_action: ["requests", "to_close"],
+  awaiting_action: ["requests", "reschedules", "to_close"],
   history: ["completed", "declined", "cancelled", "lapsed"],
 };
 
+/** The booking has a live proposal from the client — waiting on the coach. */
+const awaitingCoachOnProposal = () =>
+  sql`exists (select 1 from ${bookingProposal} where ${bookingProposal.bookingId} = ${booking.id} and ${bookingProposal.status} = 'pending' and ${bookingProposal.proposedBy} = 'client' and ${bookingProposal.startsAt} > now())`;
+
 /** A coach's version of the client's bucketing. A confirmed session that's
  * already started still needs closing out, so it waits in `awaiting_action`
- * next to future requests; a request whose start passed unanswered has lapsed. */
+ * next to future requests and reschedules; a request whose start passed
+ * unanswered has lapsed. */
 const coachFilterConditions = (): Record<CoachBookingFilter, SQL | undefined> => {
   const now = new Date();
   return {
     requests: and(eq(booking.status, "pending_approval"), gte(booking.startsAt, now)),
+    reschedules: and(
+      eq(booking.status, "confirmed"),
+      gt(booking.startsAt, now),
+      awaitingCoachOnProposal(),
+    ),
     to_close: and(eq(booking.status, "confirmed"), lt(booking.startsAt, now)),
     completed: eq(booking.status, "completed"),
     declined: eq(booking.status, "declined"),
@@ -1030,7 +1042,11 @@ const coachBucketCondition = (
   filter?: CoachBookingFilter,
 ) => {
   if (bucket === "upcoming") {
-    return and(eq(booking.status, "confirmed"), gte(booking.startsAt, new Date()));
+    return and(
+      eq(booking.status, "confirmed"),
+      gte(booking.startsAt, new Date()),
+      not(awaitingCoachOnProposal()),
+    );
   }
 
   const conditions = coachFilterConditions();
@@ -1087,18 +1103,63 @@ export const getCoachBookingsPage = async ({
     .limit(pageSize)
     .offset((page - 1) * pageSize);
 
-  const balances = await getPurchaseBalances(
-    rows.flatMap((r) => (r.purchaseId ? [r.purchaseId] : [])),
-  );
+  const [balances, proposals] = await Promise.all([
+    getPurchaseBalances(rows.flatMap((r) => (r.purchaseId ? [r.purchaseId] : []))),
+    getLatestProposals(rows.map((r) => r.id)),
+  ]);
 
   return {
     bookings: rows.map(({ totalCount: _totalCount, ...b }) => ({
       ...b,
       balance: b.purchaseId ? (balances.get(b.purchaseId) ?? 0) : null,
+      latestProposal: proposals.get(b.id) ?? null,
     })),
     totalCount: rows[0]?.totalCount ?? 0,
   };
 };
+
+/** Confirmed sessions a client has asked to move, soonest proposed time
+ * first — each with its live proposal, shaped like a `getCoachBookingsPage`
+ * row so `CoachSessionRow` takes either. */
+export const getCoachRescheduleRequests = async (coachId: string) => {
+  const rows = await db
+    .select({
+      ...coachBookingFields,
+      purchaseId: booking.packagePurchaseId,
+      packageName: packageOffering.name,
+      proposalId: bookingProposal.id,
+      proposedStartsAt: bookingProposal.startsAt,
+      requestedAt: bookingProposal.createdAt,
+    })
+    .from(bookingProposal)
+    .innerJoin(booking, eq(bookingProposal.bookingId, booking.id))
+    .innerJoin(user, eq(booking.clientId, user.id))
+    .leftJoin(packagePurchase, eq(booking.packagePurchaseId, packagePurchase.id))
+    .leftJoin(packageOffering, eq(packagePurchase.packageId, packageOffering.id))
+    .where(
+      and(
+        eq(booking.coachId, coachId),
+        eq(bookingProposal.proposedBy, "client"),
+        liveProposalCondition(),
+      ),
+    )
+    .orderBy(asc(bookingProposal.startsAt));
+
+  return rows.map(({ proposalId, proposedStartsAt, ...b }) => ({
+    ...b,
+    latestProposal: {
+      id: proposalId,
+      startsAt: proposedStartsAt,
+      proposedBy: "client" as const,
+      status: "pending" as const,
+      responseNote: null,
+    } satisfies LatestProposal,
+  }));
+};
+
+export type CoachRescheduleRequest = Awaited<
+  ReturnType<typeof getCoachRescheduleRequests>
+>[number];
 
 /** Counts per tab, plus a count per filter chip. */
 export const getCoachBookingBucketCounts = async (
@@ -1113,6 +1174,7 @@ export const getCoachBookingBucketCounts = async (
     .select({
       upcoming: countWhere(coachBucketCondition("upcoming")),
       requests: countWhere(conditions.requests),
+      reschedules: countWhere(conditions.reschedules),
       to_close: countWhere(conditions.to_close),
       completed: countWhere(conditions.completed),
       declined: countWhere(conditions.declined),
@@ -1127,7 +1189,7 @@ export const getCoachBookingBucketCounts = async (
 
   return {
     upcoming,
-    awaitingAction: filters.requests + filters.to_close,
+    awaitingAction: filters.requests + filters.reschedules + filters.to_close,
     history: filters.completed + filters.declined + filters.cancelled + filters.lapsed,
     filters,
   };

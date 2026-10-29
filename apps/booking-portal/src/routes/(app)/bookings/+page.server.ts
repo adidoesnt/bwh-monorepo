@@ -1,16 +1,19 @@
 import { fail } from "@sveltejs/kit";
 import type { Actions, PageServerLoad } from "./$types";
 import {
+  acceptProposal,
   approveBooking,
   cancelBooking,
   cancelOutcome,
   canReflect,
   completeBooking,
   declineBooking,
+  declineProposal,
   rescheduleMode,
   saveReflection,
   withdrawProposal,
   CANCELLATION_WINDOW_HOURS,
+  PROPOSAL_NOTE_MAX_LENGTH,
   REFLECTION_MAX_LENGTH,
   type CancelOutcome,
 } from "$lib/server/bookings";
@@ -96,7 +99,15 @@ const getTrainerData = async (userId: string, url: URL) => {
         upcoming: 0,
         awaitingAction: 0,
         history: 0,
-        filters: { requests: 0, to_close: 0, completed: 0, declined: 0, cancelled: 0, lapsed: 0 },
+        filters: {
+          requests: 0,
+          reschedules: 0,
+          to_close: 0,
+          completed: 0,
+          declined: 0,
+          cancelled: 0,
+          lapsed: 0,
+        },
       },
     };
   }
@@ -138,11 +149,18 @@ const parseCoachAction = async (locals: App.Locals, request: Request) => {
   const coach = await getCoachProfileByUserId(locals.user.id);
   if (!coach) return { error: fail(403, { message: "not allowed" }) };
 
-  const bookingId = (await request.formData()).get("bookingId");
+  const formData = await request.formData();
+  const bookingId = formData.get("bookingId");
   if (typeof bookingId !== "string" || !bookingId) {
     return { error: fail(400, { message: "missing booking" }) };
   }
-  return { coach, bookingId };
+  return { coach, bookingId, formData };
+};
+
+/** The posted `proposalId` — the request the coach was looking at. */
+const parseProposalId = (formData: FormData) => {
+  const proposalId = formData.get("proposalId");
+  return typeof proposalId === "string" && proposalId ? proposalId : null;
 };
 
 // Posted to from the dashboard's "needs action" widget as well as this page.
@@ -180,6 +198,39 @@ export const actions: Actions = {
       if (!result.ok) return fail(409, { message: result.message });
     } catch (err) {
       return actionFailure(err, "we couldn't mark that session complete — please try again");
+    }
+  },
+
+  acceptProposal: async ({ locals, request }) => {
+    try {
+      const parsed = await parseCoachAction(locals, request);
+      if ("error" in parsed) return parsed.error;
+      const proposalId = parseProposalId(parsed.formData);
+      if (!proposalId) return fail(400, { message: "missing reschedule request" });
+
+      const result = await acceptProposal(parsed.bookingId, proposalId, parsed.coach);
+      if (!result.ok) return fail(409, { message: result.message });
+    } catch (err) {
+      return actionFailure(err, "we couldn't move that session — please try again");
+    }
+  },
+
+  declineProposal: async ({ locals, request }) => {
+    try {
+      const parsed = await parseCoachAction(locals, request);
+      if ("error" in parsed) return parsed.error;
+      const proposalId = parseProposalId(parsed.formData);
+      if (!proposalId) return fail(400, { message: "missing reschedule request" });
+
+      const note = parsed.formData.get("note")?.toString().trim() || null;
+      if (note && note.length > PROPOSAL_NOTE_MAX_LENGTH) {
+        return fail(400, { message: `keep the note under ${PROPOSAL_NOTE_MAX_LENGTH} characters` });
+      }
+
+      const result = await declineProposal(parsed.bookingId, proposalId, parsed.coach.id, note);
+      if (!result.ok) return fail(409, { message: result.message });
+    } catch (err) {
+      return actionFailure(err, "we couldn't decline that request — please try again");
     }
   },
 

@@ -54,12 +54,32 @@ const timeAgo = (date: Date) => {
 	return `${Math.floor(hours / 24)} days ago`;
 };
 
+const plural = (count: number, word: string) => `${count} ${word}${count === 1 ? '' : 's'}`;
+
+/** New requests and reschedules — everything a client is waiting on the coach
+ * to answer — with a breakdown only when both kinds are waiting. */
+const waitingOnCoach = (data: TrainerDashboardData) => {
+	const requests = data.pendingRequests.length;
+	const reschedules = data.rescheduleRequests.length;
+	const oldest = [
+		...data.pendingRequests.map((r) => r.createdAt),
+		...data.rescheduleRequests.map((r) => r.requestedAt)
+	].reduce<Date | null>((min, d) => (min === null || d < min ? d : min), null);
+
+	const sub = [
+		requests > 0 && reschedules > 0
+			? `${plural(requests, 'request')} · ${plural(reschedules, 'reschedule')}`
+			: null,
+		oldest ? `oldest ${timeAgo(oldest)}` : 'all caught up'
+	]
+		.filter(Boolean)
+		.join(' · ');
+
+	return { label: 'waiting on you', value: String(requests + reschedules), sub };
+};
+
 export const getTrainerStats = (data: TrainerDashboardData, zone: string) => {
 	const today = data.todaySessions;
-	const oldestRequest = data.pendingRequests.reduce<Date | null>(
-		(oldest, r) => (oldest === null || r.createdAt < oldest ? r.createdAt : oldest),
-		null
-	);
 	const completedThisWeek = data.weekSessions.filter((s) => s.status === 'completed').length;
 
 	return [
@@ -76,11 +96,7 @@ export const getTrainerStats = (data: TrainerDashboardData, zone: string) => {
 			value: String(data.weekSessions.length),
 			sub: `${completedThisWeek} done so far`
 		},
-		{
-			label: 'requests waiting',
-			value: String(data.pendingRequests.length),
-			sub: oldestRequest ? `oldest ${timeAgo(oldestRequest)}` : 'all caught up'
-		},
+		waitingOnCoach(data),
 		// TODO: swap for this month's revenue once the Stripe flow exists.
 		{
 			label: 'active clients',

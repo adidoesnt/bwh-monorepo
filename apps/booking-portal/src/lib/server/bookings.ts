@@ -401,6 +401,132 @@ export const rescheduleBooking = (
     return { ok: true as const, mode };
   });
 
+export const PROPOSAL_NOTE_MAX_LENGTH = 300;
+
+/** A live client proposal on one of this coach's bookings, or why it can't be
+ * answered. `proposalId` is the one the coach was shown — if the client has
+ * since withdrawn it or asked for another time, refuse rather than answer the
+ * wrong thing. Read under the coach lock. */
+const getAnswerableProposal = async (
+  tx: DbExecutor,
+  bookingId: string,
+  proposalId: string,
+  coachId: string,
+) => {
+  const [row] = await tx
+    .select({
+      status: bookingProposal.status,
+      proposedBy: bookingProposal.proposedBy,
+      startsAt: bookingProposal.startsAt,
+      bookingStatus: booking.status,
+      bookingStartsAt: booking.startsAt,
+      durationMin: booking.durationMin,
+      purchaseId: booking.packagePurchaseId,
+    })
+    .from(bookingProposal)
+    .innerJoin(booking, eq(bookingProposal.bookingId, booking.id))
+    .where(
+      and(
+        eq(bookingProposal.id, proposalId),
+        eq(booking.id, bookingId),
+        eq(booking.coachId, coachId),
+      ),
+    );
+
+  const now = Date.now();
+  if (!row || row.proposedBy !== "client") {
+    return { ok: false as const, message: "that reschedule request doesn't exist" };
+  }
+  if (row.status !== "pending") {
+    return {
+      ok: false as const,
+      message: "the client has changed or withdrawn this request — check the latest one",
+    };
+  }
+  if (row.bookingStatus !== "confirmed") {
+    return { ok: false as const, message: "that session isn't confirmed any more" };
+  }
+  if (row.startsAt.getTime() <= now || row.bookingStartsAt.getTime() <= now) {
+    return { ok: false as const, message: "that request's time has already passed" };
+  }
+  return { ok: true as const, proposal: row };
+};
+
+/** Moves a confirmed session to the time its client asked for. Re-checks the
+ * new time still fits the coach's hours (the session's own time and request
+ * set aside) and the package, then moves the booking and frees the old time.
+ * No ledger change — the session stays spent. */
+export const acceptProposal = (
+  bookingId: string,
+  proposalId: string,
+  coach: { id: string; timezone: string },
+) =>
+  db.transaction(async (tx) => {
+    await lockCoach(tx, coach.id);
+
+    const found = await getAnswerableProposal(tx, bookingId, proposalId, coach.id);
+    if (!found.ok) return found;
+    const { proposal } = found;
+
+    if (proposal.purchaseId) {
+      const [purchase] = await tx
+        .select({ expiresAt: packagePurchase.expiresAt })
+        .from(packagePurchase)
+        .where(eq(packagePurchase.id, proposal.purchaseId));
+      if (!purchase || purchase.expiresAt < proposal.startsAt) {
+        return { ok: false as const, message: "the client's package expires before that time" };
+      }
+    }
+
+    const slots = await getCoachSlotsForDate(
+      {
+        coachId: coach.id,
+        zone: coach.timezone,
+        date: zonedDateParts(proposal.startsAt, coach.timezone),
+        durationMin: proposal.durationMin,
+        excludeBookingId: bookingId,
+      },
+      tx,
+    );
+    const slot = slots.find((s) => s.start.getTime() === proposal.startsAt.getTime());
+    if (!slot?.available) {
+      return {
+        ok: false as const,
+        message: "that time isn't within your open hours any more — decline it, or change your hours first",
+      };
+    }
+
+    await tx.update(booking).set({ startsAt: proposal.startsAt }).where(eq(booking.id, bookingId));
+    await tx
+      .update(bookingProposal)
+      .set({ status: "accepted", respondedAt: new Date() })
+      .where(eq(bookingProposal.id, proposalId));
+
+    return { ok: true as const };
+  });
+
+/** Turns down a client's reschedule request; the session stays where it was.
+ * The optional note is shown to the client. */
+export const declineProposal = (
+  bookingId: string,
+  proposalId: string,
+  coachId: string,
+  note: string | null,
+) =>
+  db.transaction(async (tx) => {
+    await lockCoach(tx, coachId);
+
+    const found = await getAnswerableProposal(tx, bookingId, proposalId, coachId);
+    if (!found.ok) return found;
+
+    await tx
+      .update(bookingProposal)
+      .set({ status: "declined", responseNote: note, respondedAt: new Date() })
+      .where(eq(bookingProposal.id, proposalId));
+
+    return { ok: true as const };
+  });
+
 /** Takes back the client's own live proposal; the booking keeps its time. */
 export const withdrawProposal = (bookingId: string, clientId: string) =>
   db.transaction(async (tx) => {

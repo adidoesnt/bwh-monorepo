@@ -19,9 +19,22 @@ export type WeekGridInput = {
 	weekSessions: GridSession[];
 	/** Requests still awaiting the coach (any week; only this week's are drawn). */
 	pendingRequests: GridSession[];
+	/** Times clients have asked to move confirmed sessions to — held until answered. */
+	proposedTimes?: GridSession[];
 	/** One-off changes touching this week (time off / extra hours). */
 	oneOffs?: (DayException & { note?: string | null })[];
 };
+
+/** Reschedule requests as grid sessions at the time they ask for. */
+export const proposedGridTimes = (
+	requests: (Omit<GridSession, 'startsAt'> & { latestProposal: { startsAt: Date } })[]
+): GridSession[] =>
+	requests.map((r) => ({
+		startsAt: r.latestProposal.startsAt,
+		durationMin: r.durationMin,
+		clientName: r.clientName,
+		type: r.type
+	}));
 
 const CELL_MIN = 30;
 const DAY_MS = 86_400_000;
@@ -58,7 +71,8 @@ export const getWeekGrid = (data: WeekGridInput, zone: string) => {
 
 	const occupied = [
 		...data.weekSessions.map((s) => ({ s, state: 'booked' as const })),
-		...data.pendingRequests.map((s) => ({ s, state: 'requested' as const }))
+		...data.pendingRequests.map((s) => ({ s, state: 'requested' as const })),
+		...(data.proposedTimes ?? []).map((s) => ({ s, state: 'requested' as const }))
 	]
 		.map(({ s, state }) => ({
 			state,

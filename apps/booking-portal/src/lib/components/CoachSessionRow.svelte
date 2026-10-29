@@ -27,6 +27,12 @@
 		packageName?: string | null;
 		balance?: number | null;
 		lateCancel?: boolean;
+		latestProposal?: {
+			id: string;
+			startsAt: Date;
+			proposedBy: string;
+			status: string;
+		} | null;
 	};
 
 	let { session, zone }: { session: Session; zone: string } = $props();
@@ -34,15 +40,43 @@
 	const isPast = $derived(session.startsAt.getTime() < Date.now());
 	const isRequest = $derived(session.status === 'pending_approval' && !isPast);
 	const isToClose = $derived(session.status === 'confirmed' && isPast);
+	// A client asking to move a confirmed session — waiting on the coach.
+	const proposal = $derived(
+		session.status === 'confirmed' &&
+			!isPast &&
+			session.latestProposal?.status === 'pending' &&
+			session.latestProposal.proposedBy === 'client' &&
+			session.latestProposal.startsAt.getTime() > Date.now()
+			? session.latestProposal
+			: null
+	);
 	const badge = $derived(bookingBadge(session.status, session.startsAt, session.lateCancel));
+
+	type ConfirmAction = 'approve' | 'decline' | 'acceptProposal' | 'declineProposal';
 
 	let submitting = $state(false);
 	let confirmDialog = $state<HTMLDialogElement>();
-	let confirming = $state<'approve' | 'decline'>('approve');
+	let confirming = $state<ConfirmAction>('approve');
+	let declineNote = $state('');
 
-	const openConfirm = (action: 'approve' | 'decline') => {
+	const openConfirm = (action: ConfirmAction) => {
 		confirming = action;
+		declineNote = '';
 		confirmDialog?.showModal();
+	};
+
+	const isDeclining = $derived(confirming === 'decline' || confirming === 'declineProposal');
+	const CONFIRM_TITLES: Record<ConfirmAction, string> = {
+		approve: 'approve this request?',
+		decline: 'decline this request?',
+		acceptProposal: 'move this session?',
+		declineProposal: 'keep the current time?'
+	};
+	const CONFIRM_LABELS: Record<ConfirmAction, [idle: string, busy: string]> = {
+		approve: ['yes, approve', 'approving…'],
+		decline: ['yes, decline', 'declining…'],
+		acceptProposal: ['yes, move it', 'moving…'],
+		declineProposal: ['yes, decline', 'declining…']
 	};
 	let error = $state<string | null>(null);
 	// Only slide out when this row's own action removed it, not on tab/page changes.
@@ -50,6 +84,9 @@
 
 	const firstName = $derived(session.clientName.split(' ')[0]);
 	const when = $derived(`${dayLabel(session.startsAt, zone)} at ${formatTime(session.startsAt, zone)}`);
+	const proposedWhen = $derived(
+		proposal ? `${dayLabel(proposal.startsAt, zone)} at ${formatTime(proposal.startsAt, zone)}` : ''
+	);
 	const timeRange = $derived(
 		`${formatTime(session.startsAt, zone)} – ${formatTime(
 			new Date(session.startsAt.getTime() + session.durationMin * 60_000),
@@ -61,6 +98,12 @@
 			['client', session.clientName],
 			['date', `${weekdayAbbrev(session.startsAt, zone)} ${formatFullDate(session.startsAt, zone)}`],
 			['time', `${timeRange} · ${session.durationMin} min`],
+			[
+				'moving to',
+				proposal
+					? `${weekdayAbbrev(proposal.startsAt, zone)} ${formatFullDate(proposal.startsAt, zone)} · ${formatTime(proposal.startsAt, zone)}`
+					: null
+			],
 			['session', session.type],
 			['location', session.location],
 			['package', session.packageName ? `${session.packageName} · ${session.balance} left` : 'no package'],
@@ -73,7 +116,9 @@
 	const SUCCESS_MESSAGES: Record<string, () => string> = {
 		approve: () => `approved — ${firstName}'s session on ${when} is confirmed`,
 		decline: () => `declined ${firstName}'s request for ${when}`,
-		complete: () => `marked ${firstName}'s session on ${when} as complete`
+		complete: () => `marked ${firstName}'s session on ${when} as complete`,
+		acceptProposal: () => `moved ${firstName}'s session to ${proposedWhen}`,
+		declineProposal: () => `declined — ${firstName}'s session stays ${when}`
 	};
 
 	const enhanceAction: SubmitFunction = ({ action }) => {
@@ -82,8 +127,13 @@
 		error = null;
 		return async ({ result }) => {
 			if (isNetworkFailure(result)) error = NETWORK_ERROR_MESSAGE;
-			else if (result.type === 'failure') error = String(result.data?.message ?? 'something went wrong');
-			else if (result.type === 'error') error = 'something went wrong — please try again';
+			else if (result.type === 'failure') {
+				// Usually the booking changed under the coach (the client moved or withdrew,
+				// another tab answered). Reload so the row shows what's true now; the message
+				// goes in a toast since the reload may remove this row.
+				showToast(String(result.data?.message ?? 'something went wrong'), 'error');
+				await invalidateAll();
+			} else if (result.type === 'error') error = 'something went wrong — please try again';
 			else {
 				resolved = true;
 				showToast(SUCCESS_MESSAGES[actionName]?.() ?? 'done');
@@ -117,6 +167,13 @@
 				<div class="text-base-content/60 truncate text-xs">
 					{session.packageName ? `${session.packageName} · ${session.balance} left` : 'no package'}
 				</div>
+			{:else if proposal}
+				<div class="text-warning-content/80 truncate text-xs">
+					{dayLabel(session.startsAt, zone)} · asking to move to {dayLabel(proposal.startsAt, zone)} · {formatTime(
+						proposal.startsAt,
+						zone
+					)}
+				</div>
 			{/if}
 		</div>
 		{#if isToClose}
@@ -124,26 +181,35 @@
 				<input type="hidden" name="bookingId" value={session.id} />
 				<button class="btn btn-sm" disabled={submitting}>mark complete</button>
 			</form>
-		{:else if !isRequest}
+		{:else if !isRequest && !proposal}
 			<span class="badge badge-sm {badge.className} font-body shrink-0">{badge.label}</span>
 		{/if}
 	</div>
 	{#if isRequest && session.clientNote}
 		<p class="text-base-content/70 text-sm italic">"{session.clientNote}"</p>
 	{/if}
-	{#if isRequest}
+	{#if isRequest || proposal}
 		<div class="flex gap-2">
-			<button type="button" class="btn btn-sm btn-accent" onclick={() => openConfirm('approve')}>
-				approve
-			</button>
-			<button type="button" class="btn btn-sm btn-ghost" onclick={() => openConfirm('decline')}>
-				decline
-			</button>
+			{#if isRequest}
+				<button type="button" class="btn btn-sm btn-accent" onclick={() => openConfirm('approve')}>
+					approve
+				</button>
+				<button type="button" class="btn btn-sm btn-ghost" onclick={() => openConfirm('decline')}>
+					decline
+				</button>
+			{:else}
+				<button type="button" class="btn btn-sm btn-accent" onclick={() => openConfirm('acceptProposal')}>
+					move it
+				</button>
+				<button type="button" class="btn btn-sm btn-ghost" onclick={() => openConfirm('declineProposal')}>
+					keep current time
+				</button>
+			{/if}
 		</div>
 
 		<dialog bind:this={confirmDialog} class="modal">
 			<div class="modal-box bg-base-100 flex flex-col gap-4 rounded-2xl">
-				<h3 class="font-headings text-xl">{confirming} this request?</h3>
+				<h3 class="font-headings text-xl">{CONFIRM_TITLES[confirming]}</h3>
 
 				<dl class="bg-base-200 border-base-300 divide-base-300 divide-y rounded-field border text-sm">
 					{#each details as [label, value] (label)}
@@ -157,6 +223,12 @@
 				<p class="text-base-content/70 text-sm">
 					{#if confirming === 'decline'}
 						{firstName} will see this request as declined in their history. this can't be undone.
+					{:else if confirming === 'acceptProposal'}
+						the session moves to {proposedWhen} and {when} opens up again. nothing changes on {firstName}'s
+						package.
+					{:else if confirming === 'declineProposal'}
+						the session stays {when}. {firstName} will see you couldn't do {proposedWhen}, with your note if
+						you add one.
 					{:else if session.packageName && session.balance != null}
 						this confirms the session and uses 1 session from {firstName}'s {session.packageName} package
 						({session.balance} → {session.balance - 1} left).
@@ -168,23 +240,34 @@
 				<form
 					method="POST"
 					action="/bookings?/{confirming}"
-					class="modal-action mt-0"
+					class="flex flex-col gap-4"
 					use:enhance={enhanceAction}
 				>
 					<input type="hidden" name="bookingId" value={session.id} />
-					<button type="button" class="btn btn-sm btn-ghost" onclick={() => confirmDialog?.close()}>
-						{confirming === 'decline' ? 'keep it' : 'not yet'}
-					</button>
-					<button
-						class="btn btn-sm {confirming === 'decline' ? 'btn-error' : 'btn-accent'}"
-						disabled={submitting}
-					>
-						{#if submitting}
-							{confirming === 'decline' ? 'declining…' : 'approving…'}
-						{:else}
-							yes, {confirming}
-						{/if}
-					</button>
+					{#if proposal}
+						<input type="hidden" name="proposalId" value={proposal.id} />
+					{/if}
+					{#if confirming === 'declineProposal'}
+						<label class="flex flex-col gap-1.5 text-sm">
+							<span class="text-base-content/60">note to {firstName} (optional)</span>
+							<textarea
+								name="note"
+								bind:value={declineNote}
+								maxlength="300"
+								rows="2"
+								class="textarea textarea-bordered w-full"
+								placeholder="i'm away that week — could thursday morning work instead?"
+							></textarea>
+						</label>
+					{/if}
+					<div class="modal-action mt-0">
+						<button type="button" class="btn btn-sm btn-ghost" onclick={() => confirmDialog?.close()}>
+							{isDeclining ? 'keep it' : 'not yet'}
+						</button>
+						<button class="btn btn-sm {isDeclining ? 'btn-error' : 'btn-accent'}" disabled={submitting}>
+							{CONFIRM_LABELS[confirming][submitting ? 1 : 0]}
+						</button>
+					</div>
 				</form>
 			</div>
 			<form method="dialog" class="modal-backdrop">

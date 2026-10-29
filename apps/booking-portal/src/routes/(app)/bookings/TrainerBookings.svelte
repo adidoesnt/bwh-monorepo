@@ -12,6 +12,7 @@
 
 	const FILTER_LABELS: Record<string, string> = {
 		requests: 'requests',
+		reschedules: 'reschedules',
 		to_close: 'to close out',
 		completed: 'completed',
 		declined: 'declined',
@@ -19,7 +20,7 @@
 		lapsed: 'lapsed'
 	};
 	const BUCKET_FILTERS: Record<string, (keyof typeof data.bucketCounts.filters)[]> = {
-		awaiting_action: ['requests', 'to_close'],
+		awaiting_action: ['requests', 'reschedules', 'to_close'],
 		history: ['completed', 'declined', 'cancelled', 'lapsed']
 	};
 

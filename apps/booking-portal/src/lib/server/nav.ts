@@ -4,6 +4,7 @@ import {
   getClientActivePackages,
   getCoachPendingRequestCount,
   getCoachProfileByUserId,
+  getCoachRescheduleRequests,
   getCoachSessionsToClose,
 } from "./queries";
 
@@ -15,12 +16,13 @@ export const getNavBadges = async (role: Role, userId: string): Promise<NavBadge
     const coach = await getCoachProfileByUserId(userId);
     if (!coach) return {};
 
-    const [requests, toClose] = await Promise.all([
+    const [requests, reschedules, toClose] = await Promise.all([
       getCoachPendingRequestCount(coach.id),
+      getCoachRescheduleRequests(coach.id),
       getCoachSessionsToClose(coach.id),
     ]);
 
-    return { trainerActions: countBadge(requests + toClose.length) };
+    return { trainerActions: countBadge(requests + reschedules.length + toClose.length) };
   }
 
   if (role !== "client") return {};

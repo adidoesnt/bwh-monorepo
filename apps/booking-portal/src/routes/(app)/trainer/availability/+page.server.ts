@@ -8,8 +8,10 @@ import {
 import {
   getCoachPendingRequests,
   getCoachProfileByUserId,
+  getCoachRescheduleRequests,
   getCoachSessionsBetween,
 } from "$lib/server/queries";
+import { proposedGridTimes } from "$lib/utils/weekGrid";
 
 export const load: PageServerLoad = async ({ locals }) => {
   // hooks.server.ts already limits /trainer to trainers and admins.
@@ -17,18 +19,21 @@ export const load: PageServerLoad = async ({ locals }) => {
   if (!coach) return { coach: null };
 
   const week = coachWeekBounds(coach.timezone);
-  const [weekSessions, pendingRequests, weekOneOffs, hoursEditor] = await Promise.all([
-    getCoachSessionsBetween(coach.id, week.weekStart, week.weekEnd),
-    getCoachPendingRequests(coach.id),
-    getCoachWeekOneOffs(coach.id, coach.timezone, week),
-    getHoursEditorData(coach.id, coach.timezone),
-  ]);
+  const [weekSessions, pendingRequests, rescheduleRequests, weekOneOffs, hoursEditor] =
+    await Promise.all([
+      getCoachSessionsBetween(coach.id, week.weekStart, week.weekEnd),
+      getCoachPendingRequests(coach.id),
+      getCoachRescheduleRequests(coach.id),
+      getCoachWeekOneOffs(coach.id, coach.timezone, week),
+      getHoursEditorData(coach.id, coach.timezone),
+    ]);
 
   return {
     coach,
     weekStart: week.weekStart,
     weekSessions,
     pendingRequests,
+    proposedTimes: proposedGridTimes(rescheduleRequests),
     weekOneOffs,
     ...hoursEditor,
   };

@@ -9,7 +9,9 @@
 	// The coach's own zone, so "today" and the times shown match their working day.
 	const zone = $derived(data.coach?.timezone ?? 'Asia/Singapore');
 	const stats = $derived(getTrainerStats(data, zone));
-	const actionCount = $derived(data.pendingRequests.length + data.sessionsToClose.length);
+	const actionCount = $derived(
+		data.pendingRequests.length + data.rescheduleRequests.length + data.sessionsToClose.length
+	);
 
 	const weekGrid = $derived(getWeekGrid({ ...data, oneOffs: data.weekOneOffs }, zone));
 
@@ -82,6 +84,15 @@
 					<CoachSessionRow session={r} {zone} />
 				{/each}
 				{@render moreLink(data.pendingRequests.length, 'requests')}
+			</div>
+		{/if}
+		{#if data.rescheduleRequests.length > 0}
+			<div class="flex flex-col gap-2">
+				{@render groupHeading('reschedules', 'reschedules', 'confirmed sessions a client has asked to move')}
+				{#each data.rescheduleRequests.slice(0, PREVIEW_COUNT) as r (r.id)}
+					<CoachSessionRow session={r} {zone} />
+				{/each}
+				{@render moreLink(data.rescheduleRequests.length, 'reschedules')}
 			</div>
 		{/if}
 		{#if data.sessionsToClose.length > 0}
