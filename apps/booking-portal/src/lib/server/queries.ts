@@ -19,12 +19,15 @@ import {
   availabilityException,
   availabilitySlot,
   booking,
+  bookingProposal,
   coachProfile,
   intakeResponse,
   packageOffering,
   packagePurchase,
   sessionLedgerEntry,
   user,
+  type BookingParty,
+  type BookingProposalStatus,
   type SessionType,
 } from "@repo/database/schema";
 import {
@@ -368,14 +371,16 @@ export const getClientBookingsPage = async ({
     .limit(pageSize)
     .offset((page - 1) * pageSize);
 
-  const balances = await getPurchaseBalances(
-    rows.flatMap((r) => (r.purchaseId ? [r.purchaseId] : [])),
-  );
+  const [balances, proposals] = await Promise.all([
+    getPurchaseBalances(rows.flatMap((r) => (r.purchaseId ? [r.purchaseId] : []))),
+    getLatestProposals(rows.map((r) => r.id)),
+  ]);
 
   return {
     bookings: rows.map(({ totalCount: _totalCount, ...b }) => ({
       ...b,
       balance: b.purchaseId ? (balances.get(b.purchaseId) ?? 0) : null,
+      latestProposal: proposals.get(b.id) ?? null,
     })),
     totalCount: rows[0]?.totalCount ?? 0,
   };
@@ -618,6 +623,20 @@ export const getCoachAvailabilityExceptions = async (
     .orderBy(asc(availabilityException.startDate), asc(availabilityException.startMin));
 };
 
+/** A proposal that can still be answered: pending, on a booking that's still
+ * confirmed, with neither time passed. Anything else pending has lapsed. */
+const liveProposalCondition = (now = new Date()) =>
+  and(
+    eq(bookingProposal.status, "pending"),
+    eq(booking.status, "confirmed"),
+    gt(bookingProposal.startsAt, now),
+    gt(booking.startsAt, now),
+  );
+
+/** Time a coach can't offer to anyone else across `[from, to)`: their
+ * upcoming bookings, plus the times live reschedule proposals are asking for
+ * (held until answered). `excludeBookingId` frees a booking being moved — both
+ * its own time and any proposal of its own. */
 export const getCoachActiveBookings = async (
   coachId: string,
   from: Date,
@@ -625,18 +644,69 @@ export const getCoachActiveBookings = async (
   executor: DbExecutor = db,
   excludeBookingId?: string,
 ) => {
-  return executor
-    .select({ startsAt: booking.startsAt, durationMin: booking.durationMin })
-    .from(booking)
-    .where(
-      and(
-        eq(booking.coachId, coachId),
-        inArray(booking.status, UPCOMING_BOOKING_STATUSES),
-        gte(booking.startsAt, from),
-        lt(booking.startsAt, to),
-        excludeBookingId ? ne(booking.id, excludeBookingId) : undefined,
+  const notExcluded = excludeBookingId ? ne(booking.id, excludeBookingId) : undefined;
+
+  const [bookings, proposals] = await Promise.all([
+    executor
+      .select({ startsAt: booking.startsAt, durationMin: booking.durationMin })
+      .from(booking)
+      .where(
+        and(
+          eq(booking.coachId, coachId),
+          inArray(booking.status, UPCOMING_BOOKING_STATUSES),
+          gte(booking.startsAt, from),
+          lt(booking.startsAt, to),
+          notExcluded,
+        ),
       ),
-    );
+    executor
+      .select({ startsAt: bookingProposal.startsAt, durationMin: booking.durationMin })
+      .from(bookingProposal)
+      .innerJoin(booking, eq(bookingProposal.bookingId, booking.id))
+      .where(
+        and(
+          eq(booking.coachId, coachId),
+          liveProposalCondition(),
+          gte(bookingProposal.startsAt, from),
+          lt(bookingProposal.startsAt, to),
+          notExcluded,
+        ),
+      ),
+  ]);
+
+  return [...bookings, ...proposals];
+};
+
+/** Each booking's most recent proposal, whatever its status — the newest one
+ * is the only one a row ever needs (a newer proposal supersedes a decline). */
+export const getLatestProposals = async (
+  bookingIds: string[],
+  executor: DbExecutor = db,
+) => {
+  if (bookingIds.length === 0) return new Map<string, LatestProposal>();
+
+  const rows = await executor
+    .selectDistinctOn([bookingProposal.bookingId], {
+      bookingId: bookingProposal.bookingId,
+      id: bookingProposal.id,
+      startsAt: bookingProposal.startsAt,
+      proposedBy: bookingProposal.proposedBy,
+      status: bookingProposal.status,
+      responseNote: bookingProposal.responseNote,
+    })
+    .from(bookingProposal)
+    .where(inArray(bookingProposal.bookingId, bookingIds))
+    .orderBy(bookingProposal.bookingId, desc(bookingProposal.createdAt));
+
+  return new Map(rows.map(({ bookingId, ...p }) => [bookingId, p]));
+};
+
+export type LatestProposal = {
+  id: string;
+  startsAt: Date;
+  proposedBy: BookingParty;
+  status: BookingProposalStatus;
+  responseNote: string | null;
 };
 
 /** Every candidate slot for a coach across `[from, to)`, at `durationMin`

@@ -1,6 +1,7 @@
 import { and, eq, lte, or, sql } from "drizzle-orm";
 import {
   booking,
+  bookingProposal,
   packagePurchase,
   sessionLedgerEntry,
   type BookingStatus,
@@ -276,23 +277,44 @@ export const cancelBooking = (
       });
     }
 
+    await withdrawPendingProposals(tx, bookingId);
     await tx
       .update(booking)
-      .set({ status: "cancelled", cancelledAt: new Date() })
+      .set({ status: "cancelled", cancelledAt: new Date(), cancelledBy: "client" })
       .where(eq(booking.id, bookingId));
 
     return { ok: true as const, outcome };
   });
 
-/** A request that's still waiting on the coach can move freely. Confirmed
- * bookings move by proposal instead (not built yet). */
-export const canReschedule = (status: BookingStatus, startsAt: Date, now = Date.now()) =>
-  status === "pending_approval" && startsAt.getTime() > now;
+const withdrawPendingProposals = (tx: DbExecutor, bookingId: string) =>
+  tx
+    .update(bookingProposal)
+    .set({ status: "withdrawn" })
+    .where(and(eq(bookingProposal.bookingId, bookingId), eq(bookingProposal.status, "pending")));
 
-/** Moves a pending request to `startsAt`, keeping its type, package and
- * length. Re-checks everything a new request is checked against, under the
- * same coach lock, with the booking's own slot and hold set aside so it
- * doesn't collide with itself. */
+export type RescheduleMode = "move" | "propose";
+
+/** How a booking can be rescheduled: a request still waiting on the coach
+ * just moves; a confirmed session far enough out moves by proposal, keeping
+ * its time until the coach answers. `null` when it can't be moved at all. */
+export const rescheduleMode = (
+  status: BookingStatus,
+  startsAt: Date,
+  now = Date.now(),
+): RescheduleMode | null => {
+  const msUntilStart = startsAt.getTime() - now;
+  if (status === "pending_approval" && msUntilStart > 0) return "move";
+  if (status === "confirmed" && msUntilStart >= CANCELLATION_WINDOW_HOURS * 3_600_000) {
+    return "propose";
+  }
+  return null;
+};
+
+/** Moves a pending request to `startsAt`, or asks to move a confirmed one
+ * there (a proposal, replacing any earlier one of the client's). Keeps the
+ * type, package and length. Re-checks everything a new request is checked
+ * against, under the same coach lock, with the booking's own slot, hold and
+ * proposal set aside so it doesn't collide with itself. */
 export const rescheduleBooking = (
   {
     bookingId,
@@ -329,7 +351,8 @@ export const rescheduleBooking = (
       );
 
     if (!current) return { ok: false as const, message: "that session doesn't exist" };
-    if (!canReschedule(current.status, current.startsAt)) {
+    const mode = rescheduleMode(current.status, current.startsAt);
+    if (!mode) {
       return { ok: false as const, message: "this session can't be moved any more" };
     }
     if (current.startsAt.getTime() === startsAt.getTime()) {
@@ -348,7 +371,8 @@ export const rescheduleBooking = (
       if (startsAt > purchase.expiresAt) {
         return { ok: false as const, message: "that date is after this package expires" };
       }
-      if (purchase.bookable < 1) {
+      // A confirmed session's session is already spent; only a request holds one.
+      if (mode === "move" && purchase.bookable < 1) {
         return { ok: false as const, message: "no sessions left on that package right now" };
       }
     }
@@ -368,8 +392,41 @@ export const rescheduleBooking = (
       return { ok: false as const, message: "that slot's no longer available — pick another time" };
     }
 
-    await tx.update(booking).set({ startsAt }).where(eq(booking.id, bookingId));
-    return { ok: true as const };
+    if (mode === "move") {
+      await tx.update(booking).set({ startsAt }).where(eq(booking.id, bookingId));
+    } else {
+      await withdrawPendingProposals(tx, bookingId);
+      await tx.insert(bookingProposal).values({ bookingId, startsAt, proposedBy: "client" });
+    }
+    return { ok: true as const, mode };
+  });
+
+/** Takes back the client's own live proposal; the booking keeps its time. */
+export const withdrawProposal = (bookingId: string, clientId: string) =>
+  db.transaction(async (tx) => {
+    const [owned] = await tx
+      .select({ coachId: booking.coachId })
+      .from(booking)
+      .where(and(eq(booking.id, bookingId), eq(booking.clientId, clientId)));
+    if (!owned) return { ok: false as const, message: "that booking doesn't exist" };
+
+    await lockCoach(tx, owned.coachId);
+
+    const [withdrawn] = await tx
+      .update(bookingProposal)
+      .set({ status: "withdrawn" })
+      .where(
+        and(
+          eq(bookingProposal.bookingId, bookingId),
+          eq(bookingProposal.status, "pending"),
+          eq(bookingProposal.proposedBy, "client"),
+        ),
+      )
+      .returning({ id: bookingProposal.id });
+
+    return withdrawn
+      ? { ok: true as const }
+      : { ok: false as const, message: "there's no change waiting to withdraw — it may already have been answered" };
   });
 
 export const REFLECTION_MAX_LENGTH = 1000;

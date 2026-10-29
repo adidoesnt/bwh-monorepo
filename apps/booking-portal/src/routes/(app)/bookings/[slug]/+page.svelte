@@ -44,6 +44,7 @@
 
 	const rescheduling = $derived(data.rescheduling);
 	const currentStartIso = $derived(rescheduling?.startsAt.toISOString() ?? null);
+	const askedStartIso = $derived(rescheduling?.pendingProposal?.startsAt.toISOString() ?? null);
 	const reschedulingPackageName = $derived(
 		rescheduling?.purchaseId
 			? (data.activePackages.find((p) => p.purchaseId === rescheduling.purchaseId)?.packageName ?? null)
@@ -383,6 +384,14 @@
 						>
 							{formatTime(slot.start, data.coach.timezone)} · now
 						</span>
+					{:else if slot.start.toISOString() === askedStartIso}
+						<span
+							class="btn btn-sm border-warning bg-base-100 text-base-content/50 rounded-full font-mono font-normal"
+							aria-disabled="true"
+							title="the time you've already asked for"
+						>
+							{formatTime(slot.start, data.coach.timezone)} · asked
+						</span>
 					{:else if slot.available}
 						<button
 							type="button"
@@ -472,9 +481,14 @@
 		<button
 			type="submit"
 			class="btn btn-accent w-full"
-			disabled={!selectedStartsAt || selectedStartsAt === currentStartIso || requesting}
+			disabled={!selectedStartsAt ||
+				selectedStartsAt === currentStartIso ||
+				selectedStartsAt === askedStartIso ||
+				requesting}
 		>
-			{#if rescheduling}
+			{#if rescheduling?.mode === 'propose'}
+				{requesting ? 'sending…' : `ask ${data.coach.name.split(' ')[0].toLowerCase()} for this time`}
+			{:else if rescheduling}
 				{requesting ? 'moving…' : 'move to this time'}
 			{:else}
 				{requesting ? 'sending…' : 'send request'}
@@ -486,10 +500,18 @@
 {#snippet rescheduleHeader(current: NonNullable<typeof rescheduling>)}
 	<div class="flex flex-col gap-3">
 		<div>
-			<h2 class="font-headings text-2xl">move your session</h2>
-			<p class="text-base-content/60 text-sm">
-				pick a new time. it stays a request until {data.coach.name.split(' ')[0]} approves it.
-			</p>
+			{#if current.mode === 'propose'}
+				<h2 class="font-headings text-2xl">ask to move your session</h2>
+				<p class="text-base-content/60 text-sm">
+					pick a time to ask {data.coach.name.split(' ')[0]} for. your current time stays booked until
+					{data.coach.name.split(' ')[0]} answers — if it doesn't work, nothing changes.
+				</p>
+			{:else}
+				<h2 class="font-headings text-2xl">move your session</h2>
+				<p class="text-base-content/60 text-sm">
+					pick a new time. it stays a request until {data.coach.name.split(' ')[0]} approves it.
+				</p>
+			{/if}
 		</div>
 		<div class="bg-base-200 flex flex-wrap items-center justify-between gap-2 rounded-2xl p-4 text-sm">
 			<span>
@@ -500,6 +522,15 @@
 				{[current.type, `${current.durationMin} min`, reschedulingPackageName].filter(Boolean).join(' · ')}
 			</span>
 		</div>
+		{#if current.pendingProposal}
+			<p class="text-base-content/70 text-sm">
+				you've already asked for {weekdayAbbrev(current.pendingProposal.startsAt, data.coach.timezone)}
+				{dayNumber(current.pendingProposal.startsAt, data.coach.timezone)} · {formatTime(
+					current.pendingProposal.startsAt,
+					data.coach.timezone
+				)} — asking for another time replaces it.
+			</p>
+		{/if}
 	</div>
 {/snippet}
 

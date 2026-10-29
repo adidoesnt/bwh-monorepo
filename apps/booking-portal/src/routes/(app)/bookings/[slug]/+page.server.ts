@@ -3,6 +3,7 @@ import type { SessionType } from "@repo/database/schema";
 import {
   getClientActivePackages,
   getClientBookingWithCoach,
+  getLatestProposals,
   getClientIntakeSubmitted,
   getCoachBySlug,
   getCoachOpenHours,
@@ -11,7 +12,7 @@ import {
   getCoachSlotsForDate,
 } from "$lib/server/queries";
 import { BOOKING_SHARE_HOST } from "$lib/server/config";
-import { bookSession, canReschedule, rescheduleBooking } from "$lib/server/bookings";
+import { bookSession, rescheduleBooking, rescheduleMode } from "$lib/server/bookings";
 import { actionFailure } from "$lib/server/errors";
 import {
   buyPackage,
@@ -53,9 +54,17 @@ export const load: PageServerLoad = async ({ params, url, locals }) => {
         : Promise.resolve(null),
     ]);
 
-  if (rescheduleId && (!rescheduling || !canReschedule(rescheduling.status, rescheduling.startsAt))) {
-    error(404, "that session can't be moved");
-  }
+  const mode = rescheduling ? rescheduleMode(rescheduling.status, rescheduling.startsAt) : null;
+  if (rescheduleId && !mode) error(404, "that session can't be moved");
+
+  // A change the client already asked for — picking a new time replaces it.
+  const latestProposal = rescheduling
+    ? ((await getLatestProposals([rescheduling.id])).get(rescheduling.id) ?? null)
+    : null;
+  const pendingProposal =
+    latestProposal?.status === "pending" && latestProposal.proposedBy === "client"
+      ? latestProposal
+      : null;
 
   // Unknown client zone (`user.timezone` unset) is treated as not cross-timezone —
   // permissive by default rather than blocking bookings over missing data.
@@ -120,7 +129,7 @@ export const load: PageServerLoad = async ({ params, url, locals }) => {
     rangeEnd,
     slots,
     shareUrl,
-    rescheduling,
+    rescheduling: rescheduling && mode ? { ...rescheduling, mode, pendingProposal } : null,
     rescheduleBlockedReason,
   };
 };
@@ -236,7 +245,12 @@ export const actions: Actions = {
       });
       if (!result.ok) return fail(409, { message: result.message });
 
-      redirect(303, "/bookings?tab=awaiting_action&moved=1");
+      redirect(
+        303,
+        result.mode === "move"
+          ? "/bookings?tab=awaiting_action&moved=1"
+          : "/bookings?proposed=1",
+      );
     } catch (err) {
       return actionFailure(err, "we couldn't move your session — please try again");
     }

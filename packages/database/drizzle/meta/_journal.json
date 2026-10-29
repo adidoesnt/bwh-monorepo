@@ -29,6 +29,13 @@
       "when": 1793177230976,
       "tag": "0003_low_smasher",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1793262688542,
+      "tag": "0004_long_wiccan",
+      "breakpoints": true
     }
   ]
 }

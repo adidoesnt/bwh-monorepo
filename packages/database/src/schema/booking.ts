@@ -1,5 +1,13 @@
-import { relations } from "drizzle-orm";
-import { pgTable, text, integer, timestamp, index } from "drizzle-orm/pg-core";
+import { relations, sql } from "drizzle-orm";
+import {
+  pgTable,
+  text,
+  integer,
+  timestamp,
+  index,
+  uniqueIndex,
+  check,
+} from "drizzle-orm/pg-core";
 import { createId } from "./id";
 import { user } from "./auth";
 import { coachProfile } from "./coaching";
@@ -25,6 +33,8 @@ export type BookingStatus =
   | "completed"
   | "declined"
   | "cancelled";
+
+export type BookingParty = "client" | "coach";
 
 /** A single training session, in any stage from request to completed/cancelled. */
 export const booking = pgTable(
@@ -54,6 +64,9 @@ export const booking = pgTable(
     /** Client's own post-session reflection (past bookings only). */
     clientReflection: text("client_reflection"),
     cancelledAt: timestamp("cancelled_at", { withTimezone: true }),
+    cancelledBy: text("cancelled_by").$type<BookingParty>(),
+    /** A coach's note to the client when they cancel. */
+    cancelReason: text("cancel_reason"),
     createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
     updatedAt: timestamp("updated_at", { withTimezone: true })
       .defaultNow()
@@ -64,10 +77,59 @@ export const booking = pgTable(
     index("booking_clientId_idx").on(table.clientId),
     index("booking_coachId_idx").on(table.coachId),
     index("booking_startsAt_idx").on(table.startsAt),
+    check(
+      "booking_cancelled_by_check",
+      sql`${table.cancelledBy} is null or ${table.cancelledBy} in ('client', 'coach')`,
+    ),
   ],
 );
 
-export const bookingRelations = relations(booking, ({ one }) => ({
+export type BookingProposalStatus = "pending" | "accepted" | "declined" | "withdrawn";
+
+/**
+ * A request to move a confirmed booking to `startsAt`, which the other party
+ * accepts or declines; the booking keeps its time until then. A `pending`
+ * proposal whose time (or whose booking's time) has passed has lapsed —
+ * derived, never written.
+ */
+export const bookingProposal = pgTable(
+  "booking_proposal",
+  {
+    id: text("id").primaryKey().$defaultFn(createId),
+    bookingId: text("booking_id")
+      .notNull()
+      .references(() => booking.id, { onDelete: "cascade" }),
+    /** The proposed start; the duration follows the booking. */
+    startsAt: timestamp("starts_at", { withTimezone: true }).notNull(),
+    proposedBy: text("proposed_by").$type<BookingParty>().notNull(),
+    status: text("status").$type<BookingProposalStatus>().notNull().default("pending"),
+    /** Optional reason given with a decline. */
+    responseNote: text("response_note"),
+    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+    respondedAt: timestamp("responded_at", { withTimezone: true }),
+  },
+  (table) => [
+    index("booking_proposal_bookingId_idx").on(table.bookingId),
+    uniqueIndex("booking_proposal_one_pending_uidx")
+      .on(table.bookingId)
+      .where(sql`${table.status} = 'pending'`),
+    check(
+      "booking_proposal_status_check",
+      sql`${table.status} in ('pending', 'accepted', 'declined', 'withdrawn')`,
+    ),
+    check("booking_proposal_proposed_by_check", sql`${table.proposedBy} in ('client', 'coach')`),
+  ],
+);
+
+export const bookingProposalRelations = relations(bookingProposal, ({ one }) => ({
+  booking: one(booking, {
+    fields: [bookingProposal.bookingId],
+    references: [booking.id],
+  }),
+}));
+
+export const bookingRelations = relations(booking, ({ one, many }) => ({
+  proposals: many(bookingProposal),
   client: one(user, {
     fields: [booking.clientId],
     references: [user.id],

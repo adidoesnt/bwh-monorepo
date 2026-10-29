@@ -5,10 +5,11 @@ import {
   cancelBooking,
   cancelOutcome,
   canReflect,
-  canReschedule,
   completeBooking,
   declineBooking,
+  rescheduleMode,
   saveReflection,
+  withdrawProposal,
   CANCELLATION_WINDOW_HOURS,
   REFLECTION_MAX_LENGTH,
   type CancelOutcome,
@@ -61,7 +62,7 @@ const getClientData = async (clientId: string, url: URL) => {
         ...b,
         cancelOutcome: cancelOutcome(b.status, b.startsAt),
         canReflect: canReflect(b.status, b.startsAt),
-        canReschedule: canReschedule(b.status, b.startsAt),
+        rescheduleMode: rescheduleMode(b.status, b.startsAt),
       })),
     },
     cancellationWindowHours: CANCELLATION_WINDOW_HOURS,
@@ -206,6 +207,24 @@ export const actions: Actions = {
       if (!result.ok) return fail(409, { message: result.message });
     } catch (err) {
       return actionFailure(err, "we couldn't cancel that session — please try again");
+    }
+  },
+
+  withdrawProposal: async ({ locals, request }) => {
+    if (!locals.user || locals.user.role !== "client") {
+      return fail(403, { message: "not allowed" });
+    }
+
+    try {
+      const bookingId = (await request.formData()).get("bookingId");
+      if (typeof bookingId !== "string" || !bookingId) {
+        return fail(400, { message: "missing booking" });
+      }
+
+      const result = await withdrawProposal(bookingId, locals.user.id);
+      if (!result.ok) return fail(409, { message: result.message });
+    } catch (err) {
+      return actionFailure(err, "we couldn't withdraw that — please try again");
     }
   },
 

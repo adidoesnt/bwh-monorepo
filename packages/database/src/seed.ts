@@ -18,6 +18,7 @@ import {
   coachProfile,
   availabilitySlot,
   booking,
+  bookingProposal,
   packageOffering,
   packagePurchase,
   sessionLedgerEntry,
@@ -138,6 +139,7 @@ async function wipeDomainTables() {
   await db.delete(intakeResponse);
   await db.delete(sessionLedgerEntry);
   await db.delete(invoice);
+  await db.delete(bookingProposal);
   await db.delete(booking);
   await db.delete(packagePurchase);
   await db.delete(availabilitySlot);

@@ -236,7 +236,7 @@ any live proposal. `cancelOutcome(status, startsAt)`:
 
 `CANCELLATION_WINDOW_HOURS = 24`, hardcoded until the admin settings phase.
 
-Sets `cancelled_by = 'client'` once that column exists (Phase 5's proposal migration).
+Sets `cancelled_by = 'client'`.
 
 ### Coach cancel (Phase 8)
 

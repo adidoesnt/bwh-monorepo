@@ -10,6 +10,7 @@
 	import { isNetworkFailure, NETWORK_ERROR_MESSAGE } from '$lib/utils/forms';
 	import {
 		bookingBadge,
+		dayLabel,
 		dayNumber,
 		formatFullDate,
 		formatPriceCents,
@@ -30,7 +31,8 @@
 	// URL so a refresh or share doesn't re-trigger it.
 	const REDIRECT_TOASTS: Record<string, string> = {
 		booked: 'request sent — your coach will approve it soon.',
-		moved: 'moved — your coach will see the new time.'
+		moved: 'moved — your coach will see the new time.',
+		proposed: 'asked — your current time stays booked until your coach answers.'
 	};
 
 	$effect(() => {
@@ -110,6 +112,45 @@
 	};
 
 	const coachFirstName = (b: ManagedBooking) => b.coachName.split(' ')[0];
+
+	const when = (date: Date) => `${dayLabel(date, zone)} · ${formatTime(date, zone)}`;
+
+	/** The client's own reschedule request on a still-upcoming confirmed
+	 * session: waiting on the coach, or turned down. A newer proposal replaces
+	 * an older decline, and one that's lapsed or been withdrawn shows nothing. */
+	const proposalState = (b: ManagedBooking) => {
+		const p = b.latestProposal;
+		const now = Date.now();
+		if (!p || p.proposedBy !== 'client' || b.status !== 'confirmed') return null;
+		if (b.startsAt.getTime() <= now) return null;
+		if (p.status === 'pending' && p.startsAt.getTime() > now) {
+			return { kind: 'pending' as const, startsAt: p.startsAt };
+		}
+		if (p.status === 'declined') {
+			return { kind: 'declined' as const, startsAt: p.startsAt, note: p.responseNote };
+		}
+		return null;
+	};
+
+	let withdrawing = $state(false);
+
+	const enhanceWithdraw: SubmitFunction = () => {
+		withdrawing = true;
+		manageError = null;
+		return async ({ result }) => {
+			if (isNetworkFailure(result)) manageError = NETWORK_ERROR_MESSAGE;
+			else if (result.type === 'failure') {
+				manageError = String(result.data?.message ?? 'something went wrong');
+				await invalidateAll();
+			} else if (result.type === 'error') manageError = 'something went wrong — please try again';
+			else {
+				manageDialog?.close();
+				showToast('withdrawn — your session stays at its current time');
+				await invalidateAll();
+			}
+			withdrawing = false;
+		};
+	};
 
 	const manageDetails = (b: ManagedBooking) => {
 		const end = new Date(b.startsAt.getTime() + b.durationMin * 60_000);
@@ -211,6 +252,28 @@
 					{/each}
 				</dl>
 
+				{@const proposal = proposalState(managing)}
+				{#if proposal?.kind === 'pending' && !confirmingCancel}
+					<div class="bg-warning/10 border-warning/30 flex flex-wrap items-center justify-between gap-3 rounded-field border p-3 text-sm">
+						<span>
+							you've asked {coachFirstName(managing)} to move this to {when(proposal.startsAt)}. your current
+							time stays booked until {coachFirstName(managing)} answers.
+						</span>
+						<form method="POST" action="?/withdrawProposal" use:enhance={enhanceWithdraw}>
+							<input type="hidden" name="bookingId" value={managing.id} />
+							<button class="btn btn-xs btn-ghost" disabled={withdrawing}>
+								{withdrawing ? 'withdrawing…' : 'withdraw'}
+							</button>
+						</form>
+					</div>
+				{:else if proposal?.kind === 'declined' && !confirmingCancel}
+					<p class="text-base-content/70 text-sm">
+						{coachFirstName(managing)} couldn't do {when(proposal.startsAt)}{proposal.note
+							? `: "${proposal.note}"`
+							: ' — your original time is still on.'}
+					</p>
+				{/if}
+
 				{#if managing.cancelOutcome !== 'blocked'}
 					<p class="text-base-content/70 text-sm">{cancelEffect(managing)}</p>
 				{:else if managing.status === 'cancelled'}
@@ -273,15 +336,24 @@
 							</button>
 						{/if}
 						{#if managing.cancelOutcome !== 'blocked'}
-							{#if managing.canReschedule}
+							{#if managing.rescheduleMode}
 								<a
 									href="/bookings/{managing.coachSlug}?reschedule={managing.id}"
 									class="btn btn-sm btn-outline"
 								>
-									reschedule
+									{managing.rescheduleMode === 'move'
+										? 'reschedule'
+										: proposal?.kind === 'pending'
+											? 'ask for another time'
+											: 'ask to reschedule'}
 								</a>
 							{:else}
-								<button type="button" class="btn btn-sm btn-outline" disabled title="coming soon">
+								<button
+									type="button"
+									class="btn btn-sm btn-outline"
+									disabled
+									title="less than {data.cancellationWindowHours} hours away — it can't be moved now"
+								>
 									reschedule
 								</button>
 							{/if}
@@ -332,6 +404,7 @@
 			<div class="flex flex-col gap-2">
 				{#each data.bookingsPage.bookings as b (b.id)}
 					{@const badge = bookingBadge(b.status, b.startsAt, b.lateCancel)}
+					{@const proposal = proposalState(b)}
 					<button
 						type="button"
 						class="bg-base-200 border-base-300 hover:border-base-content/20 flex flex-col gap-2 rounded-field border p-3 text-left"
@@ -352,6 +425,13 @@
 							</div>
 							<span class="badge badge-sm {badge.className} font-body shrink-0">{badge.label}</span>
 						</div>
+						{#if proposal?.kind === 'pending'}
+							<p class="text-warning-content/80 text-xs">reschedule pending · asked for {when(proposal.startsAt)}</p>
+						{:else if proposal?.kind === 'declined'}
+							<p class="text-base-content/60 text-xs">
+								{coachFirstName(b)} couldn't do {when(proposal.startsAt)} — your original time is still on
+							</p>
+						{/if}
 						{#if b.clientReflection}
 							<p class="text-base-content/70 line-clamp-2 text-sm italic">"{b.clientReflection}"</p>
 						{:else if b.canReflect}
