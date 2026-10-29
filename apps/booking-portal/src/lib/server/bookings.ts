@@ -284,6 +284,94 @@ export const cancelBooking = (
     return { ok: true as const, outcome };
   });
 
+/** A request that's still waiting on the coach can move freely. Confirmed
+ * bookings move by proposal instead (not built yet). */
+export const canReschedule = (status: BookingStatus, startsAt: Date, now = Date.now()) =>
+  status === "pending_approval" && startsAt.getTime() > now;
+
+/** Moves a pending request to `startsAt`, keeping its type, package and
+ * length. Re-checks everything a new request is checked against, under the
+ * same coach lock, with the booking's own slot and hold set aside so it
+ * doesn't collide with itself. */
+export const rescheduleBooking = (
+  {
+    bookingId,
+    clientId,
+    coach,
+    startsAt,
+    allowedTypes,
+  }: {
+    bookingId: string;
+    clientId: string;
+    coach: { id: string; timezone: string };
+    startsAt: Date;
+    allowedTypes: string[];
+  },
+) =>
+  db.transaction(async (tx) => {
+    await lockCoach(tx, coach.id);
+
+    const [current] = await tx
+      .select({
+        type: booking.type,
+        status: booking.status,
+        startsAt: booking.startsAt,
+        durationMin: booking.durationMin,
+        purchaseId: booking.packagePurchaseId,
+      })
+      .from(booking)
+      .where(
+        and(
+          eq(booking.id, bookingId),
+          eq(booking.clientId, clientId),
+          eq(booking.coachId, coach.id),
+        ),
+      );
+
+    if (!current) return { ok: false as const, message: "that session doesn't exist" };
+    if (!canReschedule(current.status, current.startsAt)) {
+      return { ok: false as const, message: "this session can't be moved any more" };
+    }
+    if (current.startsAt.getTime() === startsAt.getTime()) {
+      return { ok: false as const, message: "that's already your session's time — pick a different one" };
+    }
+    if (!allowedTypes.includes(current.type)) {
+      return { ok: false as const, message: "this session type isn't available for you right now" };
+    }
+
+    if (current.purchaseId) {
+      const packages = await getClientActivePackages(clientId, coach.id, tx, bookingId);
+      const purchase = packages.find((p) => p.purchaseId === current.purchaseId);
+      if (!purchase) {
+        return { ok: false as const, message: "the package this session draws from has expired" };
+      }
+      if (startsAt > purchase.expiresAt) {
+        return { ok: false as const, message: "that date is after this package expires" };
+      }
+      if (purchase.bookable < 1) {
+        return { ok: false as const, message: "no sessions left on that package right now" };
+      }
+    }
+
+    const slots = await getCoachSlotsForDate(
+      {
+        coachId: coach.id,
+        zone: coach.timezone,
+        date: zonedDateParts(startsAt, coach.timezone),
+        durationMin: current.durationMin,
+        excludeBookingId: bookingId,
+      },
+      tx,
+    );
+    const slot = slots.find((s) => s.start.getTime() === startsAt.getTime());
+    if (!slot?.available) {
+      return { ok: false as const, message: "that slot's no longer available — pick another time" };
+    }
+
+    await tx.update(booking).set({ startsAt }).where(eq(booking.id, bookingId));
+    return { ok: true as const };
+  });
+
 export const REFLECTION_MAX_LENGTH = 1000;
 
 /** A client can write notes on a session that's happened — marked complete,

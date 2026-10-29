@@ -25,22 +25,24 @@
 
 	const zone = $derived(viewerZone(data.user));
 
-	// `?booked=1` after a successful request (see [slug]/+page.server.ts's
-	// redirect) — shown once, then stripped from the URL so a refresh or
-	// share doesn't re-trigger it.
-	let showBookedToast = $state(page.url.searchParams.get('booked') === '1');
+	// `?booked=1` / `?moved=1` after a request or reschedule (see
+	// [slug]/+page.server.ts's redirects) — shown once, then stripped from the
+	// URL so a refresh or share doesn't re-trigger it.
+	const REDIRECT_TOASTS: Record<string, string> = {
+		booked: 'request sent — your coach will approve it soon.',
+		moved: 'moved — your coach will see the new time.'
+	};
 
 	$effect(() => {
-		if (!showBookedToast) return;
+		const key = Object.keys(REDIRECT_TOASTS).find((k) => page.url.searchParams.get(k) === '1');
+		if (!key) return;
 
 		untrack(() => {
+			showToast(REDIRECT_TOASTS[key]);
 			const url = new URL(page.url);
-			url.searchParams.delete('booked');
+			url.searchParams.delete(key);
 			goto(url, { replaceState: true, keepFocus: true, noScroll: true });
 		});
-
-		const timer = setTimeout(() => (showBookedToast = false), 3000);
-		return () => clearTimeout(timer);
 	});
 
 	let search = $state(page.url.searchParams.get('q') ?? '');
@@ -271,9 +273,18 @@
 							</button>
 						{/if}
 						{#if managing.cancelOutcome !== 'blocked'}
-							<button type="button" class="btn btn-sm btn-outline" disabled title="coming soon">
-								reschedule
-							</button>
+							{#if managing.canReschedule}
+								<a
+									href="/bookings/{managing.coachSlug}?reschedule={managing.id}"
+									class="btn btn-sm btn-outline"
+								>
+									reschedule
+								</a>
+							{:else}
+								<button type="button" class="btn btn-sm btn-outline" disabled title="coming soon">
+									reschedule
+								</button>
+							{/if}
 							<button
 								type="button"
 								class="btn btn-sm btn-outline btn-error"
@@ -465,11 +476,3 @@
 </div>
 
 {@render manageModal()}
-
-{#if showBookedToast}
-	<div class="toast toast-top toast-center z-50 w-full md:toast-end md:w-auto">
-		<div class="alert alert-success w-full rounded-2xl md:w-auto">
-			<span>request sent — your coach will approve it soon.</span>
-		</div>
-	</div>
-{/if}

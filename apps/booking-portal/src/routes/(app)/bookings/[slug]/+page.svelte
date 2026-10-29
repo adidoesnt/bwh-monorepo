@@ -40,6 +40,15 @@
 	const buyActionUrl = $derived(
 		`${page.url.pathname}${page.url.search}${page.url.search ? '&' : '?'}/buy`
 	);
+	const rescheduleActionUrl = $derived(`${page.url.pathname}${page.url.search}&/reschedule`);
+
+	const rescheduling = $derived(data.rescheduling);
+	const currentStartIso = $derived(rescheduling?.startsAt.toISOString() ?? null);
+	const reschedulingPackageName = $derived(
+		rescheduling?.purchaseId
+			? (data.activePackages.find((p) => p.purchaseId === rescheduling.purchaseId)?.packageName ?? null)
+			: null
+	);
 
 	let selectedOfferingId = $state<string | null>(null);
 	let buying = $state(false);
@@ -366,7 +375,15 @@
 		{:else}
 			<div class="flex flex-wrap gap-2">
 				{#each data.slots as slot (slot.start.toISOString())}
-					{#if slot.available}
+					{#if slot.start.toISOString() === currentStartIso}
+						<span
+							class="btn btn-sm border-accent bg-base-100 text-base-content/50 rounded-full font-mono font-normal"
+							aria-disabled="true"
+							title="your session's current time"
+						>
+							{formatTime(slot.start, data.coach.timezone)} · now
+						</span>
+					{:else if slot.available}
 						<button
 							type="button"
 							class="btn btn-sm rounded-full font-mono font-normal {selectedStartsAt ===
@@ -424,22 +441,24 @@
 {#snippet requestForm()}
 	<form
 		method="POST"
-		action={requestActionUrl}
+		action={rescheduling ? rescheduleActionUrl : requestActionUrl}
 		class="flex flex-col gap-6"
 		use:enhance={enhanceRequest}
 	>
-		{@render locationField()}
+		{#if !rescheduling}
+			{@render locationField()}
 
-		<div>
-			<label class="text-base-content/60 mb-2 block text-sm" for="note">anything i should know?</label>
-			<textarea
-				id="note"
-				name="note"
-				bind:value={note}
-				class="textarea textarea-bordered w-full"
-				placeholder="niggling left knee this week — happy to swap lunges"
-			></textarea>
-		</div>
+			<div>
+				<label class="text-base-content/60 mb-2 block text-sm" for="note">anything i should know?</label>
+				<textarea
+					id="note"
+					name="note"
+					bind:value={note}
+					class="textarea textarea-bordered w-full"
+					placeholder="niggling left knee this week — happy to swap lunges"
+				></textarea>
+			</div>
+		{/if}
 
 		{@render summaryBar()}
 
@@ -450,10 +469,38 @@
 			<p class="text-error text-sm">{NETWORK_ERROR_MESSAGE}</p>
 		{/if}
 
-		<button type="submit" class="btn btn-accent w-full" disabled={!selectedStartsAt || requesting}>
-			{requesting ? 'sending…' : 'send request'}
+		<button
+			type="submit"
+			class="btn btn-accent w-full"
+			disabled={!selectedStartsAt || selectedStartsAt === currentStartIso || requesting}
+		>
+			{#if rescheduling}
+				{requesting ? 'moving…' : 'move to this time'}
+			{:else}
+				{requesting ? 'sending…' : 'send request'}
+			{/if}
 		</button>
 	</form>
+{/snippet}
+
+{#snippet rescheduleHeader(current: NonNullable<typeof rescheduling>)}
+	<div class="flex flex-col gap-3">
+		<div>
+			<h2 class="font-headings text-2xl">move your session</h2>
+			<p class="text-base-content/60 text-sm">
+				pick a new time. it stays a request until {data.coach.name.split(' ')[0]} approves it.
+			</p>
+		</div>
+		<div class="bg-base-200 flex flex-wrap items-center justify-between gap-2 rounded-2xl p-4 text-sm">
+			<span>
+				currently {weekdayAbbrev(current.startsAt, data.coach.timezone)}
+				{dayNumber(current.startsAt, data.coach.timezone)} · {formatTime(current.startsAt, data.coach.timezone)}
+			</span>
+			<span class="text-base-content/60">
+				{[current.type, `${current.durationMin} min`, reschedulingPackageName].filter(Boolean).join(' · ')}
+			</span>
+		</div>
+	</div>
 {/snippet}
 
 <div class="mx-auto max-w-3xl p-6 md:p-10">
@@ -463,7 +510,7 @@
 			class="text-base-content/70 hover:text-base-content flex w-fit items-center gap-1 text-sm"
 		>
 			<ChevronLeftIcon className="h-3 w-3" />
-			all coaches
+			{rescheduling ? 'back to your sessions' : 'all coaches'}
 		</a>
 
 		{#if clientView}
@@ -476,17 +523,23 @@
 			{@render openHoursList()}
 
 			<div class="border-base-300 flex flex-col gap-6 border-t pt-6">
-				<div>
-					<h2 class="font-headings text-2xl">book {data.coach.name.split(' ')[0]}</h2>
-					<p class="text-base-content/60 text-sm">
-						you're asking for a slot, not taking it. your coach approves, then it's locked in.
-					</p>
-				</div>
+				{#if rescheduling}
+					{@render rescheduleHeader(rescheduling)}
+				{:else}
+					<div>
+						<h2 class="font-headings text-2xl">book {data.coach.name.split(' ')[0]}</h2>
+						<p class="text-base-content/60 text-sm">
+							you're asking for a slot, not taking it. your coach approves, then it's locked in.
+						</p>
+					</div>
 
-				{@render sessionTypePicker()}
-				{@render packagePicker()}
+					{@render sessionTypePicker()}
+					{@render packagePicker()}
+				{/if}
 
-				{#if data.durationMin}
+				{#if data.rescheduleBlockedReason}
+					<p class="text-warning text-sm">{data.rescheduleBlockedReason}</p>
+				{:else if data.durationMin}
 					{@render datePicker()}
 					{@render timePicker()}
 					{@render requestForm()}

@@ -10,6 +10,7 @@ import {
   inArray,
   lt,
   lte,
+  ne,
   or,
   sql,
   type SQL,
@@ -98,11 +99,13 @@ export const getClientUpcomingBookingsCount = async (clientId: string) => {
  * left to request right now) — the dashboard's package carousel uses
  * `balance`, the booking form's package picker uses `bookable`. Pass
  * `coachId` to scope to purchases with one coach, otherwise every coach's
- * purchases come back. */
+ * purchases come back. `excludeBookingId` drops that booking's own hold —
+ * a request being moved doesn't compete with itself for its session. */
 export const getClientActivePackages = async (
   clientId: string,
   coachId?: string,
   executor: DbExecutor = db,
+  excludeBookingId?: string,
 ) => {
   const conditions = [
     eq(packagePurchase.clientId, clientId),
@@ -161,6 +164,7 @@ export const getClientActivePackages = async (
           inArray(booking.packagePurchaseId, purchaseIds),
           eq(booking.status, "pending_approval"),
           gt(booking.startsAt, new Date()),
+          excludeBookingId ? ne(booking.id, excludeBookingId) : undefined,
         ),
       )
       .groupBy(booking.packagePurchaseId),
@@ -349,6 +353,7 @@ export const getClientBookingsPage = async ({
       clientReflection: booking.clientReflection,
       lateCancel: lateCancelled,
       coachName: user.name,
+      coachSlug: coachProfile.slug,
       purchaseId: booking.packagePurchaseId,
       packageName: packageOffering.name,
       totalCount: sql<number>`count(*) over()`.mapWith(Number),
@@ -374,6 +379,33 @@ export const getClientBookingsPage = async ({
     })),
     totalCount: rows[0]?.totalCount ?? 0,
   };
+};
+
+/** One of a client's bookings with a given coach, for the reschedule form. */
+export const getClientBookingWithCoach = async (
+  bookingId: string,
+  clientId: string,
+  coachId: string,
+) => {
+  const [row] = await db
+    .select({
+      id: booking.id,
+      type: booking.type,
+      location: booking.location,
+      startsAt: booking.startsAt,
+      durationMin: booking.durationMin,
+      status: booking.status,
+      purchaseId: booking.packagePurchaseId,
+    })
+    .from(booking)
+    .where(
+      and(
+        eq(booking.id, bookingId),
+        eq(booking.clientId, clientId),
+        eq(booking.coachId, coachId),
+      ),
+    );
+  return row ?? null;
 };
 
 /** Counts per tab bucket, for the tab labels (e.g. "awaiting action (2)") —
@@ -591,6 +623,7 @@ export const getCoachActiveBookings = async (
   from: Date,
   to: Date,
   executor: DbExecutor = db,
+  excludeBookingId?: string,
 ) => {
   return executor
     .select({ startsAt: booking.startsAt, durationMin: booking.durationMin })
@@ -601,6 +634,7 @@ export const getCoachActiveBookings = async (
         inArray(booking.status, UPCOMING_BOOKING_STATUSES),
         gte(booking.startsAt, from),
         lt(booking.startsAt, to),
+        excludeBookingId ? ne(booking.id, excludeBookingId) : undefined,
       ),
     );
 };
@@ -616,12 +650,15 @@ export const getCoachSlots = async (
     from,
     to,
     durationMin,
+    excludeBookingId,
   }: {
     coachId: string;
     zone: string;
     from: Date;
     to: Date;
     durationMin: number;
+    /** A booking being moved — its own time doesn't count as taken. */
+    excludeBookingId?: string;
   },
   executor: DbExecutor = db,
 ) => {
@@ -633,7 +670,7 @@ export const getCoachSlots = async (
       zonedDateKey(new Date(to.getTime() - 1), zone),
       executor,
     ),
-    getCoachActiveBookings(coachId, from, to, executor),
+    getCoachActiveBookings(coachId, from, to, executor, excludeBookingId),
   ]);
 
   const windowsByWeekday = new Map<
@@ -684,11 +721,13 @@ export const getCoachSlotsForDate = async (
     zone,
     date,
     durationMin,
+    excludeBookingId,
   }: {
     coachId: string;
     zone: string;
     date: { year: number; month: number; day: number };
     durationMin: number;
+    excludeBookingId?: string;
   },
   executor: DbExecutor = db,
 ) => {
@@ -701,6 +740,7 @@ export const getCoachSlotsForDate = async (
       from: dayStart,
       to: dayEnd,
       durationMin,
+      excludeBookingId,
     },
     executor,
   );

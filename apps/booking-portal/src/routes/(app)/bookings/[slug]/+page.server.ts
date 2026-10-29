@@ -2,6 +2,7 @@ import { error, fail, redirect } from "@sveltejs/kit";
 import type { SessionType } from "@repo/database/schema";
 import {
   getClientActivePackages,
+  getClientBookingWithCoach,
   getClientIntakeSubmitted,
   getCoachBySlug,
   getCoachOpenHours,
@@ -10,7 +11,7 @@ import {
   getCoachSlotsForDate,
 } from "$lib/server/queries";
 import { BOOKING_SHARE_HOST } from "$lib/server/config";
-import { bookSession } from "$lib/server/bookings";
+import { bookSession, canReschedule, rescheduleBooking } from "$lib/server/bookings";
 import { actionFailure } from "$lib/server/errors";
 import {
   buyPackage,
@@ -30,12 +31,16 @@ export const load: PageServerLoad = async ({ params, url, locals }) => {
   const coach = await getCoachBySlug(params.slug);
   if (!coach) error(404, "coach not found");
 
-  const [packages, openHours, activePackages, parqSubmitted, purchaseBlockReason] =
+  // `?reschedule=<id>`: the same form, moving one of the client's requests.
+  // Its type, package and length are fixed; only the time changes.
+  const rescheduleId = url.searchParams.get("reschedule") ?? undefined;
+
+  const [packages, openHours, activePackages, parqSubmitted, purchaseBlockReason, rescheduling] =
     await Promise.all([
       getCoachPackages(coach.id),
       getCoachOpenHours(coach.id),
       locals.user
-        ? getClientActivePackages(locals.user.id, coach.id)
+        ? getClientActivePackages(locals.user.id, coach.id, undefined, rescheduleId)
         : Promise.resolve([]),
       locals.user
         ? getClientIntakeSubmitted(locals.user.id)
@@ -43,35 +48,57 @@ export const load: PageServerLoad = async ({ params, url, locals }) => {
       locals.user
         ? getPurchaseBlockReason(locals.user.id)
         : Promise.resolve(null),
+      locals.user && rescheduleId
+        ? getClientBookingWithCoach(rescheduleId, locals.user.id, coach.id)
+        : Promise.resolve(null),
     ]);
+
+  if (rescheduleId && (!rescheduling || !canReschedule(rescheduling.status, rescheduling.startsAt))) {
+    error(404, "that session can't be moved");
+  }
 
   // Unknown client zone (`user.timezone` unset) is treated as not cross-timezone —
   // permissive by default rather than blocking bookings over missing data.
   const crossTimezone =
     !!locals.user?.timezone && locals.user.timezone !== coach.timezone;
   const allowedTypes = allowedSessionTypes({ crossTimezone, parqSubmitted });
-  const sessionType = resolveSessionType(
-    url.searchParams.get("type") ?? "1:1 in-person",
-    allowedTypes,
-  );
+  const sessionType = rescheduling
+    ? rescheduling.type
+    : resolveSessionType(url.searchParams.get("type") ?? "1:1 in-person", allowedTypes);
 
-  const { selectedPurchase, durationMin, rangeEnd } = resolveBookingSelection({
+  const selection = resolveBookingSelection({
     sessionType,
-    packageIdParam: url.searchParams.get("package"),
+    packageIdParam: rescheduling ? rescheduling.purchaseId : url.searchParams.get("package"),
     activePackages,
   });
+  const { selectedPurchase, rangeEnd } = selection;
+  const durationMin = rescheduling ? rescheduling.durationMin : selection.durationMin;
+
+  // A request can outlive what made it bookable; say so rather than offer times
+  // the reschedule action would refuse.
+  const rescheduleBlockedReason = !rescheduling
+    ? null
+    : !allowedTypes.includes(rescheduling.type)
+      ? "this session type isn't available for you right now, so it can't be moved — cancel it and book again instead"
+      : rescheduling.purchaseId && selectedPurchase?.purchaseId !== rescheduling.purchaseId
+        ? "the package this session draws from has expired, so it can't be moved"
+        : null;
 
   const today = zonedDateParts(new Date(), coach.timezone);
-  const selectedDate = parseDateParam(url.searchParams.get("date")) ?? today;
+  const selectedDate =
+    parseDateParam(url.searchParams.get("date")) ??
+    (rescheduling ? zonedDateParts(rescheduling.startsAt, coach.timezone) : today);
 
-  const slots = durationMin
-    ? await getCoachSlotsForDate({
-        coachId: coach.id,
-        zone: coach.timezone,
-        date: selectedDate,
-        durationMin,
-      })
-    : [];
+  const slots =
+    durationMin && !rescheduleBlockedReason
+      ? await getCoachSlotsForDate({
+          coachId: coach.id,
+          zone: coach.timezone,
+          date: selectedDate,
+          durationMin,
+          excludeBookingId: rescheduling?.id,
+        })
+      : [];
 
   // href includes protocol domain and trailing slash
   const shareUrl = `${BOOKING_SHARE_HOST.href}book/${params.slug}`;
@@ -93,6 +120,8 @@ export const load: PageServerLoad = async ({ params, url, locals }) => {
     rangeEnd,
     slots,
     shareUrl,
+    rescheduling,
+    rescheduleBlockedReason,
   };
 };
 
@@ -172,6 +201,44 @@ export const actions: Actions = {
       redirect(303, "/bookings?tab=awaiting_action&booked=1");
     } catch (err) {
       return actionFailure(err, "we couldn't send your request — please try again");
+    }
+  },
+
+  // `?reschedule=<id>&startsAt=…` — the booking keeps everything but its time,
+  // so only the time and the type's gates come from this request.
+  reschedule: async ({ params, url, locals }) => {
+    if (!locals.user || locals.user.role !== "client") {
+      return fail(403, { message: "not allowed" });
+    }
+
+    try {
+      const coach = await getCoachBySlug(params.slug);
+      if (!coach) error(404, "coach not found");
+
+      const bookingId = url.searchParams.get("reschedule");
+      if (!bookingId) return fail(400, { message: "missing booking" });
+
+      const startsAtParam = url.searchParams.get("startsAt");
+      const startsAt = startsAtParam ? new Date(startsAtParam) : null;
+      if (!startsAt || Number.isNaN(startsAt.getTime())) {
+        return fail(400, { message: "pick a time first" });
+      }
+
+      const parqSubmitted = await getClientIntakeSubmitted(locals.user.id);
+      const crossTimezone = !!locals.user.timezone && locals.user.timezone !== coach.timezone;
+
+      const result = await rescheduleBooking({
+        bookingId,
+        clientId: locals.user.id,
+        coach,
+        startsAt,
+        allowedTypes: allowedSessionTypes({ crossTimezone, parqSubmitted }),
+      });
+      if (!result.ok) return fail(409, { message: result.message });
+
+      redirect(303, "/bookings?tab=awaiting_action&moved=1");
+    } catch (err) {
+      return actionFailure(err, "we couldn't move your session — please try again");
     }
   },
 
