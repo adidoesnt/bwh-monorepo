@@ -3,6 +3,7 @@ import {
   booking,
   packagePurchase,
   sessionLedgerEntry,
+  type BookingStatus,
 } from "@repo/database/schema";
 import { zonedDateParts } from "$lib/utils/availability";
 import { db } from "./db";
@@ -205,3 +206,80 @@ export const completeBooking = async (bookingId: string, coachId: string) => {
   }
   return { ok: false as const, message: "that session hasn't started yet" };
 };
+
+export const CANCELLATION_WINDOW_HOURS = 24;
+
+export type CancelOutcome = "none" | "return" | "forfeit" | "blocked";
+
+/** What cancelling does to the booking's session — see BOOKING-LIFECYCLE.md. */
+export const cancelOutcome = (
+  status: BookingStatus,
+  startsAt: Date,
+  now = Date.now(),
+): CancelOutcome => {
+  const msUntilStart = startsAt.getTime() - now;
+  if (msUntilStart <= 0) return "blocked";
+  if (status === "pending_approval") return "none";
+  if (status !== "confirmed") return "blocked";
+  return msUntilStart >= CANCELLATION_WINDOW_HOURS * 3_600_000 ? "return" : "forfeit";
+};
+
+/** Cancels a client's own booking, returning its session when it's far
+ * enough out. Status is re-read under the coach lock so a cancel can't
+ * interleave with the coach approving the same request. `expectedOutcome` is
+ * what the client was shown — if it no longer holds (the 24h window passed,
+ * or the coach just approved), refuse rather than surprise them. */
+export const cancelBooking = (
+  bookingId: string,
+  clientId: string,
+  expectedOutcome: CancelOutcome,
+) =>
+  db.transaction(async (tx) => {
+    const ownBooking = and(eq(booking.id, bookingId), eq(booking.clientId, clientId));
+
+    const [owned] = await tx
+      .select({ coachId: booking.coachId })
+      .from(booking)
+      .where(ownBooking);
+    if (!owned) return { ok: false as const, message: "that booking doesn't exist" };
+
+    await lockCoach(tx, owned.coachId);
+
+    const [current] = await tx
+      .select({
+        status: booking.status,
+        startsAt: booking.startsAt,
+        purchaseId: booking.packagePurchaseId,
+      })
+      .from(booking)
+      .where(ownBooking);
+
+    const outcome = cancelOutcome(current.status, current.startsAt);
+    if (outcome === "blocked") {
+      return { ok: false as const, message: "this session can't be cancelled any more" };
+    }
+    if (outcome !== expectedOutcome) {
+      return {
+        ok: false as const,
+        message: "this session just changed — check the details before cancelling",
+      };
+    }
+
+    if (outcome === "return" && current.purchaseId) {
+      await tx.insert(sessionLedgerEntry).values({
+        clientId,
+        purchaseId: current.purchaseId,
+        bookingId,
+        delta: 1,
+        reason: "returned_in_time",
+        description: "cancelled in time · session returned",
+      });
+    }
+
+    await tx
+      .update(booking)
+      .set({ status: "cancelled", cancelledAt: new Date() })
+      .where(eq(booking.id, bookingId));
+
+    return { ok: true as const, outcome };
+  });

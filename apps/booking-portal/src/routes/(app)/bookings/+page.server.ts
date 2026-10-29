@@ -1,6 +1,14 @@
 import { fail } from "@sveltejs/kit";
 import type { Actions, PageServerLoad } from "./$types";
-import { approveBooking, completeBooking, declineBooking } from "$lib/server/bookings";
+import {
+  approveBooking,
+  cancelBooking,
+  cancelOutcome,
+  completeBooking,
+  declineBooking,
+  CANCELLATION_WINDOW_HOURS,
+  type CancelOutcome,
+} from "$lib/server/bookings";
 import { actionFailure } from "$lib/server/errors";
 import {
   getAllCoachTags,
@@ -17,6 +25,7 @@ import {
 } from "$lib/server/queries";
 
 const BOOKING_BUCKETS: BookingBucket[] = ["upcoming", "awaiting_action", "history"];
+const CANCELLABLE_OUTCOMES: CancelOutcome[] = ["none", "return", "forfeit"];
 
 const parseBookingBucket = (url: URL): BookingBucket => {
   const tab = url.searchParams.get("tab");
@@ -42,7 +51,14 @@ const getClientData = async (clientId: string, url: URL) => {
   return {
     view: "client" as const,
     bucket,
-    bookingsPage,
+    bookingsPage: {
+      ...bookingsPage,
+      bookings: bookingsPage.bookings.map((b) => ({
+        ...b,
+        cancelOutcome: cancelOutcome(b.status, b.startsAt),
+      })),
+    },
+    cancellationWindowHours: CANCELLATION_WINDOW_HOURS,
     bucketCounts,
     coachDirectoryPage,
     coachTags,
@@ -156,6 +172,33 @@ export const actions: Actions = {
       if (!result.ok) return fail(409, { message: result.message });
     } catch (err) {
       return actionFailure(err, "we couldn't mark that session complete — please try again");
+    }
+  },
+
+  cancel: async ({ locals, request }) => {
+    if (!locals.user || locals.user.role !== "client") {
+      return fail(403, { message: "not allowed" });
+    }
+
+    try {
+      const formData = await request.formData();
+      const bookingId = formData.get("bookingId");
+      const expectedOutcome = formData.get("expectedOutcome");
+      if (typeof bookingId !== "string" || !bookingId) {
+        return fail(400, { message: "missing booking" });
+      }
+      if (!CANCELLABLE_OUTCOMES.includes(expectedOutcome as CancelOutcome)) {
+        return fail(400, { message: "this session can't be cancelled" });
+      }
+
+      const result = await cancelBooking(
+        bookingId,
+        locals.user.id,
+        expectedOutcome as CancelOutcome,
+      );
+      if (!result.ok) return fail(409, { message: result.message });
+    } catch (err) {
+      return actionFailure(err, "we couldn't cancel that session — please try again");
     }
   },
 };

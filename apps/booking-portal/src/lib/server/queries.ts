@@ -341,19 +341,31 @@ export const getClientBookingsPage = async ({
       startsAt: booking.startsAt,
       durationMin: booking.durationMin,
       status: booking.status,
+      clientNote: booking.clientNote,
       coachName: user.name,
+      purchaseId: booking.packagePurchaseId,
+      packageName: packageOffering.name,
       totalCount: sql<number>`count(*) over()`.mapWith(Number),
     })
     .from(booking)
     .innerJoin(coachProfile, eq(booking.coachId, coachProfile.id))
     .innerJoin(user, eq(coachProfile.userId, user.id))
+    .leftJoin(packagePurchase, eq(booking.packagePurchaseId, packagePurchase.id))
+    .leftJoin(packageOffering, eq(packagePurchase.packageId, packageOffering.id))
     .where(and(eq(booking.clientId, clientId), bucketCondition(bucket)))
     .orderBy(bucket === "history" ? desc(booking.startsAt) : asc(booking.startsAt))
     .limit(pageSize)
     .offset((page - 1) * pageSize);
 
+  const balances = await getPurchaseBalances(
+    rows.flatMap((r) => (r.purchaseId ? [r.purchaseId] : [])),
+  );
+
   return {
-    bookings: rows.map(({ totalCount: _totalCount, ...b }) => b),
+    bookings: rows.map(({ totalCount: _totalCount, ...b }) => ({
+      ...b,
+      balance: b.purchaseId ? (balances.get(b.purchaseId) ?? 0) : null,
+    })),
     totalCount: rows[0]?.totalCount ?? 0,
   };
 };

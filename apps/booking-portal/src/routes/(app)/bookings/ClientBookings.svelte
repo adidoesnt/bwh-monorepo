@@ -1,16 +1,22 @@
 <script lang="ts">
-	import { goto } from '$app/navigation';
+	import { enhance } from '$app/forms';
+	import { goto, invalidateAll } from '$app/navigation';
 	import { page } from '$app/state';
+	import type { SubmitFunction } from '@sveltejs/kit';
 	import { untrack } from 'svelte';
 	import { DropdownControl, Pager } from '$lib/components';
+	import { showToast } from '$lib/toast.svelte';
 	import { PAGE_SIZE_OPTIONS, SORT_OPTIONS } from '$lib/utils/coachDirectory';
+	import { isNetworkFailure, NETWORK_ERROR_MESSAGE } from '$lib/utils/forms';
 	import {
 		bookingBadge,
 		dayNumber,
+		formatFullDate,
 		formatPriceCents,
 		formatTime,
 		monthAbbrev,
-		viewerZone
+		viewerZone,
+		weekdayAbbrev
 	} from '$lib/utils/format';
 	import { totalPages } from '$lib/utils/pagination';
 	import { BUCKET_TABS, bucketCount, type ClientBookingsData } from './bookings';
@@ -79,7 +85,150 @@
 	const setBucket = (bucket: string) =>
 		updateUrl({ tab: bucket === 'upcoming' ? null : bucket, bookingsPage: null });
 	const setBookingsPage = (n: number) => updateUrl({ bookingsPage: n === 1 ? null : String(n) });
+
+	type ManagedBooking = ClientBookingsData['bookingsPage']['bookings'][number];
+
+	let manageDialog = $state<HTMLDialogElement>();
+	let managingId = $state<string | null>(null);
+	let confirmingCancel = $state(false);
+	let cancelling = $state(false);
+	let manageError = $state<string | null>(null);
+
+	// Looked up by id so a reload after a failed cancel shows the fresh outcome.
+	const managing = $derived(data.bookingsPage.bookings.find((b) => b.id === managingId) ?? null);
+
+	const openManage = (id: string) => {
+		managingId = id;
+		confirmingCancel = false;
+		manageError = null;
+		manageDialog?.showModal();
+	};
+
+	const coachFirstName = (b: ManagedBooking) => b.coachName.split(' ')[0];
+
+	const manageDetails = (b: ManagedBooking) => {
+		const end = new Date(b.startsAt.getTime() + b.durationMin * 60_000);
+		return [
+			['coach', b.coachName],
+			['date', `${weekdayAbbrev(b.startsAt, zone)} ${formatFullDate(b.startsAt, zone)}`],
+			['time', `${formatTime(b.startsAt, zone)} – ${formatTime(end, zone)} · ${b.durationMin} min`],
+			['session', b.type],
+			['location', b.location],
+			['package', b.packageName ? `${b.packageName} · ${b.balance} left` : 'no package'],
+			['note', b.clientNote ? `"${b.clientNote}"` : null]
+		].filter((d): d is [string, string] => d[1] !== null);
+	};
+
+	const cancelEffect = (b: ManagedBooking) => {
+		const hours = data.cancellationWindowHours;
+		if (b.cancelOutcome === 'none') {
+			return `${coachFirstName(b)} hasn't confirmed this yet, so nothing's been used — cancelling costs you nothing.`;
+		}
+		if (!b.packageName || b.balance === null) {
+			return `this session isn't drawn from a package, so cancelling costs you nothing.`;
+		}
+		if (b.cancelOutcome === 'return') {
+			return `it's more than ${hours} hours away, so the session goes back to your ${b.packageName} package (${b.balance} → ${b.balance + 1} left).`;
+		}
+		return `it's less than ${hours} hours away, so this session won't go back to your ${b.packageName} package.`;
+	};
+
+	const cancelledMessage = (b: ManagedBooking) => {
+		if (b.cancelOutcome === 'none') return `cancelled your request with ${coachFirstName(b)}`;
+		if (b.cancelOutcome === 'return' && b.packageName) {
+			return `cancelled — the session's back on your ${b.packageName} package`;
+		}
+		return `cancelled your session with ${coachFirstName(b)}`;
+	};
+
+	const enhanceCancel: SubmitFunction = () => {
+		const cancelled = managing;
+		cancelling = true;
+		manageError = null;
+		return async ({ result }) => {
+			if (isNetworkFailure(result)) manageError = NETWORK_ERROR_MESSAGE;
+			else if (result.type === 'failure') {
+				const message = String(result.data?.message ?? 'something went wrong');
+				await invalidateAll();
+				// The reload can move the booking to another tab, leaving nothing to show in the modal.
+				if (managing) manageError = message;
+				else {
+					manageDialog?.close();
+					showToast(message, 'error');
+				}
+			} else if (result.type === 'error') manageError = 'something went wrong — please try again';
+			else {
+				manageDialog?.close();
+				if (cancelled) showToast(cancelledMessage(cancelled));
+				await invalidateAll();
+			}
+			cancelling = false;
+		};
+	};
 </script>
+
+{#snippet manageModal()}
+	<dialog bind:this={manageDialog} class="modal">
+		<div class="modal-box bg-base-100 flex flex-col gap-4 rounded-2xl">
+			{#if managing}
+				<h3 class="font-headings text-xl">
+					{confirmingCancel ? 'cancel this session?' : 'your session'}
+				</h3>
+
+				<dl class="bg-base-200 border-base-300 divide-base-300 divide-y rounded-field border text-sm">
+					{#each manageDetails(managing) as [label, value] (label)}
+						<div class="grid grid-cols-[5.5rem_1fr] gap-4 px-4 py-2.5">
+							<dt class="text-base-content/60">{label}</dt>
+							<dd class={label === 'note' ? 'italic' : ''}>{value}</dd>
+						</div>
+					{/each}
+				</dl>
+
+				{#if managing.cancelOutcome !== 'blocked'}
+					<p class="text-base-content/70 text-sm">{cancelEffect(managing)}</p>
+				{/if}
+
+				{#if manageError}
+					<p class="text-error text-sm">{manageError}</p>
+				{/if}
+
+				{#if confirmingCancel}
+					<form method="POST" action="?/cancel" class="modal-action mt-0" use:enhance={enhanceCancel}>
+						<input type="hidden" name="bookingId" value={managing.id} />
+						<input type="hidden" name="expectedOutcome" value={managing.cancelOutcome} />
+						<button type="button" class="btn btn-sm btn-ghost" onclick={() => (confirmingCancel = false)}>
+							keep it
+						</button>
+						<button class="btn btn-sm btn-error" disabled={cancelling}>
+							{cancelling ? 'cancelling…' : 'yes, cancel'}
+						</button>
+					</form>
+				{:else}
+					<div class="modal-action mt-0">
+						<button type="button" class="btn btn-sm btn-ghost" onclick={() => manageDialog?.close()}>
+							close
+						</button>
+						{#if managing.cancelOutcome !== 'blocked'}
+							<button type="button" class="btn btn-sm btn-outline" disabled title="coming soon">
+								reschedule
+							</button>
+							<button
+								type="button"
+								class="btn btn-sm btn-outline btn-error"
+								onclick={() => (confirmingCancel = true)}
+							>
+								cancel session
+							</button>
+						{/if}
+					</div>
+				{/if}
+			{/if}
+		</div>
+		<form method="dialog" class="modal-backdrop">
+			<button aria-label="close">close</button>
+		</form>
+	</dialog>
+{/snippet}
 
 {#snippet sessionsWidget()}
 	<div class="bg-base-100 border-base-300 flex flex-col gap-4 rounded-2xl border p-5">
@@ -110,33 +259,25 @@
 			<div class="flex flex-col gap-2">
 				{#each data.bookingsPage.bookings as b (b.id)}
 					{@const badge = bookingBadge(b.status, b.startsAt)}
-					<div class="bg-base-200 border-base-300 flex flex-col gap-3 rounded-field border p-3">
-						<div class="flex items-center gap-3">
-							<div
-								class="bg-base-300 flex w-12 flex-col items-center rounded-field py-1.5 text-center leading-tight"
-							>
-								<span class="text-base-content/50 text-[10px]">{monthAbbrev(b.startsAt, zone)}</span>
-								<span class="font-headings text-lg">{dayNumber(b.startsAt, zone)}</span>
-							</div>
-							<div class="min-w-0 flex-1">
-								<div class="truncate text-sm font-medium">{b.type}</div>
-								<div class="text-base-content/60 truncate text-xs">
-									{formatTime(b.startsAt, zone)} · {b.coachName} · {b.location}
-								</div>
-							</div>
-							<span class="badge badge-sm {badge.className} font-body shrink-0">{badge.label}</span>
+					<button
+						type="button"
+						class="bg-base-200 border-base-300 hover:border-base-content/20 flex items-center gap-3 rounded-field border p-3 text-left"
+						onclick={() => openManage(b.id)}
+					>
+						<div
+							class="bg-base-300 flex w-12 flex-col items-center rounded-field py-1.5 text-center leading-tight"
+						>
+							<span class="text-base-content/50 text-[10px]">{monthAbbrev(b.startsAt, zone)}</span>
+							<span class="font-headings text-lg">{dayNumber(b.startsAt, zone)}</span>
 						</div>
-						{#if data.bucket !== 'history'}
-							<div class="flex gap-2">
-								<button type="button" class="btn btn-outline btn-xs" disabled title="coming soon">
-									reschedule
-								</button>
-								<button type="button" class="btn btn-outline btn-xs" disabled title="coming soon">
-									cancel
-								</button>
+						<div class="min-w-0 flex-1">
+							<div class="truncate text-sm font-medium">{b.type}</div>
+							<div class="text-base-content/60 truncate text-xs">
+								{formatTime(b.startsAt, zone)} · {b.coachName} · {b.location}
 							</div>
-						{/if}
-					</div>
+						</div>
+						<span class="badge badge-sm {badge.className} font-body shrink-0">{badge.label}</span>
+					</button>
 				{/each}
 			</div>
 
@@ -253,6 +394,8 @@
 	{@render sessionsWidget()}
 	{@render coachDirectory()}
 </div>
+
+{@render manageModal()}
 
 {#if showBookedToast}
 	<div class="toast toast-top toast-center z-50 w-full md:toast-end md:w-auto">
