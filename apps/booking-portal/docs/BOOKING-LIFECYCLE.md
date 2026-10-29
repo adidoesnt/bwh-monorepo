@@ -232,8 +232,9 @@ any live proposal. `cancelOutcome(status, startsAt)`:
 
 ## `?/reflect` — not a state change
 
-Writes `booking.client_reflection` (client's post-session note). Allowed when the booking is
-`completed` or its start is in the past. No ledger / invoice effect.
+Writes `booking.client_reflection` (client's post-session note; empty clears it, ≤ 1000 chars).
+Allowed on a session that happened — `completed`, or `confirmed` with its start in the past — not
+on a lapsed request, a decline or a cancellation (`canReflect`). No ledger / invoice effect.
 
 ## Trainer actions
 

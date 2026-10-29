@@ -92,6 +92,8 @@
 	let managingId = $state<string | null>(null);
 	let confirmingCancel = $state(false);
 	let cancelling = $state(false);
+	let savingReflection = $state(false);
+	let reflectionDraft = $state('');
 	let manageError = $state<string | null>(null);
 
 	// Looked up by id so a reload after a failed cancel shows the fresh outcome.
@@ -101,6 +103,7 @@
 		managingId = id;
 		confirmingCancel = false;
 		manageError = null;
+		reflectionDraft = data.bookingsPage.bookings.find((b) => b.id === id)?.clientReflection ?? '';
 		manageDialog?.showModal();
 	};
 
@@ -108,13 +111,18 @@
 
 	const manageDetails = (b: ManagedBooking) => {
 		const end = new Date(b.startsAt.getTime() + b.durationMin * 60_000);
+		// The balance is today's, so it only makes sense next to an upcoming session.
+		const showBalance = b.startsAt.getTime() > Date.now();
 		return [
 			['coach', b.coachName],
 			['date', `${weekdayAbbrev(b.startsAt, zone)} ${formatFullDate(b.startsAt, zone)}`],
 			['time', `${formatTime(b.startsAt, zone)} – ${formatTime(end, zone)} · ${b.durationMin} min`],
 			['session', b.type],
 			['location', b.location],
-			['package', b.packageName ? `${b.packageName} · ${b.balance} left` : 'no package'],
+			[
+				'package',
+				!b.packageName ? 'no package' : showBalance ? `${b.packageName} · ${b.balance} left` : b.packageName
+			],
 			['note', b.clientNote ? `"${b.clientNote}"` : null]
 		].filter((d): d is [string, string] => d[1] !== null);
 	};
@@ -165,6 +173,23 @@
 			cancelling = false;
 		};
 	};
+
+	const enhanceReflect: SubmitFunction = () => {
+		const cleared = reflectionDraft.trim() === '';
+		savingReflection = true;
+		manageError = null;
+		return async ({ result }) => {
+			if (isNetworkFailure(result)) manageError = NETWORK_ERROR_MESSAGE;
+			else if (result.type === 'failure') manageError = String(result.data?.message ?? 'something went wrong');
+			else if (result.type === 'error') manageError = 'something went wrong — please try again';
+			else {
+				manageDialog?.close();
+				showToast(cleared ? 'notes removed' : 'notes saved');
+				await invalidateAll();
+			}
+			savingReflection = false;
+		};
+	};
 </script>
 
 {#snippet manageModal()}
@@ -186,6 +211,28 @@
 
 				{#if managing.cancelOutcome !== 'blocked'}
 					<p class="text-base-content/70 text-sm">{cancelEffect(managing)}</p>
+				{/if}
+
+				{#if managing.canReflect}
+					<form method="POST" action="?/reflect" class="flex flex-col gap-2" use:enhance={enhanceReflect}>
+						<input type="hidden" name="bookingId" value={managing.id} />
+						<label class="text-base-content/60 text-sm" for="reflection">your notes</label>
+						<textarea
+							id="reflection"
+							name="reflection"
+							bind:value={reflectionDraft}
+							maxlength={data.reflectionMaxLength}
+							rows="3"
+							class="textarea textarea-bordered w-full"
+							placeholder="how did it go? anything to remember for next time?"
+						></textarea>
+						<button
+							class="btn btn-sm btn-accent self-end"
+							disabled={savingReflection || reflectionDraft.trim() === (managing.clientReflection ?? '')}
+						>
+							{savingReflection ? 'saving…' : 'save notes'}
+						</button>
+					</form>
 				{/if}
 
 				{#if manageError}
@@ -261,22 +308,29 @@
 					{@const badge = bookingBadge(b.status, b.startsAt)}
 					<button
 						type="button"
-						class="bg-base-200 border-base-300 hover:border-base-content/20 flex items-center gap-3 rounded-field border p-3 text-left"
+						class="bg-base-200 border-base-300 hover:border-base-content/20 flex flex-col gap-2 rounded-field border p-3 text-left"
 						onclick={() => openManage(b.id)}
 					>
-						<div
-							class="bg-base-300 flex w-12 flex-col items-center rounded-field py-1.5 text-center leading-tight"
-						>
-							<span class="text-base-content/50 text-[10px]">{monthAbbrev(b.startsAt, zone)}</span>
-							<span class="font-headings text-lg">{dayNumber(b.startsAt, zone)}</span>
-						</div>
-						<div class="min-w-0 flex-1">
-							<div class="truncate text-sm font-medium">{b.type}</div>
-							<div class="text-base-content/60 truncate text-xs">
-								{formatTime(b.startsAt, zone)} · {b.coachName} · {b.location}
+						<div class="flex w-full items-center gap-3">
+							<div
+								class="bg-base-300 flex w-12 flex-col items-center rounded-field py-1.5 text-center leading-tight"
+							>
+								<span class="text-base-content/50 text-[10px]">{monthAbbrev(b.startsAt, zone)}</span>
+								<span class="font-headings text-lg">{dayNumber(b.startsAt, zone)}</span>
 							</div>
+							<div class="min-w-0 flex-1">
+								<div class="truncate text-sm font-medium">{b.type}</div>
+								<div class="text-base-content/60 truncate text-xs">
+									{formatTime(b.startsAt, zone)} · {b.coachName} · {b.location}
+								</div>
+							</div>
+							<span class="badge badge-sm {badge.className} font-body shrink-0">{badge.label}</span>
 						</div>
-						<span class="badge badge-sm {badge.className} font-body shrink-0">{badge.label}</span>
+						{#if b.clientReflection}
+							<p class="text-base-content/70 line-clamp-2 text-sm italic">"{b.clientReflection}"</p>
+						{:else if b.canReflect}
+							<p class="text-base-content/40 text-xs">+ add your notes</p>
+						{/if}
 					</button>
 				{/each}
 			</div>

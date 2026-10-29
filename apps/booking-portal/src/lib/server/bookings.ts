@@ -1,4 +1,4 @@
-import { and, eq, lte, sql } from "drizzle-orm";
+import { and, eq, lte, or, sql } from "drizzle-orm";
 import {
   booking,
   packagePurchase,
@@ -283,3 +283,36 @@ export const cancelBooking = (
 
     return { ok: true as const, outcome };
   });
+
+export const REFLECTION_MAX_LENGTH = 1000;
+
+/** A client can write notes on a session that's happened — marked complete,
+ * or confirmed and already started — not on a lapsed request or a cancellation. */
+export const canReflect = (status: BookingStatus, startsAt: Date, now = Date.now()) =>
+  status === "completed" || (status === "confirmed" && startsAt.getTime() <= now);
+
+/** Saves (or clears, with `null`) a client's notes on their own session. */
+export const saveReflection = async (
+  bookingId: string,
+  clientId: string,
+  reflection: string | null,
+) => {
+  const [updated] = await db
+    .update(booking)
+    .set({ clientReflection: reflection })
+    .where(
+      and(
+        eq(booking.id, bookingId),
+        eq(booking.clientId, clientId),
+        or(
+          eq(booking.status, "completed"),
+          and(eq(booking.status, "confirmed"), lte(booking.startsAt, new Date())),
+        ),
+      ),
+    )
+    .returning({ id: booking.id });
+
+  return updated
+    ? { ok: true as const }
+    : { ok: false as const, message: "notes can only be added to a session that's happened" };
+};

@@ -342,6 +342,7 @@ export const getClientBookingsPage = async ({
       durationMin: booking.durationMin,
       status: booking.status,
       clientNote: booking.clientNote,
+      clientReflection: booking.clientReflection,
       coachName: user.name,
       purchaseId: booking.packagePurchaseId,
       packageName: packageOffering.name,

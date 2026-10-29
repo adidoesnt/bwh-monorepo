@@ -4,9 +4,12 @@ import {
   approveBooking,
   cancelBooking,
   cancelOutcome,
+  canReflect,
   completeBooking,
   declineBooking,
+  saveReflection,
   CANCELLATION_WINDOW_HOURS,
+  REFLECTION_MAX_LENGTH,
   type CancelOutcome,
 } from "$lib/server/bookings";
 import { actionFailure } from "$lib/server/errors";
@@ -56,9 +59,11 @@ const getClientData = async (clientId: string, url: URL) => {
       bookings: bookingsPage.bookings.map((b) => ({
         ...b,
         cancelOutcome: cancelOutcome(b.status, b.startsAt),
+        canReflect: canReflect(b.status, b.startsAt),
       })),
     },
     cancellationWindowHours: CANCELLATION_WINDOW_HOURS,
+    reflectionMaxLength: REFLECTION_MAX_LENGTH,
     bucketCounts,
     coachDirectoryPage,
     coachTags,
@@ -199,6 +204,29 @@ export const actions: Actions = {
       if (!result.ok) return fail(409, { message: result.message });
     } catch (err) {
       return actionFailure(err, "we couldn't cancel that session — please try again");
+    }
+  },
+
+  reflect: async ({ locals, request }) => {
+    if (!locals.user || locals.user.role !== "client") {
+      return fail(403, { message: "not allowed" });
+    }
+
+    try {
+      const formData = await request.formData();
+      const bookingId = formData.get("bookingId");
+      if (typeof bookingId !== "string" || !bookingId) {
+        return fail(400, { message: "missing booking" });
+      }
+      const reflection = formData.get("reflection")?.toString().trim() || null;
+      if (reflection && reflection.length > REFLECTION_MAX_LENGTH) {
+        return fail(400, { message: `keep your notes under ${REFLECTION_MAX_LENGTH} characters` });
+      }
+
+      const result = await saveReflection(bookingId, locals.user.id, reflection);
+      if (!result.ok) return fail(409, { message: result.message });
+    } catch (err) {
+      return actionFailure(err, "we couldn't save your notes — please try again");
     }
   },
 };
