@@ -66,6 +66,16 @@ an account an admin created that hasn't set a password yet.
   `pending_verification` are reserved for a future in-flow payment step and
   aren't written today — money currently settles on the package-purchase
   side before a booking is confirmed.
+- **`booking_proposal`** *(planned, Phase 5)* — a request to move a
+  confirmed booking to a new time, which the other side accepts or
+  declines; the booking keeps its current time until then. Fields:
+  `bookingId` (cascade), `startsAt` (the proposed time; duration follows
+  the booking), `proposedBy` (`client | coach` — coach proposals are the
+  trainer portal's "suggest another time"), `status` (`pending | accepted |
+  declined | withdrawn`), `responseNote` (optional reason given with a
+  decline), `createdAt`, `respondedAt`. At most one `pending` row per
+  booking (partial unique index). "Lapsed" is derived, not stored: a
+  `pending` proposal whose time — or whose booking's time — has passed.
 
 ## Billing (`schema/billing.ts`)
 

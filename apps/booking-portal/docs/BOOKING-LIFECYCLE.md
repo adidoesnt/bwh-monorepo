@@ -4,11 +4,12 @@ Two independent state machines: a **booking** (a scheduled session) and a **pack
 (prepaid sessions, paid via Stripe). Money lives entirely on the purchase side, so a booking
 never has a payment state — it only ever needs a session already in hand.
 
-Source of truth: `booking.status` (`packages/database/src/schema/booking.ts`), `src/lib/booking.ts`
-(`cancelOutcome`, `canReschedule`), the `?/request` / `?/reschedule` actions in
-`src/routes/(app)/bookings/[slug]/+page.server.ts`, `?/cancel` / `?/reflect` +
-`src/lib/server/cancellation.ts` under `src/routes/(app)/bookings/`, and the `?/buy` action +
-Stripe webhook under `src/routes/(app)/packages/`.
+Source of truth: `booking.status` and `booking_proposal` (`packages/database/src/schema/booking.ts`),
+`src/lib/server/bookings.ts` (`cancelOutcome`, `canReschedule`, and every write that changes a
+booking), the `?/request` / `?/reschedule` actions in
+`src/routes/(app)/bookings/[slug]/+page.server.ts`, the `?/cancel` / `?/reflect` and coach actions
+in `src/routes/(app)/bookings/+page.server.ts`, and the `?/buy` action + Stripe webhook under
+`src/routes/(app)/packages/`.
 
 ## Booking state machine
 
@@ -23,7 +24,7 @@ stateDiagram-v2
     confirmed --> completed: session happens
 
     pending_approval --> pending_approval: reschedule
-    confirmed --> pending_approval: reschedule ≥24h<br/>session returned
+    confirmed --> confirmed: coach accepts a reschedule ≥24h<br/>moves to the proposed time
 
     pending_approval --> cancelled: cancel
     confirmed --> cancelled: cancel ≥24h — session returned
@@ -43,13 +44,14 @@ stateDiagram-v2
 | State | Meaning | Occupies a calendar slot? |
 | :-- | :-- | :-- |
 | `pending_approval` | Requested; a session is held against an active package (or it's a free consult). Waiting on the coach. | yes |
-| `confirmed` | Approved — on both calendars, one session drawn from the package. | yes |
+| `confirmed` | Approved — on both calendars, one session drawn from the package. | yes, plus a live proposal's time |
 | `completed` | Session happened. | no (past) |
 | `declined` | The coach turned the request down. Nothing was consumed. Shown in history on both sides. | no |
-| `cancelled` | Called off by the client. Hidden from the client's list. | no |
+| `cancelled` | Called off by the client. Shown in history on both sides. | no |
 
 "Occupies a slot" = the status is in `ACTIVE_BOOKING_STATUSES`, so `availability.ts` blocks that
-time for other bookings.
+time for other bookings. A confirmed booking's live reschedule proposal blocks its proposed time
+too (see `?/reschedule` below).
 
 **`/bookings`'s three tabs (upcoming / awaiting action / history) are a display grouping, not a
 1:1 read of `status`.** A `confirmed` booking whose `startsAt` has already gone by doesn't
@@ -66,13 +68,14 @@ coach to close it out.
 
 | Tab | Client | Coach |
 | :-- | :-- | :-- |
-| **upcoming** | `confirmed`, future | `confirmed`, future |
-| **awaiting action** | `pending_approval`, future | `pending_approval`, future (*requests*) + `confirmed`, past (*to close out*) |
-| **history** | `confirmed` / `completed` / lapsed, past + `declined` (any date) | `completed` + lapsed + `declined` (any date) |
+| **upcoming** | `confirmed`, future (a live proposal shows on the row as "reschedule pending") | `confirmed`, future, no live client proposal |
+| **awaiting action** | `pending_approval`, future | `pending_approval`, future (*requests*) + `confirmed`, future, live client proposal (*reschedules*) + `confirmed`, past (*to close out*) |
+| **history** | `confirmed` / `completed` / lapsed, past + `declined` / `cancelled` (any date) | `completed` + lapsed + `declined` / `cancelled` (any date) |
 
-`cancelled` bookings appear in no tab yet (client cancellation is the next bookings phase).
-History sorts newest first; the coach's history has *completed / declined / lapsed* filter chips,
-and *awaiting action* has *requests / to close out*.
+A cancelled booking is labelled "cancelled", or "late cancel · session forfeited" when its net
+ledger delta is `−1` (a confirmed booking cancelled inside 24h — see `?/cancel`). History sorts
+newest first; the coach's history has *completed / declined / cancelled / lapsed* filter chips,
+and *awaiting action* has *requests / reschedules / to close out*.
 
 Because the tabs are mutually exclusive by construction, the nav badge count
 (`upcoming.length + awaitingAction.length`) can't double-count a booking that would otherwise
@@ -118,10 +121,11 @@ and consumes exactly **one** session — no fractional costs.
 | :-- | :-- | :-- |
 | `purchase` | Stripe webhook confirms payment | `+session_count` |
 | `session_consumed` | coach approves a booking | `−1` |
-| `returned_in_time` | cancel ≥24h out, or reschedule of a confirmed booking | `+1` |
+| `returned_in_time` | cancel ≥24h out | `+1` |
 | `adjustment` | manual admin correction | `±` |
 
-There is no "forfeit" ledger row — a `<24h` cancel just leaves the `−1` in place.
+There is no "forfeit" ledger row — a `<24h` cancel just leaves the `−1` in place. A reschedule
+never moves the ledger: a confirmed booking's session stays spent while it moves to a new time.
 
 ## `?/request` (`bookings/[slug]`)
 
@@ -169,26 +173,60 @@ no package with that coach.
 
 ## `?/reschedule` (`bookings/[slug]?reschedule=<id>`)
 
-Same coach only; keeps the booking's package + length, changes the slot. Reuses the slot grid
-and all request-time gates; the booking's own slot is excluded from "busy".
+Same coach only; keeps the booking's type, package + length, changes the slot. Reuses the slot
+grid and all request-time gates (re-checked server-side under the coach lock); the booking's own
+slot is excluded from "busy", and so is its own hold on the package.
 
-| From status | Allowed? | Resulting status | Ledger |
+| From status | Allowed? | Result | Ledger |
 | :-- | :-- | :-- | :-- |
-| `pending_approval` | yes | `pending_approval` | — |
-| `confirmed`, ≥24h out | yes | `pending_approval` | `+1` (`returned_in_time`) — re-approval re-consumes |
+| `pending_approval` | yes | moved in place to the new time, still `pending_approval` | — |
+| `confirmed`, ≥24h out | yes | stays `confirmed` at its current time; a `booking_proposal` for the new time waits on the coach | — |
 | `confirmed`, <24h out | **no** | — | — |
-| `completed` / `cancelled` | no | — | — |
+| `completed` / `declined` / `cancelled` | no | — | — |
 
-## `?/cancel` — `cancelBooking()` (`src/lib/server/cancellation.ts`)
+A confirmed booking is never put at risk by asking to move it: the coach answers the proposal,
+and until then both times are held.
 
-No cash refunds — a package is bought as a block. `cancelOutcome(status, startsAt)`:
+```mermaid
+stateDiagram-v2
+    direction LR
+    [*] --> pending: client proposes a new time
+    pending --> accepted: coach accepts<br/>booking.startsAt = proposed time
+    pending --> declined: coach declines<br/>optional reason, original time stands
+    pending --> withdrawn: client withdraws, re-proposes,<br/>or cancels the booking
+    accepted --> [*]
+    declined --> [*]
+    withdrawn --> [*]
+```
+
+- **One live proposal per booking** (a partial unique index on `booking_id` where `status =
+  'pending'`). Proposing again marks the old one `withdrawn` and inserts a new one.
+- **Live** = `pending`, the booking still `confirmed`, and both the booking's current time and the
+  proposed time still in the future. A proposal that stops being live without an answer has
+  **lapsed** (derived, like a lapsed request — nothing writes it): it holds no slot and can't be
+  accepted.
+- **Holding both times:** a live proposal's time counts as busy in `getCoachActiveBookings`, so no
+  one else can book it while the coach decides.
+- **Accept** (under the coach lock) re-checks the proposal is still live and is the one the coach
+  saw (the form posts its id), the package doesn't expire before the new time, and the new slot
+  is still within the coach's hours. Then `booking.startsAt` moves and the old time is freed.
+- **Decline** takes an optional reason (`response_note`). The client's row shows "{coach} couldn't
+  do {time}" with the reason, or a fallback ("your original time is still on") when it's empty,
+  until they propose again or the session passes.
+
+## `?/cancel` — `cancelBooking()` (`src/lib/server/bookings.ts`)
+
+No cash refunds — a package is bought as a block. Runs under the coach lock and re-reads the
+status inside the transaction, so it can't race an approval (a pending request approved at the
+same moment would otherwise be cancelled as "nothing consumed" after its `−1` landed). Withdraws
+any live proposal. `cancelOutcome(status, startsAt)`:
 
 | From status | Outcome | Effect |
 | :-- | :-- | :-- |
 | `pending_approval` | `none` | plain cancel — no session was consumed |
 | `confirmed`, ≥24h out | `return` | `+1` session to the booking's purchase (`returned_in_time`) |
 | `confirmed`, <24h out | `forfeit` | the `−1` stands — nothing else |
-| `completed` / `cancelled` | `blocked` | rejected |
+| `completed` / `declined` / `cancelled` | `blocked` | rejected |
 
 `CANCELLATION_WINDOW_HOURS = 24`, hardcoded until the admin settings phase.
 
@@ -200,7 +238,8 @@ Writes `booking.client_reflection` (client's post-session note). Allowed when th
 ## Trainer actions
 
 Approve (`pending_approval → confirmed`, consumes a session), decline (`pending_approval →
-declined`, nothing to return since nothing was consumed), mark complete, and trainer-initiated
-cancel. Approve and decline run under the same per-coach lock as `?/request` and re-check that the
-request is still pending and in the future; approve also re-checks the package has a session left. Package purchases need no trainer review — the Stripe webhook resolves them on
-its own.
+declined`, nothing to return since nothing was consumed), accept / decline a reschedule proposal
+(see `?/reschedule`), mark complete, and trainer-initiated cancel. Approve and decline run under
+the same per-coach lock as `?/request` and re-check that the request is still pending and in the
+future; approve also re-checks the package has a session left. Package purchases need no trainer
+review — the Stripe webhook resolves them on its own.

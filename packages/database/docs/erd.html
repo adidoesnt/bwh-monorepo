@@ -40,6 +40,7 @@ erDiagram
     package_purchase ||--o{ session_ledger_entry : "purchaseId"
     package_purchase |o--o{ booking : "packagePurchaseId (nullable)"
     booking |o--o{ session_ledger_entry : "bookingId (nullable)"
+    booking ||--o{ booking_proposal : "bookingId"
     user ||--o{ session_ledger_entry : "clientId"
     user ||--o{ invoice : "clientId"
     package |o--o{ invoice : "packageId (nullable)"
@@ -88,6 +89,14 @@ erDiagram
         text type
         text status
         timestamptz starts_at
+    }
+    booking_proposal {
+        text id PK
+        text booking_id FK
+        timestamptz starts_at
+        text proposed_by
+        text status
+        text response_note
     }
     package {
         text id PK
