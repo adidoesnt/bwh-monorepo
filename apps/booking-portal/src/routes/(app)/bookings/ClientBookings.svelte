@@ -211,10 +211,22 @@
 
 				{#if managing.cancelOutcome !== 'blocked'}
 					<p class="text-base-content/70 text-sm">{cancelEffect(managing)}</p>
+				{:else if managing.status === 'cancelled'}
+					<p class="text-base-content/70 text-sm">
+						{managing.lateCancel
+							? `cancelled less than ${data.cancellationWindowHours} hours before — the session wasn't returned to your package.`
+							: `cancelled — no session was used from your package.`}
+					</p>
 				{/if}
 
 				{#if managing.canReflect}
-					<form method="POST" action="?/reflect" class="flex flex-col gap-2" use:enhance={enhanceReflect}>
+					<form
+						id="reflect-form"
+						method="POST"
+						action="?/reflect"
+						class="flex flex-col gap-2"
+						use:enhance={enhanceReflect}
+					>
 						<input type="hidden" name="bookingId" value={managing.id} />
 						<label class="text-base-content/60 text-sm" for="reflection">your notes</label>
 						<textarea
@@ -226,12 +238,6 @@
 							class="textarea textarea-bordered w-full"
 							placeholder="how did it go? anything to remember for next time?"
 						></textarea>
-						<button
-							class="btn btn-sm btn-accent self-end"
-							disabled={savingReflection || reflectionDraft.trim() === (managing.clientReflection ?? '')}
-						>
-							{savingReflection ? 'saving…' : 'save notes'}
-						</button>
 					</form>
 				{/if}
 
@@ -255,6 +261,15 @@
 						<button type="button" class="btn btn-sm btn-ghost" onclick={() => manageDialog?.close()}>
 							close
 						</button>
+						{#if managing.canReflect}
+							<button
+								form="reflect-form"
+								class="btn btn-sm btn-accent"
+								disabled={savingReflection || reflectionDraft.trim() === (managing.clientReflection ?? '')}
+							>
+								{savingReflection ? 'saving…' : 'save notes'}
+							</button>
+						{/if}
 						{#if managing.cancelOutcome !== 'blocked'}
 							<button type="button" class="btn btn-sm btn-outline" disabled title="coming soon">
 								reschedule
@@ -305,7 +320,7 @@
 		{:else}
 			<div class="flex flex-col gap-2">
 				{#each data.bookingsPage.bookings as b (b.id)}
-					{@const badge = bookingBadge(b.status, b.startsAt)}
+					{@const badge = bookingBadge(b.status, b.startsAt, b.lateCancel)}
 					<button
 						type="button"
 						class="bg-base-200 border-base-300 hover:border-base-content/20 flex flex-col gap-2 rounded-field border p-3 text-left"

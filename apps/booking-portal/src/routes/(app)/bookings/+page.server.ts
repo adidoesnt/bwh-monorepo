@@ -93,7 +93,7 @@ const getTrainerData = async (userId: string, url: URL) => {
         upcoming: 0,
         awaitingAction: 0,
         history: 0,
-        filters: { requests: 0, to_close: 0, completed: 0, declined: 0, lapsed: 0 },
+        filters: { requests: 0, to_close: 0, completed: 0, declined: 0, cancelled: 0, lapsed: 0 },
       },
     };
   }

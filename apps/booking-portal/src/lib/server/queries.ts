@@ -292,15 +292,19 @@ export const getClientWeeklySessionCounts = async (clientId: string) => {
 export type BookingBucket = "upcoming" | "awaiting_action" | "history";
 
 /** Everything that's finished, from the client's side: any session whose start
- * has passed (bar a cancellation), plus declined requests whatever their date. */
+ * has passed, plus declined and cancelled bookings whatever their date. */
 const clientHistoryCondition = () =>
   or(
     and(
       inArray(booking.status, ["pending_approval", "confirmed", "completed"]),
       lt(booking.startsAt, new Date()),
     ),
-    eq(booking.status, "declined"),
+    inArray(booking.status, ["declined", "cancelled"]),
   );
+
+/** A cancellation that kept its session spent — a confirmed booking cancelled
+ * inside the window nets to −1 on the ledger; every other cancel nets to 0. */
+const lateCancelled = sql<boolean>`${booking.status} = 'cancelled' and coalesce((select sum(${sessionLedgerEntry.delta}) from ${sessionLedgerEntry} where ${sessionLedgerEntry.bookingId} = ${booking.id}), 0) < 0`;
 
 /** Status-and-date bucketing — see BOOKING-LIFECYCLE.md. */
 const bucketCondition = (bucket: BookingBucket) => {
@@ -343,6 +347,7 @@ export const getClientBookingsPage = async ({
       status: booking.status,
       clientNote: booking.clientNote,
       clientReflection: booking.clientReflection,
+      lateCancel: lateCancelled,
       coachName: user.name,
       purchaseId: booking.packagePurchaseId,
       packageName: packageOffering.name,
@@ -885,13 +890,14 @@ export type CoachBookingFilter =
   | "to_close"
   | "completed"
   | "declined"
+  | "cancelled"
   | "lapsed";
 
 /** The filter chips each tab offers; a tab with no filter shows them all. */
 export const COACH_BUCKET_FILTERS: Record<BookingBucket, CoachBookingFilter[]> = {
   upcoming: [],
   awaiting_action: ["requests", "to_close"],
-  history: ["completed", "declined", "lapsed"],
+  history: ["completed", "declined", "cancelled", "lapsed"],
 };
 
 /** A coach's version of the client's bucketing. A confirmed session that's
@@ -904,6 +910,7 @@ const coachFilterConditions = (): Record<CoachBookingFilter, SQL | undefined> =>
     to_close: and(eq(booking.status, "confirmed"), lt(booking.startsAt, now)),
     completed: eq(booking.status, "completed"),
     declined: eq(booking.status, "declined"),
+    cancelled: eq(booking.status, "cancelled"),
     lapsed: and(eq(booking.status, "pending_approval"), lt(booking.startsAt, now)),
   };
 };
@@ -948,6 +955,7 @@ export const getCoachBookingsPage = async ({
       ...coachBookingFields,
       purchaseId: booking.packagePurchaseId,
       packageName: packageOffering.name,
+      lateCancel: lateCancelled,
       totalCount: sql<number>`count(*) over()`.mapWith(Number),
     })
     .from(booking)
@@ -998,6 +1006,7 @@ export const getCoachBookingBucketCounts = async (
       to_close: countWhere(conditions.to_close),
       completed: countWhere(conditions.completed),
       declined: countWhere(conditions.declined),
+      cancelled: countWhere(conditions.cancelled),
       lapsed: countWhere(conditions.lapsed),
     })
     .from(booking)
@@ -1009,7 +1018,7 @@ export const getCoachBookingBucketCounts = async (
   return {
     upcoming,
     awaitingAction: filters.requests + filters.to_close,
-    history: filters.completed + filters.declined + filters.lapsed,
+    history: filters.completed + filters.declined + filters.cancelled + filters.lapsed,
     filters,
   };
 };

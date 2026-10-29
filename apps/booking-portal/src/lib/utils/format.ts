@@ -62,11 +62,15 @@ const STATUS_BADGE_CLASSES: Record<string, string> = {
 export const statusBadgeClass = (status: string) => STATUS_BADGE_CLASSES[status] ?? 'badge-warning';
 
 /** The badge for a booking row. A request whose start passed without an
- * answer reads "lapsed" rather than "awaiting approval". */
-export const bookingBadge = (status: string, startsAt: Date) =>
-	status === 'pending_approval' && startsAt.getTime() < Date.now()
-		? { label: 'lapsed', className: 'badge-ghost' }
-		: { label: statusLabel(status), className: statusBadgeClass(status) };
+ * answer reads "lapsed" rather than "awaiting approval"; a cancel that kept
+ * its session spent reads "late cancel". */
+export const bookingBadge = (status: string, startsAt: Date, lateCancel = false) => {
+	if (status === 'pending_approval' && startsAt.getTime() < Date.now()) {
+		return { label: 'lapsed', className: 'badge-ghost' };
+	}
+	if (lateCancel) return { label: 'late cancel', className: 'badge-ghost' };
+	return { label: statusLabel(status), className: statusBadgeClass(status) };
+};
 
 export const formatPriceCents = (cents: number | null) =>
 	cents === null ? null : `SG$${(cents / 100).toFixed(0)}`;

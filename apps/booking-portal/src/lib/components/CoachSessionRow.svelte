@@ -26,6 +26,7 @@
 		clientNote: string | null;
 		packageName?: string | null;
 		balance?: number | null;
+		lateCancel?: boolean;
 	};
 
 	let { session, zone }: { session: Session; zone: string } = $props();
@@ -33,7 +34,7 @@
 	const isPast = $derived(session.startsAt.getTime() < Date.now());
 	const isRequest = $derived(session.status === 'pending_approval' && !isPast);
 	const isToClose = $derived(session.status === 'confirmed' && isPast);
-	const badge = $derived(bookingBadge(session.status, session.startsAt));
+	const badge = $derived(bookingBadge(session.status, session.startsAt, session.lateCancel));
 
 	let submitting = $state(false);
 	let confirmDialog = $state<HTMLDialogElement>();

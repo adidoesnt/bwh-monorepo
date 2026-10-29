@@ -15,11 +15,12 @@
 		to_close: 'to close out',
 		completed: 'completed',
 		declined: 'declined',
+		cancelled: 'cancelled',
 		lapsed: 'lapsed'
 	};
 	const BUCKET_FILTERS: Record<string, (keyof typeof data.bucketCounts.filters)[]> = {
 		awaiting_action: ['requests', 'to_close'],
-		history: ['completed', 'declined', 'lapsed']
+		history: ['completed', 'declined', 'cancelled', 'lapsed']
 	};
 
 	const filters = $derived.by(() => {
